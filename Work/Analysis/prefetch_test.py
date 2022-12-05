@@ -171,7 +171,48 @@ class ReadAlignment(object):
             pos_list.append(self._fmi.sa_idx(i))
         
         self._pos[query] = sorted(pos_list)
+
+class PFEntry(object):
+    def __init__(self, pfUpdate):
+        if pfUpdate.patternCount == 0:
+            self.AFP_L = pfUpdate.actualidx_low
+            self.AFP_H = pfUpdate.actualidx_high
+            
+        self.P1_L = 0
+        self.P2_L = 0
+        self.R1_L = 0
+        self.R2_L = 0
+        self.Pos_L = 0
+        self.P1_H = 0
+        self.P2_H = 0
+        self.R1_H = 0
+        self.R2_H = 0
+        self.Pos_H = 0
+    
+    def update(self):
+        pass
         
+class PFUpdate(object):
+    def __init__(self):
+        self.suffix = ""
+        self.patternCount = 0
+        self.patternpos = 0
+        self.actualidx_low = 0
+        self.actualidx_high = 0
+        
+class Prefetcher(object):
+    def __init__(self):
+        self.entries = {}
+    
+    def update(self, pfUpdate):
+        if not pfUpdate.suffix in self.entries.keys():
+            self.entries[pfUpdate.suffix] = PFEntry(pfUpdate)
+        else:
+            self.entries[pfUpdate.suffix].update(pfUpdate)
+    
+    def prefetch(self):
+        pass
+    
 if __name__ == "__main__":
     
     fasts_file = r"C:\Swarnashri\Masters\TandonCourses\Thesis\Benchmarks\genomicsbench\InputData\fmi\sample\SRR7733443_1520_sample.fasts"
