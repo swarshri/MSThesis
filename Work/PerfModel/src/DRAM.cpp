@@ -2,8 +2,7 @@
 
 using namespace std;
 
-template <class dataType, class addressType>
-DRAM<dataType, addressType>::DRAM(string name, Config *config, bool readonly) {
+DRAM::DRAM(string name, Config *config, bool readonly) {
     this->id = name;
     this->readonly = readonly;
 
@@ -12,12 +11,10 @@ DRAM<dataType, addressType>::DRAM(string name, Config *config, bool readonly) {
     this->latencymin = config->parameters["LatencyMin"];
     this->latencymax = config->parameters["LatencyMax"];
     this->memsize = pow(2, config->parameters["AddressLength"]);
-    this->Data.resize(this->memsize);
-    memset(&this->Data[0], dataType(0), sizeof(this->Data[0]) * this->memsize);
+    this->MEM.resize(this->memsize);
 }
 
-template <class dataType, class addressType>
-void DRAM<dataType, addressType>::load(string ioDir) {
+void DRAM::load(string ioDir) {
     ifstream mem;
     string line;
     
@@ -29,18 +26,22 @@ void DRAM<dataType, addressType>::load(string ioDir) {
     if (mem.is_open()) {
         int i=0;
         while (getline(mem, line)) {
-            this->Data.at(i) = dataType(line);
+            this->MEM.at(i) = bitset<64>(line);
             i++;
         }
         mem.close();
+
+        while(i < this->memsize) {
+            this->MEM.at(i) = bitset<64>(0);
+            i++;
+        }
     }
     else cout<<"Unable to open input file for " << this->id << endl;
 }
 
-template<class dataType, class addressType>
-void DRAM<dataType, addressType>::Access(bool write, addressType address, dataType * data) {
+void DRAM::Access(bool write, bitset<32> address, bitset<64> data) {
     srand(time(NULL));
-    int randomLatency = (rand % this->latencymax) + this->latencymin;
+    int randomLatency = (rand() % this->latencymax) + this->latencymin;
     if (write) {
         if (this->readonly)
             cout << "WARNING: Attempt to write into a read-only memory: " << this->id << endl;
@@ -58,24 +59,22 @@ void DRAM<dataType, addressType>::Access(bool write, addressType address, dataTy
     }
 }
 
-template<class dataType, class addressType>
-bool DRAM<dataType, addressType>::isFree() {
+bool DRAM::isFree() {
     return !(this->readPending || this->writePending);
 }
 
-template<class dataType, class addressType>
-bool DRAM<dataType, addressType>::step() {
+bool DRAM::step() {
     if (this->readPending) {
         this->readWaitCycles--;
         if (this->readWaitCycles == 0) {
-            this->ReadData = this->MEM[this->nextReadAddress];
+            this->ReadData = this->MEM[this->nextReadAddress.to_ulong()];
             return true;
         }
     }
     else if (this->writePending) {
         this->writeWaitCycles--;
         if (this->writeWaitCycles == 0) {
-            this->MEM[this->nextWriteAddress] = this->nextWriteData;
+            this->MEM[this->nextWriteAddress.to_ulong()] = this->nextWriteData;
             return true;
         }
     }

@@ -7,37 +7,36 @@
 
 using namespace std;
 
-template <class dataType, class addressType>
 class DRAM {
     public:
         string id;
-        dataType ReadData;
+        bitset<64> ReadData;
 
         DRAM(string, Config *, bool);
         void load(string);
 
-        void Access(bool, addressType, dataType *);
+        void Access(bool, bitset<32>, bitset<64>);
         bool step();
 
         bool isFree();
 
     private:
-        vector<dataType> MEM;
+        vector<bitset<64>> MEM;
 
-        uint16_t addressibility;
-        uint16_t channelwidth;
-        uint16_t latencymin;
-        uint16_t latencymax;
+        int addressibility;
+        int channelwidth;
+        int latencymin;
+        int latencymax;
 
-        uint64_t memsize;
+        long int memsize;
         bool readonly;
 
-        addressType nextReadAddress;
-        uint16_t readWaitCycles;
+        bitset<32> nextReadAddress;
+        int readWaitCycles;
         bool readPending;
 
-        addressType nextWriteAddress;
-        dataType nextWriteData;
-        uint16_t writeWaitCycles;
+        bitset<32> nextWriteAddress;
+        bitset<64> nextWriteData;
+        int writeWaitCycles;
         bool writePending;
 };
