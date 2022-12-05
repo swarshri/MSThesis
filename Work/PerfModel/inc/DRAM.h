@@ -13,8 +13,8 @@ class DRAM {
         string id;
         dataType ReadData;
 
-        DRAM(string, Config *, bool) {};
-        void load(string) {};
+        DRAM(string, Config *, bool);
+        void load(string);
 
         void Access(bool, addressType, dataType *);
         bool step();

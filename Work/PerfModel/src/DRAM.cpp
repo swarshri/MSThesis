@@ -13,7 +13,7 @@ DRAM<dataType, addressType>::DRAM(string name, Config *config, bool readonly) {
     this->latencymax = config->parameters["LatencyMax"];
     this->memsize = pow(2, config->parameters["AddressLength"]);
     this->Data.resize(this->memsize);
-    memset(&this->Data[0], datatype(0), sizeof(this->Data[0]) * this->memsize);
+    memset(&this->Data[0], dataType(0), sizeof(this->Data[0]) * this->memsize);
 }
 
 template <class dataType, class addressType>
