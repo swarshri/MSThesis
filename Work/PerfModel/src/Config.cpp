@@ -18,26 +18,29 @@ string Config::get_name() {
     return this->id;
 }
 
-ConfigParser::ConfigParser(string path) {
-    this->confDir = path;
-}
-
 void ConfigParser::remove_whitespaces(string * strval) {
     list<char> to_find = {' ', '\t'};
     for (char c : to_find) {
         unsigned int pos = strval->find(c);
-        while (pos != string::npos) {
+        unsigned int size = strval->size();
+        while (pos < size) {
             strval->erase(pos, 1);
             pos = strval->find(c);
+            size = strval->size();
         }
     }
 }
 
-Config * ConfigParser::parse() {
+Config * ConfigParser::parse(string confDir) {
     ifstream config;
     string line;
     
-    string filepath = this->confDir + "\\Model.cfg";
+#ifdef _WIN32
+    string filepath = confDir + "\\Model.cfg";
+#else
+    string filepath = confDir + "Model.cfg";
+#endif
+    cout << "Parsing Config file: " << filepath << endl;
 
     Config * Model = new Config("Model");
     
@@ -45,10 +48,14 @@ Config * ConfigParser::parse() {
 
     if (config.is_open()) {
         Config * cfg = Model;
+
         stack<Config *> compStack;
         compStack.push(Model);
+
         while (getline(config, line)) {
+
             this->remove_whitespaces(&line);
+
             if (line.find('{') != string::npos) {
                 string cName = line.substr(0, line.find('{'));
                 cfg->add_children(cName);

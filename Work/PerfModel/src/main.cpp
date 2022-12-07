@@ -6,7 +6,6 @@
 #include<fstream>
 #include<iostream>
 
-#include<DRAM.h>
 #include<Core.h>
 
 using namespace std;
@@ -27,7 +26,7 @@ int main(int argc, char * argv[]) {
         cout << "IO Directory: " << ioDir << endl;
     }
 
-    Config * config = ConfigParser(confDir).parse();
+    Config * config = ConfigParser().parse(confDir);
 
     DRAM * SdMEM = new DRAM("SdMEM", config->children["SeedMemory"], false);
     SdMEM->load(ioDir);
@@ -35,6 +34,31 @@ int main(int argc, char * argv[]) {
     DRAM * OcMEM = new DRAM("OcMEM", config->children["OccMemory"], true);
     OcMEM->load(ioDir);
 
-    DRAM * SiMEM = new DRAM("SiMEM", config->children["SAIMemory"], true);
-    SiMEM->load(ioDir);
+    bool break_flag = false;
+    vector<bitset<64>> readData;
+
+    while (true) {
+        if (SdMEM->isFree())
+            SdMEM->readAccess(bitset<32>(0)); 
+
+        SdMEM->step();
+        if (SdMEM->readDone) {
+            readData = SdMEM->lastReadData;
+            SdMEM->readDone = false;
+            cout << "Read Data" << endl;
+            for (int i=0; i < 4; i++)
+                cout << "Data at " << i << " " << readData[i] << endl;
+
+            if (break_flag) break;
+
+            if (SdMEM->isFree())
+                SdMEM->writeAccess(bitset<32>(4), readData);
+        }
+        if (SdMEM->writeDone) {
+            if (SdMEM->isFree())
+                SdMEM->readAccess(bitset<32>(4));
+            SdMEM->writeDone = false;
+            break_flag = true;
+        }
+    }
 }

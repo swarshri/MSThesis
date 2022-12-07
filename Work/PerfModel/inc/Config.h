@@ -9,6 +9,9 @@
 
 using namespace std;
 
+#ifndef _Config_h
+#define _Config_h
+
 class Config {
     public:
         map<string, int> parameters;
@@ -27,11 +30,11 @@ class Config {
 class ConfigParser {
     public:
         string confDir;
-        
-        ConfigParser(string);
 
-        Config * parse();
+        Config * parse(string);
 
     private:
         void remove_whitespaces(string *);
 };
+
+#endif

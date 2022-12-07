@@ -7,16 +7,22 @@
 
 using namespace std;
 
+#ifndef _DRAM_h
+#define _DRAM_h
+
 class DRAM {
     public:
         string id;
-        bitset<64> ReadData;
+        vector<bitset<64>> lastReadData;
+        bool readDone = false;
+        bool writeDone = false;
 
         DRAM(string, Config *, bool);
         void load(string);
 
-        void Access(bool, bitset<32>, bitset<64>);
-        bool step();
+        void readAccess(bitset<32>);
+        void writeAccess(bitset<32>, vector<bitset<64>>);
+        void step();
 
         bool isFree();
 
@@ -36,7 +42,9 @@ class DRAM {
         bool readPending;
 
         bitset<32> nextWriteAddress;
-        bitset<64> nextWriteData;
+        vector<bitset<64>> nextWriteData;
         int writeWaitCycles;
         bool writePending;
 };
+
+#endif
