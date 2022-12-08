@@ -26,6 +26,8 @@ class DRAM {
 
         bool isFree();
 
+        int getChannelWidth();
+
     private:
         vector<bitset<64>> MEM;
 

@@ -10,19 +10,19 @@
 
 class Core {
     public:
+        bool halted = false;
         Core(string, string, Config *);
 
         void connect(DRAM *, DRAM *);
-
+        void step();
     private:
         string id;
         
-        bitset<64> RefCountReg;
+        bitset<32> RefCountReg;
         map<char, bitset<64>> CountReg;
         map<char, bitset<64>> OccFirstReg;
         map<char, bitset<64>> OccLastReg;
 
-        DRAM * SDMEM;
         DRAM * OCMEM;
 
         FetchUnit * FU;

@@ -87,6 +87,10 @@ bool DRAM::isFree() {
     return !(this->readPending || this->writePending);
 }
 
+int DRAM::getChannelWidth() {
+    return this->channelwidth;
+}
+
 void DRAM::step() {
     if (this->readPending) {
         this->readWaitCycles--;

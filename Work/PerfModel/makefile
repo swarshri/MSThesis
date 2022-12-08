@@ -7,7 +7,7 @@ OBJ := $(BIN)/obj
 CXX = g++
 CPPFLAGS := -g -O3 -Wall -std=c++11 -I $(INC)
 
-OBJS = $(OBJ)/main.o $(OBJ)/config.o $(OBJ)/dram.o $(OBJ)/fetch.o
+OBJS = $(OBJ)/main.o $(OBJ)/config.o $(OBJ)/dram.o $(OBJ)/fetch.o $(OBJ)/core.o 
 
 .PHONY: all clean
 
@@ -30,3 +30,6 @@ $(OBJ)/dram.o:
 
 $(OBJ)/fetch.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Fetch.cpp -o $(OBJ)/fetch.o
+
+$(OBJ)/core.o:
+	$(CXX) $(CPPFLAGS) -c $(SRC)/Core.cpp -o $(OBJ)/core.o
