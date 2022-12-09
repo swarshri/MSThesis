@@ -22,6 +22,8 @@ class SeedReservationStation {
         int numVacant();
         void populate(vector<bitset<64>>, bitset<32>);
 
+        void show();
+
     private:
         vector<SRSEntry> Entries;
         int numEntries;

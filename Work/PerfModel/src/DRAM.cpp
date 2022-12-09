@@ -13,8 +13,8 @@ DRAM::DRAM(string name, Config *config, bool readonly) {
     this->memsize = pow(2, config->parameters["AddressLength"]);
     this->MEM.resize(this->memsize);
 
-    this->lastReadData.resize(this->memsize);
-    this->nextWriteData.resize(this->memsize);
+    this->lastReadData.resize(this->channelwidth);
+    this->nextWriteData.resize(this->channelwidth);
 
     this->nextReadAddress = bitset<32>(0);
     this->readWaitCycles = 0;
@@ -57,7 +57,7 @@ void DRAM::load(string ioDir) {
 }
 
 void DRAM::readAccess(bitset<32> address) {
-    cout << "in readAccess." << endl;
+    cout << "in readAccess: " << address << endl;
     srand(time(NULL));
     int randomLatency = (rand() % (this->latencymax - this->latencymin)) + this->latencymin;
     cout << "randomLatency: " << randomLatency << endl;
@@ -68,7 +68,7 @@ void DRAM::readAccess(bitset<32> address) {
 }
 
 void DRAM::writeAccess(bitset<32> address, vector<bitset<64>> data) {
-    cout << "in writeAccess." << endl;
+    cout << "in writeAccess: " << address << endl;
     srand(time(NULL));
     int randomLatency = (rand() % (this->latencymax - this->latencymin)) + this->latencymin;
     cout << "randomLatency: " << randomLatency << endl;
@@ -84,7 +84,11 @@ void DRAM::writeAccess(bitset<32> address, vector<bitset<64>> data) {
 }
 
 bool DRAM::isFree() {
-    return !(this->readPending || this->writePending);
+    bool ret = true;
+    if (this->readPending || this->writePending)
+        ret = false;
+    cout << "ret in isFree(): " << ret << "\t";
+    return ret;
 }
 
 int DRAM::getChannelWidth() {
@@ -94,9 +98,11 @@ int DRAM::getChannelWidth() {
 void DRAM::step() {
     if (this->readPending) {
         this->readWaitCycles--;
+        cout << "read pending: " << this->readWaitCycles << endl;
         if (this->readWaitCycles == 0) {
             for (int i = 0; i < this->channelwidth; i++)
                 this->lastReadData[i] = this->MEM[this->nextReadAddress.to_ulong() + i];
+            cout << "reading done" << endl;
             this->readPending = false;
             this->readWaitCycles = 0;
             this->readDone = true;
