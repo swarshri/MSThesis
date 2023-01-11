@@ -8,10 +8,23 @@ Config::Config(string id) {
 
 void Config::add_parameters(string pName, int pVal) {
     this->parameters[pName] = pVal;
+    cout << "Added parameter: " << this->id << " " << pName  << " " << pVal << endl;
 }
 
 void Config::add_children(string cName) {
+    int pos = cName.find("Pipeline");
+    
+    if (pos < cName.size())
+        cName = cName.substr(0, pos);
     this->children[cName] = new Config(cName);
+    cout << "Added child: " << cName << endl;
+
+    if (pos < cName.size()) {
+        string pName = "Pipeline";
+        string basename = cName.substr(pos + 8, 1);
+        int pVal = (int) BaseMap[basename];
+        this->add_parameters(pName, pVal);
+    }
 }
 
 string Config::get_name() {
@@ -55,7 +68,7 @@ Config * ConfigParser::parse(string confDir) {
         while (getline(config, line)) {
 
             this->remove_whitespaces(&line);
-
+            cout << "line: " << line << endl;
             if (line.find('{') != string::npos) {
                 string cName = line.substr(0, line.find('{'));
                 cfg->add_children(cName);

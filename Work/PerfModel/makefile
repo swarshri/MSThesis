@@ -7,7 +7,7 @@ OBJ := $(BIN)/obj
 CXX = g++
 CPPFLAGS := -g -O3 -Wall -std=c++11 -I $(INC)
 
-OBJS = $(OBJ)/main.o $(OBJ)/config.o $(OBJ)/dram.o $(OBJ)/fetch.o $(OBJ)/core.o 
+OBJS = $(OBJ)/main.o $(OBJ)/config.o $(OBJ)/dram.o $(OBJ)/fetch.o $(OBJ)/dispatch.o $(OBJ)/core.o  $(OBJ)/queue.o
 
 .PHONY: all clean
 
@@ -31,5 +31,29 @@ $(OBJ)/dram.o:
 $(OBJ)/fetch.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Fetch.cpp -o $(OBJ)/fetch.o
 
+$(OBJ)/dispatch.o:
+	$(CXX) $(CPPFLAGS) -c $(SRC)/Dispatch.cpp -o $(OBJ)/dispatch.o
+
 $(OBJ)/core.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Core.cpp -o $(OBJ)/core.o
+
+$(OBJ)/queue.o:
+	$(CXX) $(CPPFLAGS) -c $(SRC)/Queue.cpp -o $(OBJ)/queue.o
+
+cleanO:
+	rm -r $(OBJ)
+	mkdir $(OBJ)
+
+cleanR:
+	rm -r $(RLS)
+	mkdir $(RLS)
+
+cleanD:
+	rm -r $(DBG)
+	mkdir $(DBG)
+
+cleanOD: cleanO cleanD
+
+cleanOR: cleanO cleanR
+
+clean: cleanO cleanR cleanD

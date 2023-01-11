@@ -4,7 +4,10 @@
 
 #include<Config.h>
 #include<DRAM.h>
+#include<Queue.h>
 
+#ifndef FETCH_H
+#define FETCH_H
 struct SRSEntry {
     bitset<32> SeedAddress;
     bitset<64> Seed;
@@ -12,7 +15,7 @@ struct SRSEntry {
     bitset<32> HighPointer;
     bitset<6> BasePointer;
     bool Ready = false;
-    bool Valid = false;
+    bool Empty = true;
 };
 
 class SeedReservationStation {
@@ -21,6 +24,15 @@ class SeedReservationStation {
 
         int numVacant();
         void populate(vector<bitset<64>>, bitset<32>);
+        void fill(bitset<6>, bitset<64>, bitset<32>);
+        pair<bool, bitset<6>> nextFreeEntry();
+        pair<int, SRSEntry> nextReadyEntry();
+        void setEmptyState(int);
+        void setScheduledForFetch(int);
+        void setReadyForDispatch(int);
+        void setDispatched(int);
+        void updateBasePointer(int);
+        bool isEmpty();
 
         void show();
 
@@ -28,7 +40,6 @@ class SeedReservationStation {
         vector<SRSEntry> Entries;
         int numEntries;
         bitset<32> refCount;
-        vector<unsigned int> nextFreeEntries;
 };
 
 class FetchUnit {
@@ -38,13 +49,25 @@ class FetchUnit {
         void step();
         void connect(DRAM *);
 
+        pair<int, SRSEntry> getNextReadyEntry();
+        void setInProgress(int);
+        void setEmptyState(int);
+        void setReadyState(int);
+        bool emptySRS();
+        void print();
+
+        bool halted;
+
     private:
         bitset<32> SeedPointer;
         bitset<32> NextSeedPointer;
-        vector<bitset<64>> Buffer;
+        Queue<bitset<6>> * FillIdxQueue;
         DRAM * SDMEM;
         SeedReservationStation * SRS;
 
         int bufferSize;
         int bufferPtr;
+
+        int cycle_count;
 };
+#endif

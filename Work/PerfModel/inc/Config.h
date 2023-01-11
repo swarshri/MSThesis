@@ -12,6 +12,15 @@ using namespace std;
 #ifndef _Config_h
 #define _Config_h
 
+typedef enum {
+    PL_A = 0,
+    PL_C = 1,
+    PL_G = 2,
+    PL_T = 3
+} BaseConfig;
+
+map<string, BaseConfig> BaseMap = {{"A", PL_A}, {"C", PL_C,}, {"G", PL_G}, {"T", PL_T}};
+
 class Config {
     public:
         map<string, int> parameters;

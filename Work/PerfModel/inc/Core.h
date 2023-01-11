@@ -7,6 +7,7 @@
 #include<Config.h>
 #include<DRAM.h>
 #include<Fetch.h>
+#include<Dispatch.h>
 
 class Core {
     public:
@@ -15,6 +16,7 @@ class Core {
 
         void connect(DRAM *, DRAM *);
         void step();
+        
     private:
         string id;
         
@@ -26,4 +28,5 @@ class Core {
         DRAM * OCMEM;
 
         FetchUnit * FU;
+        DispatchUnit * DU;
 };

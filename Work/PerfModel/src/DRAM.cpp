@@ -84,11 +84,7 @@ void DRAM::writeAccess(bitset<32> address, vector<bitset<64>> data) {
 }
 
 bool DRAM::isFree() {
-    bool ret = true;
-    if (this->readPending || this->writePending)
-        ret = false;
-    cout << "ret in isFree(): " << ret << "\t";
-    return ret;
+    return !(this->readPending || this->writePending);
 }
 
 int DRAM::getChannelWidth() {

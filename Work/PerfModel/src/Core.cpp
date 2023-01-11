@@ -39,13 +39,23 @@ Core::Core(string id, string ioDir, Config * config) {
     else cout<<"Unable to open input file for Core " << this->id << endl;
 
     this->FU = new FetchUnit(config->children["FetchUnit"], this->RefCountReg);
-};
+    this->DU = new DispatchUnit(config->children["DispatchUnit"]);
+
+    this->halted = false;
+}
 
 void Core::connect(DRAM * sdmem, DRAM * ocmem) {
     this->FU->connect(sdmem);
+    this->DU->connect(FU);
     this->OCMEM = ocmem;
 }
 
 void Core::step() {
-    this->FU->step();
+    if (!this->halted) {
+        this->DU->step();
+        this->FU->step();
+    }
+
+    if (this->FU->halted && this->DU->halted)
+        this->halted = true;
 }
