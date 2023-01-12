@@ -7,7 +7,7 @@ OBJ := $(BIN)/obj
 CXX = g++
 CPPFLAGS := -g -O3 -Wall -std=c++11 -I $(INC)
 
-OBJS = $(OBJ)/main.o $(OBJ)/config.o $(OBJ)/dram.o $(OBJ)/fetch.o $(OBJ)/dispatch.o $(OBJ)/core.o  $(OBJ)/queue.o
+OBJS = $(OBJ)/main.o $(OBJ)/config.o $(OBJ)/dram.o $(OBJ)/fetch.o $(OBJ)/dispatch.o $(OBJ)/core.o  $(OBJ)/queue.o $(OBJ)/rs.o
 
 .PHONY: all clean
 
@@ -39,6 +39,9 @@ $(OBJ)/core.o:
 
 $(OBJ)/queue.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Queue.cpp -o $(OBJ)/queue.o
+
+$(OBJ)/rs.o:
+	$(CXX) $(CPPFLAGS) -c $(SRC)/ReservationStation.cpp -o $(OBJ)/rs.o
 
 cleanO:
 	rm -r $(OBJ)

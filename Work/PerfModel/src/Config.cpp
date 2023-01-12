@@ -12,8 +12,7 @@ void Config::add_parameters(string pName, int pVal) {
 }
 
 void Config::add_children(string cName) {
-    int pos = cName.find("Pipeline");
-    
+    unsigned int pos = cName.find("Pipeline");
     if (pos < cName.size())
         cName = cName.substr(0, pos);
     this->children[cName] = new Config(cName);
@@ -22,7 +21,7 @@ void Config::add_children(string cName) {
     if (pos < cName.size()) {
         string pName = "Pipeline";
         string basename = cName.substr(pos + 8, 1);
-        int pVal = (int) BaseMap[basename];
+        int pVal = (int) this->BaseMap[basename];
         this->add_parameters(pName, pVal);
     }
 }

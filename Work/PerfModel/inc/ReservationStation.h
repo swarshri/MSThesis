@@ -3,16 +3,23 @@
 
 #include <Config.h>
 
-template <typename EntryType, typename InputType>
+#ifndef RS_H
+#define RS_H
+
+struct RSEntry {
+    bool Ready;
+    bool Empty;
+};
+
+template <typename EntryType>
 class ReservationStation {
     public:
-        ReservationStation(Config *, bitset<32>);
+        ReservationStation(Config *);
 
         int numVacant();
-        void populate(vector<bitset<64>>, bitset<32>);
-        void fill(bitset<6>, bitset<64>, bitset<32>);
-        pair<bool, bitset<6>> nextFreeEntry();
-        pair<int, SRSEntry> nextReadyEntry();
+        void fill(bitset<6>, EntryType);
+        int nextFreeEntry();
+        pair<int, EntryType> nextReadyEntry();
         void setEmptyState(int);
         void setScheduledForFetch(int);
         void setReadyForDispatch(int);
@@ -23,7 +30,9 @@ class ReservationStation {
         void show();
 
     private:
-        vector<SRSEntry> Entries;
+        vector<EntryType> Entries;
         int numEntries;
-        bitset<32> refCount;
 };
+
+#include <../src/ReservationStation.cpp>
+#endif

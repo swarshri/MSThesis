@@ -5,41 +5,17 @@
 #include<Config.h>
 #include<DRAM.h>
 #include<Queue.h>
+#include<ReservationStation.h>
 
 #ifndef FETCH_H
 #define FETCH_H
-struct SRSEntry {
+
+struct SRSEntry:RSEntry {
     bitset<32> SeedAddress;
     bitset<64> Seed;
     bitset<32> LowPointer;
     bitset<32> HighPointer;
     bitset<6> BasePointer;
-    bool Ready = false;
-    bool Empty = true;
-};
-
-class SeedReservationStation {
-    public:
-        SeedReservationStation(Config *, bitset<32>);
-
-        int numVacant();
-        void populate(vector<bitset<64>>, bitset<32>);
-        void fill(bitset<6>, bitset<64>, bitset<32>);
-        pair<bool, bitset<6>> nextFreeEntry();
-        pair<int, SRSEntry> nextReadyEntry();
-        void setEmptyState(int);
-        void setScheduledForFetch(int);
-        void setReadyForDispatch(int);
-        void setDispatched(int);
-        void updateBasePointer(int);
-        bool isEmpty();
-
-        void show();
-
-    private:
-        vector<SRSEntry> Entries;
-        int numEntries;
-        bitset<32> refCount;
 };
 
 class FetchUnit {
@@ -61,9 +37,10 @@ class FetchUnit {
     private:
         bitset<32> SeedPointer;
         bitset<32> NextSeedPointer;
+        bitset<32> RefCount;
         Queue<bitset<6>> * FillIdxQueue;
         DRAM * SDMEM;
-        SeedReservationStation * SRS;
+        ReservationStation<SRSEntry> * SRS;
 
         int bufferSize;
         int bufferPtr;

@@ -1,90 +1,8 @@
 #include<Fetch.h>
 
-SeedReservationStation::SeedReservationStation(Config * config, bitset<32> refCount) {
-    this->numEntries = config->parameters["EntryCount"];
-    this->Entries.resize(this->numEntries);
-    this->refCount = refCount;
-}
-
-void SeedReservationStation::fill(bitset<6> idx, bitset<64> seed, bitset<32> seedaddress) {
-    int indx = idx.to_ulong();
-    this->Entries[indx].SeedAddress = seedaddress;
-    this->Entries[indx].Seed = seed;
-    this->Entries[indx].LowPointer = bitset<32>(0);
-    this->Entries[indx].HighPointer = this->refCount;
-    this->Entries[indx].BasePointer = bitset<6>(0);
-    this->Entries[indx].Ready = true;
-    this->Entries[indx].Empty = false;
-}
-
-pair<bool, bitset<6>> SeedReservationStation::nextFreeEntry() {
-    for (int i = 0; i < this->numEntries; i++) {
-        if (this->Entries[i].Empty && !this->Entries[i].Ready) {
-            this->Entries[i].Ready = true;
-            return pair<bool, bitset<6>>(true, bitset<6>(i));
-        }
-    }
-    return pair<bool, bitset<6>>(false, bitset<6>(0));
-}
-
-pair<int, SRSEntry> SeedReservationStation::nextReadyEntry() {
-    for (int i = 0; i < this->numEntries; i++) {
-        // cout << "NextReadyEntry: " << i << endl;
-        // cout << "Entry.Empty: " << this->Entries[i].Empty;
-        // cout << "Entry.Ready: " << this->Entries[i].Ready;
-        if (!this->Entries[i].Empty && this->Entries[i].Ready) {
-            return pair<int, SRSEntry>(i, this->Entries[i]);
-        }
-    }
-    return pair<int, SRSEntry>(-1, *(new SRSEntry));
-}
-
-void SeedReservationStation::setEmptyState(int idx) {
-    this->Entries[idx].Empty = true;
-    this->Entries[idx].Ready = false;
-}
-
-void SeedReservationStation::setScheduledForFetch(int idx) {
-    this->Entries[idx].Empty = true;
-    this->Entries[idx].Ready = true;
-}
-
-void SeedReservationStation::setReadyForDispatch(int idx) {
-    this->Entries[idx].Empty = false;
-    this->Entries[idx].Ready = true;
-}
-
-void SeedReservationStation::setDispatched(int idx) {
-    this->Entries[idx].Empty = false;
-    this->Entries[idx].Ready = false;
-}
-
-void SeedReservationStation::updateBasePointer(int idx) {
-    this->Entries[idx].BasePointer = bitset<6>(this->Entries[idx].BasePointer.to_ulong() + 3);
-}
-
-bool SeedReservationStation::isEmpty() {
-    for (auto entry = this->Entries.begin(); entry != this->Entries.end(); entry++) {
-        if (!(*entry).Empty || (*entry).Ready)
-            return false;
-    }
-    return true;
-}
-
-void SeedReservationStation::show() {
-    cout << "=================================================================================================================" << endl;
-    cout << "Idx\t Seed Address\t\t\t\t Seed\t\t\t\t\t\t\t\t\t Low Pointer\t\t\t\t High Pointer\t\t\t\t Base Pointer\t Ready\t Valid" << endl;
-    cout << "---------------------------------------------------------------------------------------------------------------------------------------------";
-    cout << "------------------------------------------------------------------------------------------------" << endl;
-    int i = 0;
-    for (auto entry: this->Entries) {
-        cout << i << '\t' << entry.SeedAddress << '\t' << entry.Seed << '\t' << entry.LowPointer << '\t' << entry.HighPointer << '\t' <<  entry.BasePointer << "\t\t" << entry.Ready << '\t' << entry.Empty << endl;
-        i++;
-    }
-}
-
 FetchUnit::FetchUnit(Config * config, bitset<32> refCount) {
     this->NextSeedPointer = bitset<32>(0);
+    this->RefCount = refCount;
 
     this->FillIdxQueue = new Queue<bitset<6>>("Fetch_FillIdxQ", config->children["FillIdxQ"]);
     this->FillIdxQueue->push(bitset<6>(0));
@@ -92,7 +10,7 @@ FetchUnit::FetchUnit(Config * config, bitset<32> refCount) {
     this->FillIdxQueue->push(bitset<6>(2));
     this->FillIdxQueue->push(bitset<6>(3));
 
-    this->SRS = new SeedReservationStation(config->children["SeedReservationStation"], refCount);
+    this->SRS = new ReservationStation<SRSEntry>(config->children["SeedReservationStation"]);
     this->SRS->setScheduledForFetch(0);
     this->SRS->setScheduledForFetch(1);
     this->SRS->setScheduledForFetch(2);
@@ -123,7 +41,15 @@ void FetchUnit::step() {
                 }
                 else {
                     int nextIdx = this->FillIdxQueue->pop().to_ulong();
-                    this->SRS->fill(bitset<6>(nextIdx), nextReadData, bitset<32>(this->SeedPointer.to_ulong() + i));
+                    SRSEntry newSRSEntry;
+                    newSRSEntry.SeedAddress = bitset<32>(this->SeedPointer.to_ulong() + i);
+                    newSRSEntry.Seed = nextReadData;
+                    newSRSEntry.LowPointer = bitset<32>(0);
+                    newSRSEntry.HighPointer = this->RefCount;
+                    newSRSEntry.BasePointer = bitset<6>(0);
+                    newSRSEntry.Ready = true;
+                    newSRSEntry.Empty = false;
+                    this->SRS->fill(bitset<6>(nextIdx), newSRSEntry);
                 }
             }
             this->SDMEM->readDone = false;
@@ -139,14 +65,14 @@ void FetchUnit::step() {
             }
         }
         else if (!this->FillIdxQueue->isFull()) {
-            pair<bool, bitset<6>> nfe = this->SRS->nextFreeEntry();
-            if (nfe.first) {
-                this->FillIdxQueue->push(nfe.second);
-                this->SRS->setScheduledForFetch(nfe.second.to_ulong());
+            int nextFreeEntry = this->SRS->nextFreeEntry();
+            cout << "Fetch: " << nextFreeEntry << endl;
+            if (nextFreeEntry != -1) {
+                this->FillIdxQueue->push(nextFreeEntry);
+                this->SRS->setScheduledForFetch(nextFreeEntry);
             }
             this->FillIdxQueue->print();
-        }
-        
+        }        
         this->cycle_count++;
     }
 }
