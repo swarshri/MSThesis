@@ -12,17 +12,16 @@ void Config::add_parameters(string pName, int pVal) {
 }
 
 void Config::add_children(string cName) {
+    cout << "In Here." << endl;
     unsigned int pos = cName.find("Pipeline");
-    if (pos < cName.size())
-        cName = cName.substr(0, pos);
     this->children[cName] = new Config(cName);
-    cout << "Added child: " << cName << endl;
+    cout << "Added child: " << this->children[cName]->get_name() << endl;
 
     if (pos < cName.size()) {
         string pName = "Pipeline";
         string basename = cName.substr(pos + 8, 1);
         int pVal = (int) this->BaseMap[basename];
-        this->add_parameters(pName, pVal);
+        this->children[cName]->add_parameters(pName, pVal);
     }
 }
 
@@ -65,7 +64,6 @@ Config * ConfigParser::parse(string confDir) {
         compStack.push(Model);
 
         while (getline(config, line)) {
-
             this->remove_whitespaces(&line);
             cout << "line: " << line << endl;
             if (line.find('{') != string::npos) {

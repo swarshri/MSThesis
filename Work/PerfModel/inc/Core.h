@@ -8,6 +8,7 @@
 #include<DRAM.h>
 #include<Fetch.h>
 #include<Dispatch.h>
+#include<Reserve.h>
 
 class Core {
     public:
@@ -29,4 +30,5 @@ class Core {
 
         FetchUnit * FU;
         DispatchUnit * DU;
+        ReserveUnit * RU;
 };

@@ -11,12 +11,12 @@
 template <typename DataType>
 class Queue {
     public:
-        Queue(string, Config *);
+        Queue(Config *);
 
         void push(DataType);
         DataType pop();
 
-        int getCount();
+        unsigned int getCount();
         bool isEmpty();
         bool isFull();
 

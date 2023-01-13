@@ -40,18 +40,21 @@ Core::Core(string id, string ioDir, Config * config) {
 
     this->FU = new FetchUnit(config->children["FetchUnit"], this->RefCountReg);
     this->DU = new DispatchUnit(config->children["DispatchUnit"]);
+    this->RU = new ReserveUnit(config->children["ReserveUnitPipelineA"], &coremem);
 
     this->halted = false;
 }
 
 void Core::connect(DRAM * sdmem, DRAM * ocmem) {
     this->FU->connect(sdmem);
-    this->DU->connect(FU);
+    this->DU->connect(this->FU);
+    this->RU->connect(this->DU);
     this->OCMEM = ocmem;
 }
 
 void Core::step() {
     if (!this->halted) {
+        this->RU->step();
         this->DU->step();
         this->FU->step();
     }

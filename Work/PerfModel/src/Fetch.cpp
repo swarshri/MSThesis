@@ -4,17 +4,17 @@ FetchUnit::FetchUnit(Config * config, bitset<32> refCount) {
     this->NextSeedPointer = bitset<32>(0);
     this->RefCount = refCount;
 
-    this->FillIdxQueue = new Queue<bitset<6>>("Fetch_FillIdxQ", config->children["FillIdxQ"]);
+    this->FillIdxQueue = new Queue<bitset<6>>(config->children["FillIdxQ"]);
     this->FillIdxQueue->push(bitset<6>(0));
     this->FillIdxQueue->push(bitset<6>(1));
     this->FillIdxQueue->push(bitset<6>(2));
     this->FillIdxQueue->push(bitset<6>(3));
 
     this->SRS = new ReservationStation<SRSEntry>(config->children["SeedReservationStation"]);
-    this->SRS->setScheduledForFetch(0);
-    this->SRS->setScheduledForFetch(1);
-    this->SRS->setScheduledForFetch(2);
-    this->SRS->setScheduledForFetch(3);
+    this->SRS->setScheduledState(0);
+    this->SRS->setScheduledState(1);
+    this->SRS->setScheduledState(2);
+    this->SRS->setScheduledState(3);
 
     this->cycle_count = 0;
     this->halted = false;
@@ -31,11 +31,10 @@ void FetchUnit::step() {
                 bitset<64> nextReadData = this->SDMEM->lastReadData[i];
                 if (nextReadData.count() == 64) {
                     this->halted = true;
+                    cout << "Fetch Halted: " << endl;
                     while(!this->FillIdxQueue->isEmpty()) {
                         int idx = this->FillIdxQueue->pop().to_ulong();
                         this->SRS->setEmptyState(idx);
-                        cout << "Fetch Halted: " << endl;
-                        this->SRS->show();
                     }
                     break;
                 }
@@ -69,7 +68,7 @@ void FetchUnit::step() {
             cout << "Fetch: " << nextFreeEntry << endl;
             if (nextFreeEntry != -1) {
                 this->FillIdxQueue->push(nextFreeEntry);
-                this->SRS->setScheduledForFetch(nextFreeEntry);
+                this->SRS->setScheduledState(nextFreeEntry);
             }
             this->FillIdxQueue->print();
         }        
@@ -82,7 +81,7 @@ pair<int, SRSEntry> FetchUnit::getNextReadyEntry() {
 }
 
 void FetchUnit::setInProgress(int idx) {
-    this->SRS->setDispatched(idx);
+    this->SRS->setWaitingState(idx);
     this->SRS->updateBasePointer(idx);
 }
 
@@ -91,7 +90,7 @@ void FetchUnit::setEmptyState(int idx) {
 }
 
 void FetchUnit::setReadyState(int idx) {
-    this->SRS->setReadyForDispatch(idx);
+    this->SRS->setReadyState(idx);
 }
 
 bool FetchUnit::emptySRS() {

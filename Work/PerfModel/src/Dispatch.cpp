@@ -10,7 +10,7 @@ DispatchUnit::DispatchUnit(Config* config) {
     map<int, string> baseQName = {{0, "AQ"}, {1, "CQ"}, {2, "GQ"}, {3, "TQ"}};
     for (int i = 0; i < 4; i++) {
         Config * cfg = config->children[baseQName[i]];
-        this->DispatchQueues[i] = new Queue<DispatchEntry>("Dispatch" + baseQName[i], cfg);
+        this->DispatchQueues[i] = new Queue<DispatchEntry>(cfg);
     }
 }
 
@@ -61,12 +61,12 @@ void DispatchUnit::dispatchSequential(int count) {
     }
 
     // FOLLOWING LINES OF CODE are to be REMOVED - TBI
-    for (int i = 0; i < 4; i++) {
-        if (!this->DispatchQueues[i]->isEmpty()) {
-            DispatchEntry de = this->DispatchQueues[i]->pop();
-            this->coreFU->setReadyState(de.SRSWBIndex.to_ulong());
-        }
-    }
+    // for (int i = 0; i < 4; i++) {
+    //     if (!this->DispatchQueues[i]->isEmpty()) {
+    //         DispatchEntry de = this->DispatchQueues[i]->pop();
+    //         this->coreFU->setReadyState(de.SRSWBIndex.to_ulong());
+    //     }
+    // }
     // ABOVE LINES OF CODE are to be REMOVED - DEBUG Code to halt in the absence of next stages in pipeline.
 }
 

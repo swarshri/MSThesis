@@ -16,6 +16,15 @@ struct SRSEntry:RSEntry {
     bitset<32> LowPointer;
     bitset<32> HighPointer;
     bitset<6> BasePointer;
+
+    friend std::ostream& operator <<(std::ostream& os, SRSEntry const& e)
+    {
+        return os << e.SeedAddress << "\t"
+                  << e.Seed << "\t"
+                  << e.LowPointer << "\t"
+                  << e.HighPointer << "\t"
+                  << e.BasePointer;
+    }
 };
 
 class FetchUnit {
@@ -40,7 +49,7 @@ class FetchUnit {
         bitset<32> RefCount;
         Queue<bitset<6>> * FillIdxQueue;
         DRAM * SDMEM;
-        ReservationStation<SRSEntry> * SRS;
+        ReservationStation<SRSEntry> * SRS; // SeedReservationStation
 
         int bufferSize;
         int bufferPtr;

@@ -1,9 +1,9 @@
 #include <iostream>
-#include <pair>
 
 #include <Config.h>
 #include <Queue.h>
 #include <Dispatch.h>
+#include <ReservationStation.h>
 
 struct LoadQueueEntry {
     bitset<32> OccMemoryAddress;
@@ -20,25 +20,13 @@ struct ComputeQueueEntry {
     bitset<6> SRSWBIndex;
 };
 
-struct ReservationStationEntry {
+struct CRSEntry:RSEntry {
     bitset<64> Count;
     bitset<64> LowOcc;
     bool LowOccReady;
     bitset<64> HighOcc;
     bool HighOccReady;
     bitset<6> SRSWBIndex;
-};
-
-class ReservationStation {
-    public:
-        ReservationStation(Config *);
-
-        pair<bool, ReservationStationBuffer> 
-
-    private:
-        int cycle_count;
-        
-        vector<ReservationStationEntry> Buffer;
 };
 
 class MemoryBuffer {
@@ -48,7 +36,7 @@ class MemoryBuffer {
     private:
         int cycle_count;
 
-        Queue<MemoryBufferEntry> * MBQueue;
+        Queue<LoadQueueEntry> * MBQueue;
 };
 
 class ComputeBuffer {
@@ -70,7 +58,6 @@ class LoadUnit {
         int cycle_count;
         bool halted;
         int base;
-        int reference_count;
         bitset<32> RefCount;
         bitset<64> CountReg;
         bitset<64> OccFirstValReg;
@@ -78,7 +65,7 @@ class LoadUnit {
 
         DispatchUnit * coreDU;
 
-        Queue<MemoryBufferEntry> * MemoryQueue;
-        Queue<ComputeBufferEntry> * ComputeQueue;
-        vector<ReservationStationEntry> * ReservationBuffer;
+        Queue<LoadQueueEntry> * MemoryQueue;
+        Queue<ComputeQueueEntry> * ComputeQueue;
+        ReservationStation<CRSEntry> * CRS; // ComputeReservationStation
 };

@@ -4,9 +4,9 @@
 #define QUEUE_DEF
 
 template <typename DataType>
-Queue<DataType>::Queue(string name, Config * config) {
+Queue<DataType>::Queue(Config * config) {
     cout << "4" << endl;
-    this->id = name;
+    this->id = config->get_name();
     this->size = (uint8_t)config->parameters["Size"];
     // cout << "Queue: " << this->id << "\t" << "Size: " << this->size << endl;
     this->registers.resize(this->size);
@@ -51,7 +51,7 @@ DataType Queue<DataType>::pop() {
 }
 
 template <typename DataType>
-int Queue<DataType>::getCount() {
+unsigned int Queue<DataType>::getCount() {
     return this->count;
 }
 

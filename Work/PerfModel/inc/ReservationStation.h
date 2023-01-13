@@ -21,9 +21,9 @@ class ReservationStation {
         int nextFreeEntry();
         pair<int, EntryType> nextReadyEntry();
         void setEmptyState(int);
-        void setScheduledForFetch(int);
-        void setReadyForDispatch(int);
-        void setDispatched(int);
+        void setScheduledState(int);
+        void setReadyState(int);
+        void setWaitingState(int);
         void updateBasePointer(int);
         bool isEmpty();
 

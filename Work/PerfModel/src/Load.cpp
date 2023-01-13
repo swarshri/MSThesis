@@ -29,7 +29,8 @@ void LoadUnit::step() {
             bitset<64> OccHighVal;
             bool computeReady = true;
             bool olComputeReady = true;
-            bool ohComputeReady = true;
+            bool ohCompsuteReady = true;
+            CRSEntry newCRSEntry;
             if (currentDispatch.second.Low == bitset<32>(0))
                 OccLowVal = bitset<64>(0);
             else if (currentDispatch.second.Low == this->RefCount)
@@ -41,6 +42,8 @@ void LoadUnit::step() {
                 newLoadRequest.OccMemoryAddress = currentDispatch.second.Low;
                 newLoadRequest.SRSWBIndex = currentDispatch.second.SRSWBIndex;
             }
+
+
 
 
         }

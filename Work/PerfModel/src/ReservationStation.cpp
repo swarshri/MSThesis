@@ -43,19 +43,19 @@ void ReservationStation<EntryType>::setEmptyState(int idx) {
 }
 
 template <typename EntryType>
-void ReservationStation<EntryType>::setScheduledForFetch(int idx) {
+void ReservationStation<EntryType>::setScheduledState(int idx) {
     this->Entries[idx].Empty = true;
     this->Entries[idx].Ready = true;
 }
 
 template <typename EntryType>
-void ReservationStation<EntryType>::setReadyForDispatch(int idx) {
+void ReservationStation<EntryType>::setReadyState(int idx) {
     this->Entries[idx].Empty = false;
     this->Entries[idx].Ready = true;
 }
 
 template <typename EntryType>
-void ReservationStation<EntryType>::setDispatched(int idx) {
+void ReservationStation<EntryType>::setWaitingState(int idx) {
     this->Entries[idx].Empty = false;
     this->Entries[idx].Ready = false;
 }
@@ -77,12 +77,12 @@ bool ReservationStation<EntryType>::isEmpty() {
 template <typename EntryType>
 void ReservationStation<EntryType>::show() {
     cout << "=================================================================================================================" << endl;
-    cout << "Idx\t Seed Address\t\t\t\t Seed\t\t\t\t\t\t\t\t\t Low Pointer\t\t\t\t High Pointer\t\t\t\t Base Pointer\t Ready\t Valid" << endl;
-    cout << "---------------------------------------------------------------------------------------------------------------------------------------------";
-    cout << "------------------------------------------------------------------------------------------------" << endl;
+    // cout << "Idx\t Seed Address\t\t\t\t Seed\t\t\t\t\t\t\t\t\t Low Pointer\t\t\t\t High Pointer\t\t\t\t Base Pointer\t Ready\t Valid" << endl;
+    // cout << "---------------------------------------------------------------------------------------------------------------------------------------------";
+    // cout << "------------------------------------------------------------------------------------------------" << endl;
     int i = 0;
     for (auto entry: this->Entries) {
-        cout << i << '\t' << entry.SeedAddress << '\t' << entry.Seed << '\t' << entry.LowPointer << '\t' << entry.HighPointer << '\t' <<  entry.BasePointer << "\t\t" << entry.Ready << '\t' << entry.Empty << endl;
+        cout << i << '\t' << entry << "\t\t" << entry.Ready << '\t' << entry.Empty << endl;
         i++;
     }
 }

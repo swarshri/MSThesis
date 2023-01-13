@@ -6,6 +6,9 @@
 #include <Queue.h>
 #include <Fetch.h>
 
+#ifndef DISP_H
+#define DISP_H
+
 enum DispatchScheme {
     SEQ1PE = 0,
     PAR4PE = 1
@@ -44,3 +47,5 @@ class DispatchUnit {
 
         void dispatchSequential(int);
 };
+
+#endif
