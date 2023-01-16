@@ -7,21 +7,22 @@
 
 using namespace std;
 
-#ifndef _DRAM_h
-#define _DRAM_h
+#ifndef DRAM_H
+#define DRAM_H
 
+template <typename AddressType, typename DataType>
 class DRAM {
     public:
         string id;
-        vector<bitset<64>> lastReadData;
+        vector<DataType> lastReadData;
         bool readDone = false;
         bool writeDone = false;
 
         DRAM(string, Config *, bool);
         void load(string);
 
-        void readAccess(bitset<32>);
-        void writeAccess(bitset<32>, vector<bitset<64>>);
+        void readAccess(AddressType);
+        void writeAccess(AddressType, vector<DataType>);
         void step();
 
         bool isFree();
@@ -29,7 +30,7 @@ class DRAM {
         int getChannelWidth();
 
     private:
-        vector<bitset<64>> MEM;
+        vector<DataType> MEM;
 
         int addressibility;
         int channelwidth;
@@ -39,14 +40,15 @@ class DRAM {
         long int memsize;
         bool readonly;
 
-        bitset<32> nextReadAddress;
+        AddressType nextReadAddress;
         int readWaitCycles;
         bool readPending;
 
-        bitset<32> nextWriteAddress;
-        vector<bitset<64>> nextWriteData;
+        AddressType nextWriteAddress;
+        vector<DataType> nextWriteData;
         int writeWaitCycles;
         bool writePending;
 };
 
+#include <../src/DRAM.cpp>
 #endif

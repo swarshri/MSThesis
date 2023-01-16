@@ -39,22 +39,51 @@ Core::Core(string id, string ioDir, Config * config) {
     else cout<<"Unable to open input file for Core " << this->id << endl;
 
     this->FU = new FetchUnit(config->children["FetchUnit"], this->RefCountReg);
+
     this->DU = new DispatchUnit(config->children["DispatchUnit"]);
-    this->RU = new ReserveUnit(config->children["ReserveUnitPipelineA"], &coremem);
+    this->DU->connect(this->FU);
+
+    this->RUA = new ReserveUnit(config->children["ReserveUnitPipelineA"], &coremem);
+    this->RUA->connect(this->DU);
+    this->CUA = new ComputeUnit(config->children["ComputeUnit"]);
+    this->CUA->connect(this->RUA, this->FU);
+
+    this->RUC = new ReserveUnit(config->children["ReserveUnitPipelineC"], &coremem);
+    this->RUC->connect(this->DU);
+    this->CUC = new ComputeUnit(config->children["ComputeUnit"]);
+    this->CUC->connect(this->RUC, this->FU);
+
+    this->RUG = new ReserveUnit(config->children["ReserveUnitPipelineG"], &coremem);
+    this->RUG->connect(this->DU);
+    this->CUG = new ComputeUnit(config->children["ComputeUnit"]);
+    this->CUG->connect(this->RUG, this->FU);
+
+    this->RUT = new ReserveUnit(config->children["ReserveUnitPipelineT"], &coremem);
+    this->RUT->connect(this->DU);
+    this->CUT = new ComputeUnit(config->children["ComputeUnit"]);
+    this->CUT->connect(this->RUT, this->FU);
 
     this->halted = false;
 }
 
-void Core::connect(DRAM * sdmem, DRAM * ocmem) {
+void Core::connect(DRAM<bitset<32>, bitset<64>> * sdmem, DRAM<bitset<32>, bitset<64>> * ocmem) {
     this->FU->connect(sdmem);
-    this->DU->connect(this->FU);
-    this->RU->connect(this->DU);
+
     this->OCMEM = ocmem;
 }
 
 void Core::step() {
     if (!this->halted) {
-        this->RU->step();
+        this->CUA->step();
+        this->CUC->step();
+        this->CUG->step();
+        this->CUT->step();
+
+        this->RUA->step();
+        this->RUC->step();
+        this->RUG->step();
+        this->RUT->step();
+        
         this->DU->step();
         this->FU->step();
     }

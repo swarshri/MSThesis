@@ -1,5 +1,27 @@
 #include<Fetch.h>
 
+SeedReservationStation::SeedReservationStation(Config * config)
+: ReservationStation<SRSEntry>(config) {
+    for (auto entry = this->Entries.begin(); entry != this->Entries.end(); entry++)
+        (*entry).StoreFlag = false;
+}
+
+void SeedReservationStation::updateBasePointer(int idx) {
+    this->Entries[idx].BasePointer = bitset<6>(this->Entries[idx].BasePointer.to_ulong() + 3);
+}
+
+void SeedReservationStation::setStoreFlag(int idx) {
+    this->Entries[idx].StoreFlag = true;
+}
+
+void SeedReservationStation::updateLowPointer(int idx, bitset<32> val) {
+    this->Entries[idx].LowPointer = val;
+}
+
+void SeedReservationStation::updateHighPointer(int idx, bitset<32> val) {
+    this->Entries[idx].HighPointer = val;
+}
+
 FetchUnit::FetchUnit(Config * config, bitset<32> refCount) {
     this->NextSeedPointer = bitset<32>(0);
     this->RefCount = refCount;
@@ -10,7 +32,7 @@ FetchUnit::FetchUnit(Config * config, bitset<32> refCount) {
     this->FillIdxQueue->push(bitset<6>(2));
     this->FillIdxQueue->push(bitset<6>(3));
 
-    this->SRS = new ReservationStation<SRSEntry>(config->children["SeedReservationStation"]);
+    this->SRS = new SeedReservationStation(config->children["SeedReservationStation"]);
     this->SRS->setScheduledState(0);
     this->SRS->setScheduledState(1);
     this->SRS->setScheduledState(2);
@@ -20,7 +42,7 @@ FetchUnit::FetchUnit(Config * config, bitset<32> refCount) {
     this->halted = false;
 }
 
-void FetchUnit::connect(DRAM * sdmem) {
+void FetchUnit::connect(DRAM<bitset<32>, bitset<64>> * sdmem) {
     this->SDMEM =  sdmem;
 }
 
@@ -91,6 +113,15 @@ void FetchUnit::setEmptyState(int idx) {
 
 void FetchUnit::setReadyState(int idx) {
     this->SRS->setReadyState(idx);
+}
+
+void FetchUnit::writeBack(int idx, bitset<32> lowVal, bitset<32> highVal) {
+    this->SRS->updateLowPointer(idx, lowVal);
+    this->SRS->updateHighPointer(idx, highVal);
+}
+
+void FetchUnit::setStoreFlag(int idx) {
+    this->SRS->setStoreFlag(idx);
 }
 
 bool FetchUnit::emptySRS() {

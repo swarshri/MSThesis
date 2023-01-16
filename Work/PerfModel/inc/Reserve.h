@@ -5,17 +5,17 @@
 #include <Dispatch.h>
 #include <ReservationStation.h>
 
+#ifndef RES_H
+#define RES_H
+
 struct LRSEntry:RSEntry {
     bitset<32> OccMemoryAddress;
     bool LowOrHigh; // false is low, true is high - DUH!
-    bitset<6> SRSWBIndex;
     bitset<6> ResStatIndex;
     
-    friend std::ostream& operator <<(std::ostream& os, LRSEntry const& e)
-    {
+    friend std::ostream& operator <<(std::ostream& os, LRSEntry const& e) {
         return os << e.LowOrHigh << "\t"
                   << e.OccMemoryAddress << "\t"
-                  << e.SRSWBIndex << "\t"
                   << e.ResStatIndex;
     }
 };
@@ -28,8 +28,7 @@ struct CRSEntry:RSEntry {
     bool HighOccReady;
     bitset<6> SRSWBIndex;
 
-    friend std::ostream& operator <<(std::ostream& os, CRSEntry const& e)
-    {
+    friend std::ostream& operator <<(std::ostream& os, CRSEntry const& e) {
         return os << e.Count << "\t"
                   << e.LowOcc << "\t"
                   << e.LowOccReady << "\t"
@@ -39,12 +38,29 @@ struct CRSEntry:RSEntry {
     }
 };
 
+class ComputeReservationStation: public ReservationStation<CRSEntry> {
+    public:
+        ComputeReservationStation(Config *);
+        void fillLowOccVal(int, bitset<64>);
+        void fillHighOccVal(int, bitset<64>);
+};
+
 class ReserveUnit {
     public:
         ReserveUnit(Config*, vector<bitset<64>> *);
 
         void connect(DispatchUnit *);
         void step();
+
+        bool isHalted();
+
+        pair<int, CRSEntry> getNextComputeEntry();
+        void setCRSEToEmptyState(int);
+        void fillInCRS(int, bool, bitset<64>);
+        pair<int, LRSEntry> getNextLoadEntry();
+        void setLRSEToEmptyState(int);
+
+        void print();
 
     private:
         int cycle_count;
@@ -58,6 +74,8 @@ class ReserveUnit {
         pair<bool, DispatchEntry> pendingToBeReserved;
 
         Queue<bitset<6>> * LRSIdxQ;
-        ReservationStation<LRSEntry> * LRS;
-        ReservationStation<CRSEntry> * CRS; // ComputeReservationStation
+        ReservationStation<LRSEntry> * LRS; // LoadReservationStation - acts very similar to Queue. Using RS instead because, we want to enqueue atmost two entries in each cycle.
+        ComputeReservationStation * CRS; // ComputeReservationStation
 };
+
+#endif

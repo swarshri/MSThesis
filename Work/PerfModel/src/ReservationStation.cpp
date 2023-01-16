@@ -61,11 +61,6 @@ void ReservationStation<EntryType>::setWaitingState(int idx) {
 }
 
 template <typename EntryType>
-void ReservationStation<EntryType>::updateBasePointer(int idx) {
-    this->Entries[idx].BasePointer = bitset<6>(this->Entries[idx].BasePointer.to_ulong() + 3);
-}
-
-template <typename EntryType>
 bool ReservationStation<EntryType>::isEmpty() {
     for (auto entry = this->Entries.begin(); entry != this->Entries.end(); entry++) {
         if (!(*entry).Empty || (*entry).Ready)

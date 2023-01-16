@@ -9,13 +9,14 @@
 #include<Fetch.h>
 #include<Dispatch.h>
 #include<Reserve.h>
+#include<Compute.h>
 
 class Core {
     public:
         bool halted = false;
         Core(string, string, Config *);
 
-        void connect(DRAM *, DRAM *);
+        void connect(DRAM<bitset<32>, bitset<64>> *, DRAM<bitset<32>, bitset<64>> *);
         void step();
         
     private:
@@ -26,9 +27,20 @@ class Core {
         map<char, bitset<64>> OccFirstReg;
         map<char, bitset<64>> OccLastReg;
 
-        DRAM * OCMEM;
+        DRAM<bitset<32>, bitset<64>> * OCMEM;
 
         FetchUnit * FU;
         DispatchUnit * DU;
-        ReserveUnit * RU;
+
+        ReserveUnit * RUA;
+        ComputeUnit * CUA;
+
+        ReserveUnit * RUC;
+        ComputeUnit * CUC;
+
+        ReserveUnit * RUG;
+        ComputeUnit * CUG;
+        
+        ReserveUnit * RUT;
+        ComputeUnit * CUT;
 };

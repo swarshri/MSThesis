@@ -24,12 +24,11 @@ class ReservationStation {
         void setScheduledState(int);
         void setReadyState(int);
         void setWaitingState(int);
-        void updateBasePointer(int);
         bool isEmpty();
 
         void show();
 
-    private:
+    protected:
         vector<EntryType> Entries;
         int numEntries;
 };

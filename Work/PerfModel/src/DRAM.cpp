@@ -2,7 +2,11 @@
 
 using namespace std;
 
-DRAM::DRAM(string name, Config *config, bool readonly) {
+#ifndef DRAM_DEF
+#define DRAM_DEF
+
+template <typename AddressType, typename DataType>
+DRAM<AddressType, DataType>::DRAM(string name, Config *config, bool readonly) {
     this->id = name;
     this->readonly = readonly;
 
@@ -16,16 +20,17 @@ DRAM::DRAM(string name, Config *config, bool readonly) {
     this->lastReadData.resize(this->channelwidth);
     this->nextWriteData.resize(this->channelwidth);
 
-    this->nextReadAddress = bitset<32>(0);
+    this->nextReadAddress = AddressType(0);
     this->readWaitCycles = 0;
     this->readPending = false;
 
-    this->nextWriteAddress = bitset<32>(0);
+    this->nextWriteAddress = AddressType(0);
     this->writeWaitCycles = 0;
     this->writePending = false;
 }
 
-void DRAM::load(string ioDir) {
+template <typename AddressType, typename DataType>
+void DRAM<AddressType, DataType>::load(string ioDir) {
     ifstream mem;
     string line;
 
@@ -43,20 +48,21 @@ void DRAM::load(string ioDir) {
         cout << "File opened: " << filepath << endl;
         int i=0;
         while (getline(mem, line)) {
-            this->MEM[i] = bitset<64>(line);
+            this->MEM[i] = DataType(line);
             i++;
         }
         mem.close();
 
         while(i < this->memsize) {
-            this->MEM[i] = bitset<64>(0);
+            this->MEM[i] = DataType(0);
             i++;
         }
     }
     else cout<<"Unable to open input file for " << this->id << endl;
 }
 
-void DRAM::readAccess(bitset<32> address) {
+template <typename AddressType, typename DataType>
+void DRAM<AddressType, DataType>::readAccess(AddressType address) {
     cout << "in readAccess: " << address << endl;
     srand(time(NULL));
     int randomLatency = (rand() % (this->latencymax - this->latencymin)) + this->latencymin;
@@ -67,7 +73,8 @@ void DRAM::readAccess(bitset<32> address) {
     this->readDone = false;
 }
 
-void DRAM::writeAccess(bitset<32> address, vector<bitset<64>> data) {
+template <typename AddressType, typename DataType>
+void DRAM<AddressType, DataType>::writeAccess(AddressType address, vector<DataType> data) {
     cout << "in writeAccess: " << address << endl;
     srand(time(NULL));
     int randomLatency = (rand() % (this->latencymax - this->latencymin)) + this->latencymin;
@@ -83,15 +90,18 @@ void DRAM::writeAccess(bitset<32> address, vector<bitset<64>> data) {
     }
 }
 
-bool DRAM::isFree() {
+template <typename AddressType, typename DataType>
+bool DRAM<AddressType, DataType>::isFree() {
     return !(this->readPending || this->writePending);
 }
 
-int DRAM::getChannelWidth() {
+template <typename AddressType, typename DataType>
+int DRAM<AddressType, DataType>::getChannelWidth() {
     return this->channelwidth;
 }
 
-void DRAM::step() {
+template <typename AddressType, typename DataType>
+void DRAM<AddressType, DataType>::step() {
     if (this->readPending) {
         this->readWaitCycles--;
         cout << "read pending: " << this->readWaitCycles << endl;
@@ -117,3 +127,5 @@ void DRAM::step() {
         }
     }
 }
+
+#endif

@@ -28,10 +28,10 @@ int main(int argc, char * argv[]) {
 
     Config * config = ConfigParser().parse(confDir);
 
-    DRAM * SdMEM = new DRAM("SdMEM", config->children["SeedMemory"], false);
+    DRAM<bitset<32>, bitset<64>> * SdMEM = new DRAM<bitset<32>, bitset<64>>("SdMEM", config->children["SeedMemory"], false);
     SdMEM->load(ioDir);
 
-    DRAM * OcMEM = new DRAM("OcMEM", config->children["OccMemory"], true);
+    DRAM<bitset<32>, bitset<64>> * OcMEM = new DRAM<bitset<32>, bitset<64>>("OcMEM", config->children["OccMemory"], true);
     OcMEM->load(ioDir);
     cout << "2" << endl;
     Core * CORE = new Core("00", ioDir, config->children["Core"]);

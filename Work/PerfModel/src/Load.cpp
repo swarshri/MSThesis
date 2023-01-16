@@ -1,51 +1,37 @@
 #include <Load.h>
 
-MemoryBuffer::MemoryBuffer(Config * config) {
-    
+LoadUnit::LoadUnit(Config * config) {
+    this->halted = false;
+    this->cycle_count = 0;
 }
 
-ComputeBuffer::ComputeBuffer() {
-
+void LoadUnit::connectRU(ReserveUnit * ru) {
+    this->coreRU = ru;
 }
 
-LoadUnit::LoadUnit(Config * config, vector<bitset<64>> * refIndexInfo) {
-    this->base = config->parameters["Pipeline"];
-    this->RefCount = bitset<32>(refIndexInfo->at(0).to_ulong());
-    this->CountReg = refIndexInfo->at(this->base + 1);
-    this->OccFirstValReg = bitset<64>(0);
-    this->OccLastValReg = refIndexInfo->at(this->base + 5);
-}
-
-void LoadUnit::connect(DispatchUnit * du) {
-    this->coreDU = du;
+void LoadUnit::connectDRAM(DRAM<bitset<32>, bitset<64>> * occmem) {
+    this->occMem = occmem;
 }
 
 void LoadUnit::step() {
     if (!this->halted) {
-        pair<bool, DispatchEntry> currentDispatch = this->coreDU->popnext(this->base);
-        if (currentDispatch.first) {
-            bitset<64> countVal = this->CountReg;
-            bitset<64> OccLowVal;
-            bitset<64> OccHighVal;
-            bool computeReady = true;
-            bool olComputeReady = true;
-            bool ohCompsuteReady = true;
-            CRSEntry newCRSEntry;
-            if (currentDispatch.second.Low == bitset<32>(0))
-                OccLowVal = bitset<64>(0);
-            else if (currentDispatch.second.Low == this->RefCount)
-                OccLowVal = this->OccLastValReg;
-            else {
-                computeReady = false;
-                LoadQueueEntry newLoadRequest;
-                newLoadRequest.LowOrHigh = false;
-                newLoadRequest.OccMemoryAddress = currentDispatch.second.Low;
-                newLoadRequest.SRSWBIndex = currentDispatch.second.SRSWBIndex;
+        if (this->occMem->readDone) {
+            this->coreRU->fillInCRS(this->LRSEntryInProgress.second.ResStatIndex.to_ulong(), this->LRSEntryInProgress.second.LowOrHigh, this->occMem->lastReadData[0]);
+            this->coreRU->setLRSEToEmptyState(this->LRSEntryInProgress.first);
+        }
+
+        if (this->occMem->isFree()) {
+            pair<int, LRSEntry> nle = this->coreRU->getNextLoadEntry();
+            if (nle.first != -1) {
+                this->occMem->readAccess(nle.second.OccMemoryAddress);
+                this->LRSEntryInProgress = nle;
             }
-
-
-
-
+            else if (this->coreRU->isHalted())
+                this->halted = true;
         }
     }
+}
+
+bool LoadUnit::isHalted() {
+    return this->halted;
 }
