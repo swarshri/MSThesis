@@ -8,21 +8,21 @@ ComputeReservationStation::ComputeReservationStation(Config * config)
     }
 }
 
-void ComputeReservationStation::fillLowOccVal(int idx, bitset<64> data) {
+void ComputeReservationStation::fillLowOccVal(int idx, bitset<32> data) {
     this->Entries[idx].LowOcc = data;
     this->Entries[idx].LowOccReady = true;
     if (this->Entries[idx].HighOccReady)
         this->setReadyState(idx);
 }
 
-void ComputeReservationStation::fillHighOccVal(int idx, bitset<64> data) {
+void ComputeReservationStation::fillHighOccVal(int idx, bitset<32> data) {
     this->Entries[idx].HighOcc = data;
     this->Entries[idx].HighOccReady = true;
     if (this->Entries[idx].LowOccReady)
         this->setReadyState(idx);
 }
 
-ReserveUnit::ReserveUnit(Config * config, vector<bitset<64>> * refIndexInfo) {
+ReserveUnit::ReserveUnit(Config * config, vector<bitset<32>> * refIndexInfo) {
     this->base = config->parameters["Pipeline"];
     this->RefCount = bitset<32>(refIndexInfo->at(0).to_ulong());
     this->CountReg = refIndexInfo->at(this->base + 1);
@@ -39,7 +39,7 @@ ReserveUnit::ReserveUnit(Config * config, vector<bitset<64>> * refIndexInfo) {
 
     this->halted = false;
     this->cycle_count = 0;
-    this->pendingToBeReserved = pair<bool, DispatchEntry>(false, *(new DispatchEntry));
+    this->pendingToBeReserved = pair<bool, DispatchQueueEntry>(false, *(new DispatchQueueEntry));
 }
 
 void ReserveUnit::connect(DispatchUnit * du) {
@@ -48,11 +48,11 @@ void ReserveUnit::connect(DispatchUnit * du) {
 
 void ReserveUnit::step() {
     if (!this->halted) {
-        pair<bool, DispatchEntry> currentDispatch;
+        pair<bool, DispatchQueueEntry> currentDispatch;
         if (this->pendingToBeReserved.first)
             currentDispatch = this->pendingToBeReserved;
         else  
-            currentDispatch = this->coreDU->popnext(this->base);
+            currentDispatch = this->coreDU->popNextDispatch(this->base);
 
         if (currentDispatch.first) {
             CRSEntry * newCRSEntry = new CRSEntry;
@@ -60,22 +60,22 @@ void ReserveUnit::step() {
             newCRSEntry->HighOccReady = true;
             newCRSEntry->Count = this->CountReg;
 
-            if (currentDispatch.second.Low == bitset<32>(0))
-                newCRSEntry->LowOcc = bitset<64>(0);
-            else if (currentDispatch.second.Low == this->RefCount)
+            if (currentDispatch.second.LowPointer == bitset<32>(0))
+                newCRSEntry->LowOcc = bitset<32>(0);
+            else if (currentDispatch.second.LowPointer == this->RefCount)
                 newCRSEntry->LowOcc = this->OccLastValReg;
             else {
                 newCRSEntry->LowOccReady = false;
-                newCRSEntry->LowOcc = bitset<64>(0);
+                newCRSEntry->LowOcc = bitset<32>(0);
             }
 
-            if (currentDispatch.second.High == bitset<32>(0))
-                newCRSEntry->HighOcc = bitset<64>(0);
-            else if (currentDispatch.second.High == this->RefCount)
+            if (currentDispatch.second.HighPointer == bitset<32>(0))
+                newCRSEntry->HighOcc = bitset<32>(0);
+            else if (currentDispatch.second.HighPointer == this->RefCount)
                 newCRSEntry->HighOcc = this->OccLastValReg;
             else {
                 newCRSEntry->HighOccReady = false;
-                newCRSEntry->HighOcc = bitset<64>(0);
+                newCRSEntry->HighOcc = bitset<32>(0);
             }
 
             newCRSEntry->SRSWBIndex = currentDispatch.second.SRSWBIndex;
@@ -86,14 +86,14 @@ void ReserveUnit::step() {
                 if (!newCRSEntry->LowOccReady) {
                     LRSEntry newLoadRequest;
                     newLoadRequest.LowOrHigh = false;
-                    newLoadRequest.OccMemoryAddress = currentDispatch.second.Low;
+                    newLoadRequest.OccMemoryAddress = currentDispatch.second.LowPointer;
                     newLoadRequest.ResStatIndex = nextCRSIdx;
                     newLoadRequests.push_back(newLoadRequest);
                 }
                 if (!newCRSEntry->HighOccReady) {
                     LRSEntry newLoadRequest;
                     newLoadRequest.LowOrHigh = true;
-                    newLoadRequest.OccMemoryAddress = currentDispatch.second.High;
+                    newLoadRequest.OccMemoryAddress = currentDispatch.second.HighPointer;
                     newLoadRequest.ResStatIndex = nextCRSIdx;
                     newLoadRequests.push_back(newLoadRequest);
                 }
@@ -109,7 +109,7 @@ void ReserveUnit::step() {
                         this->CRS->setScheduledState(nextCRSIdx);
                     else
                         this->CRS->setReadyState(nextCRSIdx);
-                    this->pendingToBeReserved = pair<bool, DispatchEntry>(false, currentDispatch.second);
+                    this->pendingToBeReserved = pair<bool, DispatchQueueEntry>(false, currentDispatch.second);
                     
                     cout << "Reserve Unit - Cycle Count:" << this->cycle_count << endl;
                     cout << "LRSIdxQueue:" << endl;
@@ -120,10 +120,10 @@ void ReserveUnit::step() {
                     this->CRS->show();
                 }
                 else
-                    this->pendingToBeReserved = pair<bool, DispatchEntry>(true, currentDispatch.second);
+                    this->pendingToBeReserved = pair<bool, DispatchQueueEntry>(true, currentDispatch.second);
             }
             else
-                this->pendingToBeReserved = pair<bool, DispatchEntry>(true, currentDispatch.second);
+                this->pendingToBeReserved = pair<bool, DispatchQueueEntry>(true, currentDispatch.second);
         }
         this->cycle_count++;
     }
@@ -141,7 +141,7 @@ void ReserveUnit::setCRSEToEmptyState(int idx) {
     this->CRS->setEmptyState(idx);
 }
 
-void ReserveUnit::fillInCRS(int idx, bool high, bitset<64> dataVal) {
+void ReserveUnit::fillInCRS(int idx, bool high, bitset<32> dataVal) {
     if (high)
         this->CRS->fillHighOccVal(idx, dataVal);
     else

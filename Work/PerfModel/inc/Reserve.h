@@ -21,10 +21,10 @@ struct LRSEntry:RSEntry {
 };
 
 struct CRSEntry:RSEntry {
-    bitset<64> Count;
-    bitset<64> LowOcc;
+    bitset<32> Count;
+    bitset<32> LowOcc;
     bool LowOccReady;
-    bitset<64> HighOcc;
+    bitset<32> HighOcc;
     bool HighOccReady;
     bitset<6> SRSWBIndex;
 
@@ -41,13 +41,13 @@ struct CRSEntry:RSEntry {
 class ComputeReservationStation: public ReservationStation<CRSEntry> {
     public:
         ComputeReservationStation(Config *);
-        void fillLowOccVal(int, bitset<64>);
-        void fillHighOccVal(int, bitset<64>);
+        void fillLowOccVal(int, bitset<32>);
+        void fillHighOccVal(int, bitset<32>);
 };
 
 class ReserveUnit {
     public:
-        ReserveUnit(Config*, vector<bitset<64>> *);
+        ReserveUnit(Config*, vector<bitset<32>> *);
 
         void connect(DispatchUnit *);
         void step();
@@ -56,7 +56,7 @@ class ReserveUnit {
 
         pair<int, CRSEntry> getNextComputeEntry();
         void setCRSEToEmptyState(int);
-        void fillInCRS(int, bool, bitset<64>);
+        void fillInCRS(int, bool, bitset<32>);
         pair<int, LRSEntry> getNextLoadEntry();
         void setLRSEToEmptyState(int);
 
@@ -67,11 +67,11 @@ class ReserveUnit {
         bool halted;
         int base;
         bitset<32> RefCount;
-        bitset<64> CountReg;
-        bitset<64> OccLastValReg;
+        bitset<32> CountReg;
+        bitset<32> OccLastValReg;
 
         DispatchUnit * coreDU;
-        pair<bool, DispatchEntry> pendingToBeReserved;
+        pair<bool, DispatchQueueEntry> pendingToBeReserved;
 
         Queue<bitset<6>> * LRSIdxQ;
         ReservationStation<LRSEntry> * LRS; // LoadReservationStation - acts very similar to Queue. Using RS instead because, we want to enqueue atmost two entries in each cycle.

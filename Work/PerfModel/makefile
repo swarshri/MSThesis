@@ -7,7 +7,7 @@ OBJ := $(BIN)/obj
 CXX = g++
 CPPFLAGS := -g -O3 -Wall -std=c++11 -I $(INC)
 
-OBJS = $(OBJ)/main.o $(OBJ)/compute.o $(OBJ)/config.o $(OBJ)/core.o $(OBJ)/dram.o $(OBJ)/dispatch.o $(OBJ)/fetch.o $(OBJ)/queue.o $(OBJ)/rs.o $(OBJ)/reserve.o
+OBJS = $(OBJ)/main.o $(OBJ)/compute.o $(OBJ)/config.o $(OBJ)/core.o $(OBJ)/dram.o $(OBJ)/dispatch.o $(OBJ)/fetch.o $(OBJ)/load.o $(OBJ)/queue.o $(OBJ)/rs.o $(OBJ)/reserve.o $(OBJ)/store.o
 
 .PHONY: all clean
 
@@ -40,6 +40,9 @@ $(OBJ)/dram.o:
 $(OBJ)/fetch.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Fetch.cpp -o $(OBJ)/fetch.o
 
+$(OBJ)/load.o:
+	$(CXX) $(CPPFLAGS) -c $(SRC)/Load.cpp -o $(OBJ)/load.o
+
 $(OBJ)/queue.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Queue.cpp -o $(OBJ)/queue.o
 
@@ -48,6 +51,9 @@ $(OBJ)/rs.o:
 
 $(OBJ)/reserve.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Reserve.cpp -o $(OBJ)/reserve.o
+
+$(OBJ)/store.o:
+	$(CXX) $(CPPFLAGS) -c $(SRC)/Store.cpp -o $(OBJ)/store.o
 
 cleanO:
 	rm -r $(OBJ)

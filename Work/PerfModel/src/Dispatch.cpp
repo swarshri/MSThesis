@@ -1,27 +1,33 @@
 #include <Dispatch.h>
 
-std::ostream& operator <<(std::ostream& os, const DispatchEntry& de) {
-    os << de.base << "\t" << de.Low << "\t" << de.High << "\t" << de.SRSWBIndex << "\t" << de.ready << endl;
-    return os;
-}
-
 DispatchUnit::DispatchUnit(Config* config) {
     this->dispatchScheme = config->parameters["DispatchScheme"];
-    map<int, string> baseQName = {{0, "AQ"}, {1, "CQ"}, {2, "GQ"}, {3, "TQ"}};
+    map<int, string> baseQName = {{0, "DispatchAQ"}, {1, "DispatchCQ"}, {2, "DispatchGQ"}, {3, "DispatchTQ"}};
     for (int i = 0; i < 4; i++) {
         Config * cfg = config->children[baseQName[i]];
-        this->DispatchQueues[i] = new Queue<DispatchEntry>(cfg);
+        this->DispatchQueues[i] = new Queue<DispatchQueueEntry>(cfg);
     }
+    this->StoreQueue = new Queue<StoreQueueEntry>(config->children["StoreQ"]);
 }
 
 void DispatchUnit::connect(FetchUnit * fu) {
     this->coreFU = fu;
 }
 
-pair<bool, DispatchEntry> DispatchUnit::popnext(int base) {
+bool DispatchUnit::isHalted() {
+    return this->halted;
+}
+
+pair<bool, DispatchQueueEntry> DispatchUnit::popNextDispatch(int base) {
     if (!this->DispatchQueues[base]->isEmpty())
-        return pair<bool, DispatchEntry>(true, this->DispatchQueues[base]->pop());
-    return pair<bool, DispatchEntry>(false, *(new DispatchEntry));
+        return pair<bool, DispatchQueueEntry>(true, this->DispatchQueues[base]->pop());
+    return pair<bool, DispatchQueueEntry>(false, *(new DispatchQueueEntry));
+}
+
+pair<bool, StoreQueueEntry> DispatchUnit::popNextStore() {
+    if (!this->StoreQueue->isEmpty())
+        return pair<bool, StoreQueueEntry>(true, this->StoreQueue->pop());
+    return pair<bool, StoreQueueEntry>(false, *(new StoreQueueEntry));
 }
 
 void DispatchUnit::dispatchSequential(int count) {
@@ -33,24 +39,29 @@ void DispatchUnit::dispatchSequential(int count) {
         cout << "Seed: " << nre.second.Seed << endl;
         cout << "BP: " << nre.second.BasePointer << endl;
         bitset<3> base = bitset<3>((nre.second.Seed.to_ulong() >> nre.second.BasePointer.to_ulong()) & 7);
-        cout << "base: " << base << endl;
+        cout << "Base: " << base << endl;
         if (base == bitset<3>(7)) {
-            // Send to store queues - TBI
+            StoreQueueEntry newStoreQueueEntry;
+            newStoreQueueEntry.StoreAddress = nre.second.SeedAddress;
+            newStoreQueueEntry.StoreVal = bitset<64>((nre.second.LowPointer.to_ulong() << 32) + nre.second.HighPointer.to_ulong());
+            this->StoreQueue->push(newStoreQueueEntry);
             // Reset SRS Entry status to Empty.
             this->coreFU->setEmptyState(nre.first);
+            cout << "Store Queue:" << endl;
+            this->StoreQueue->print();
         }
         //if base queue has space, schedule it and update the SRS entry state.
         else if (!this->DispatchQueues[base.to_ulong()]->isFull()) {
-            DispatchEntry dispatchNewEntry;
+            DispatchQueueEntry dispatchNewEntry;
             dispatchNewEntry.base = bitset<2>(base.to_ulong() & 3);
-            dispatchNewEntry.Low = nre.second.LowPointer;
-            dispatchNewEntry.High = nre.second.HighPointer;
+            dispatchNewEntry.LowPointer = nre.second.LowPointer;
+            dispatchNewEntry.HighPointer = nre.second.HighPointer;
             dispatchNewEntry.SRSWBIndex = bitset<6>(nre.first);
             dispatchNewEntry.ready = true;
             this->DispatchQueues[base.to_ulong()]->push(dispatchNewEntry);
 
             this->coreFU->setInProgress(nre.first);
-            cout << "Dispatch queue:" << endl;
+            cout << "Dispatch Queue:" << endl;
             this->DispatchQueues[base.to_ulong()]->print();
         }
         else {

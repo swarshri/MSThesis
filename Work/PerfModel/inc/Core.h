@@ -10,37 +10,40 @@
 #include<Dispatch.h>
 #include<Reserve.h>
 #include<Compute.h>
+#include<Load.h>
+#include<Store.h>
 
 class Core {
     public:
         bool halted = false;
         Core(string, string, Config *);
 
-        void connect(DRAM<bitset<32>, bitset<64>> *, DRAM<bitset<32>, bitset<64>> *);
+        void connect(DRAM<bitset<32>, bitset<64>> *, map<char, DRAM<bitset<32>, bitset<32>>*>, DRAM<bitset<32>, bitset<64>> *);
         void step();
         
     private:
         string id;
-        
-        bitset<32> RefCountReg;
-        map<char, bitset<64>> CountReg;
-        map<char, bitset<64>> OccFirstReg;
-        map<char, bitset<64>> OccLastReg;
 
-        DRAM<bitset<32>, bitset<64>> * OCMEM;
+        DRAM<bitset<32>, bitset<32>> * OCMEM;
 
         FetchUnit * FU;
         DispatchUnit * DU;
 
         ReserveUnit * RUA;
         ComputeUnit * CUA;
+        LoadUnit * LUA;
 
         ReserveUnit * RUC;
         ComputeUnit * CUC;
+        LoadUnit * LUC;
 
         ReserveUnit * RUG;
         ComputeUnit * CUG;
+        LoadUnit * LUG;
         
         ReserveUnit * RUT;
         ComputeUnit * CUT;
+        LoadUnit * LUT;
+
+        StoreUnit * SU;
 };

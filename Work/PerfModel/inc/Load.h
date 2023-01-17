@@ -9,7 +9,7 @@ class LoadUnit {
         LoadUnit(Config *);
 
         void connectRU(ReserveUnit *);
-        void connectDRAM(DRAM<bitset<32>, bitset<64>> *);
+        void connectDRAM(DRAM<bitset<32>, bitset<32>> *);
         void step();
 
         bool isHalted();
@@ -19,7 +19,7 @@ class LoadUnit {
         bool halted;
 
         ReserveUnit * coreRU;
-        DRAM<bitset<32>, bitset<64>> * occMem;
+        DRAM<bitset<32>, bitset<32>> * OCCMEM;
 
         pair<int, LRSEntry> LRSEntryInProgress;
 };

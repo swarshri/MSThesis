@@ -31,12 +31,25 @@ int main(int argc, char * argv[]) {
     DRAM<bitset<32>, bitset<64>> * SdMEM = new DRAM<bitset<32>, bitset<64>>("SdMEM", config->children["SeedMemory"], false);
     SdMEM->load(ioDir);
 
-    DRAM<bitset<32>, bitset<64>> * OcMEM = new DRAM<bitset<32>, bitset<64>>("OcMEM", config->children["OccMemory"], true);
-    OcMEM->load(ioDir);
-    cout << "2" << endl;
+    map<char, DRAM<bitset<32>, bitset<32>>*> OcMEMs;
+    DRAM<bitset<32>, bitset<32>> * OccAMEM = new DRAM<bitset<32>, bitset<32>>("OccAMEM", config->children["OccMemory"], true);
+    OccAMEM->load(ioDir);
+    OcMEMs['A'] = OccAMEM;
+
+    DRAM<bitset<32>, bitset<32>> * OccCMEM = new DRAM<bitset<32>, bitset<32>>("OccCMEM", config->children["OccMemory"], true);
+    OccCMEM->load(ioDir);
+    OcMEMs['C'] = OccCMEM;
+
+    DRAM<bitset<32>, bitset<32>> * OccGMEM = new DRAM<bitset<32>, bitset<32>>("OccGMEM", config->children["OccMemory"], true);
+    OccGMEM->load(ioDir);
+    OcMEMs['G'] = OccGMEM;
+
+    DRAM<bitset<32>, bitset<32>> * OccTMEM = new DRAM<bitset<32>, bitset<32>>("OccTMEM", config->children["OccMemory"], true);
+    OccTMEM->load(ioDir);
+    OcMEMs['T'] = OccTMEM;
+
     Core * CORE = new Core("00", ioDir, config->children["Core"]);
-    CORE->connect(SdMEM, OcMEM);
-    cout << "3" << endl;
+    CORE->connect(SdMEM, OcMEMs);
 
     int cycle_count = 0;
 
@@ -46,6 +59,9 @@ int main(int argc, char * argv[]) {
         CORE->step();
 
         SdMEM->step();
-        OcMEM->step();
+        OccAMEM->step();
+        OccCMEM->step();
+        OccGMEM->step();
+        OccTMEM->step();
     }
 }
