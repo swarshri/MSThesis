@@ -1,1 +1,0 @@
-g++ -g -O3 -Wall -std=c++11 -I ./inc -c ./src/Dispatch.cpp -o ./bin/obj/dispatch.o
