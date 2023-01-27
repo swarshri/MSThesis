@@ -166,6 +166,7 @@ class FastFilesParser(object):
                 write_bitstr = write_bitstr + "".join([base_mem_dict[base] for base in seed])
                 write_bitstr = '0'*(64-len(write_bitstr)) + write_bitstr + "\n"
                 lines.append(write_bitstr)
+            lines.append('1'*64 + '\n')
             lines[-1] = lines[-1].replace('\n', '')
             sdmem.writelines(lines)
 
@@ -228,7 +229,7 @@ if __name__ == "__main__":
         print("No Reference Genome (fasta) file found in the given IO directory.")
         exit(-1)
     elif len(fasta_files) > 1:
-        print("Multiple Reference Genome (fasta) files (" + str(len(fasta_files)) +") found in the given IO directory:")
+        print("Multiple Reference Genome (fasta) files (" + str(len(fasta_files)) + ") found in the given IO directory:")
         print(fasta_files)
         exit(-1)
 

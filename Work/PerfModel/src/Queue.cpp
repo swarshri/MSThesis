@@ -5,22 +5,14 @@
 
 template <typename DataType>
 Queue<DataType>::Queue(Config * config) {
-    cout << "4" << endl;
     this->id = config->get_name();
     this->size = (uint8_t)config->parameters["Size"];
-    // cout << "Queue: " << this->id << "\t" << "Size: " << this->size << endl;
     this->registers.resize(this->size);
-    // cout << "Queue: " << this->id << "\t" << "Size: " << this->size << endl;
     this->readPointer = 0;
     this->writePointer = 0;
     this->count = 0;
     this->empty = true;
     this->full = false;
-    cout << "Read Pointer: " << this->readPointer << endl;
-    cout << "Write Pointer: " << this->writePointer << endl;
-    cout << "Count: " << this->count << endl;
-    cout << "Full: " << this->full << endl;
-    cout << "Empty: " << this->empty << endl;
 }
 
 template <typename DataType>
@@ -66,21 +58,21 @@ bool Queue<DataType>::isFull() {
 }
 
 template <typename DataType>
-void Queue<DataType>::print() {
-    cout << "========================================================" << endl;
-    cout << "Queue: " << this->id << "\t" << this->size << endl;
-    cout << "Idx\t Value" << endl;
-    cout << "--------------------------------------------------------" << endl;
+void Queue<DataType>::show(ostream& op) {
+    op << "........................................" << endl;
+    op << "Queue: " << this->id << "\t" << this->size << endl;
+    op << "Idx\t| Value" << endl;
     int i = 0;
     for (DataType reg: this->registers) {
-        cout << i << '\t' << reg << endl;
+        op << i << "\t| " << reg << endl;
         i++;
     }
-    cout << "Read Pointer: " << this->readPointer << endl;
-    cout << "Write Pointer: " << this->writePointer << endl;
-    cout << "Count: " << this->count << endl;
-    cout << "Full: " << this->full << endl;
-    cout << "Empty: " << this->empty << endl;
+    op << "Read Pointer: " << this->readPointer << endl;
+    op << "Write Pointer: " << this->writePointer << endl;
+    op << "Count: " << this->count << endl;
+    op << "Full: " << this->full << endl;
+    op << "Empty: " << this->empty << endl;
+    op << ".........................................." << endl;
 }
 
 #endif

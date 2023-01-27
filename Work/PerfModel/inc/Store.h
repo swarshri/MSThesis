@@ -4,18 +4,19 @@
 #include <Queue.h>
 #include <Dispatch.h>
 
-class StoreUnit {
+class StoreStage {
     public:
-        StoreUnit(Config *);
+        StoreStage(Config *);
 
         void step();
-        void connectDU(DispatchUnit *);
+        bool isHalted();
+        void connectDU(DispatchStage *);
         void connectDRAM(DRAM<bitset<32>, bitset<64>> *);
 
     private:
         int cycle_count;
         bool halted;
 
-        DispatchUnit * coreDU;
+        DispatchStage * coreDU;
         DRAM<bitset<32>, bitset<64>> * SIMEM;
 };

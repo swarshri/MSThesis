@@ -7,9 +7,9 @@ Core::Core(string id, string ioDir, Config * config) {
     string line;
     
 #ifdef _WIN32
-    string filename = "\\CoreReg.mem";
+    string filename = "\\mem\\CoreReg.mem";
 #else
-    string filename = "/CoreReg.mem";
+    string filename = "mem/CoreReg.mem";
 #endif
     
     mem.open(ioDir + filename);
@@ -22,50 +22,50 @@ Core::Core(string id, string ioDir, Config * config) {
         }
         mem.close();
     }
-    else cout<<"Unable to open input file for Core " << this->id << endl;
+    else cout<<"Unable to open input file for Core " << this->id << ": " << ioDir + filename << endl;
 
     bitset<32> referenceCountVal = coremem[0];
-    this->FU = new FetchUnit(config->children["FetchUnit"], referenceCountVal);
+    this->FU = new FetchStage(config->children["FetchStage"], ioDir, referenceCountVal);
 
-    this->DU = new DispatchUnit(config->children["DispatchUnit"]);
+    this->DU = new DispatchStage(config->children["DispatchStage"], ioDir);
     this->DU->connect(this->FU);
 
-    this->RUA = new ReserveUnit(config->children["ReserveUnitPipelineA"], &coremem);
+    this->RUA = new ReserveStage(config->children["ReserveStage"], 'A', ioDir, &coremem);
     this->RUA->connect(this->DU);
-    this->CUA = new ComputeUnit(config->children["ComputeUnit"]);
+    this->CUA = new ComputeStage(config->children["ComputeStage"], 'A', ioDir);
     this->CUA->connect(this->RUA, this->FU);
-    this->LUA = new LoadUnit(config->children["LoadUnit"]);
+    this->LUA = new LoadStage(config->children["LoadStage"], 'A', ioDir);
     this->LUA->connectRU(this->RUA);
 
-    this->RUC = new ReserveUnit(config->children["ReserveUnitPipelineC"], &coremem);
+    this->RUC = new ReserveStage(config->children["ReserveStage"], 'C', ioDir, &coremem);
     this->RUC->connect(this->DU);
-    this->CUC = new ComputeUnit(config->children["ComputeUnit"]);
+    this->CUC = new ComputeStage(config->children["ComputeStage"], 'C', ioDir);
     this->CUC->connect(this->RUC, this->FU);
-    this->LUC = new LoadUnit(config->children["LoadUnit"]);
+    this->LUC = new LoadStage(config->children["LoadStage"], 'C', ioDir);
     this->LUC->connectRU(this->RUC);
 
-    this->RUG = new ReserveUnit(config->children["ReserveUnitPipelineG"], &coremem);
+    this->RUG = new ReserveStage(config->children["ReserveStage"], 'G', ioDir, &coremem);
     this->RUG->connect(this->DU);
-    this->CUG = new ComputeUnit(config->children["ComputeUnit"]);
+    this->CUG = new ComputeStage(config->children["ComputeStage"], 'G', ioDir);
     this->CUG->connect(this->RUG, this->FU);
-    this->LUG = new LoadUnit(config->children["LoadUnit"]);
+    this->LUG = new LoadStage(config->children["LoadStage"], 'G', ioDir);
     this->LUG->connectRU(this->RUG);
 
-    this->RUT = new ReserveUnit(config->children["ReserveUnitPipelineT"], &coremem);
+    this->RUT = new ReserveStage(config->children["ReserveStage"], 'T', ioDir, &coremem);
     this->RUT->connect(this->DU);
-    this->CUT = new ComputeUnit(config->children["ComputeUnit"]);
+    this->CUT = new ComputeStage(config->children["ComputeStage"], 'T', ioDir);
     this->CUT->connect(this->RUT, this->FU);
-    this->LUT = new LoadUnit(config->children["LoadUnit"]);
+    this->LUT = new LoadStage(config->children["LoadStage"], 'T', ioDir);
     this->LUT->connectRU(this->RUT);
 
-    this->SU = new StoreUnit(config->children["StoreUnit"]);
+    this->SU = new StoreStage(config->children["StoreStage"]);
     this->SU->connectDU(this->DU);
 
     this->halted = false;
 }
 
 void Core::connect(DRAM<bitset<32>, bitset<64>> * sdmem, map<char, DRAM<bitset<32>, bitset<32>>*> ocmem, DRAM<bitset<32>, bitset<64>> * simem) {
-    this->FU->connect(sdmem);
+    this->FU->connectDRAM(sdmem);
 
     this->LUA->connectDRAM(ocmem['A']);
     this->LUC->connectDRAM(ocmem['C']);
@@ -75,8 +75,17 @@ void Core::connect(DRAM<bitset<32>, bitset<64>> * sdmem, map<char, DRAM<bitset<3
     this->SU->connectDRAM(simem);
 }
 
+bool Core::allStagesHalted() {
+    return this->FU->isHalted() && this->DU->isHalted() && this->SU->isHalted() && 
+           this->RUA->isHalted() && this->RUC->isHalted() && this->RUG->isHalted() && this->RUT->isHalted() &&
+           this->CUA->isHalted() && this->CUC->isHalted() && this->CUG->isHalted() && this->CUT->isHalted() &&
+           this->LUA->isHalted() && this->LUC->isHalted() && this->LUG->isHalted() && this->LUT->isHalted();
+}
+
 void Core::step() {
     if (!this->halted) {
+        this->SU->step();
+
         this->CUA->step();
         this->CUC->step();
         this->CUG->step();
@@ -91,11 +100,12 @@ void Core::step() {
         this->RUC->step();
         this->RUG->step();
         this->RUT->step();
-        
+
         this->DU->step();
+
         this->FU->step();
     }
 
-    if (this->FU->halted && this->DU->halted)
+    if (this->allStagesHalted())
         this->halted = true;
 }

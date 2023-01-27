@@ -19,7 +19,7 @@ void Config::add_children(string cName) {
 
     if (pos < cName.size()) {
         string pName = "Pipeline";
-        string basename = cName.substr(pos + 8, 1);
+        char basename = *cName.substr(pos + 8, 1).c_str();
         int pVal = (int) this->BaseMap[basename];
         this->children[cName]->add_parameters(pName, pVal);
     }

@@ -7,19 +7,21 @@
 #ifndef COMP_H
 #define COMP_H
 
-class ComputeUnit {
+class ComputeStage {
     public:
-        ComputeUnit(Config*);
+        ComputeStage(Config*, char, string);
 
-        void connect(ReserveUnit *, FetchUnit *);
+        void connect(ReserveStage *, FetchStage *);
+        bool isHalted();
         void step();
 
     private:
+        char base;
         int cycle_count;
         bool halted;
 
-        ReserveUnit * coreRU;
-        FetchUnit * coreFU;
+        ReserveStage * coreRU;
+        FetchStage * coreFU;
 };
 
 #endif

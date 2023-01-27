@@ -20,7 +20,7 @@ class Queue {
         bool isEmpty();
         bool isFull();
 
-        void print();
+        void show(ostream&);
 
     private:
         vector<DataType> registers;

@@ -1,4 +1,4 @@
-#include<stdio.h>
+#include<iostream>
 #include<bitset>
 #include<vector>
 
@@ -18,56 +18,68 @@ struct SRSEntry:RSEntry {
     bitset<6> BasePointer;
     bool StoreFlag;
 
-    friend std::ostream& operator <<(std::ostream& os, SRSEntry const& e)
-    {
+    friend std::ostream& operator <<(std::ostream& os, SRSEntry const& e) {
         return os << e.SeedAddress << "\t"
                   << e.Seed << "\t"
                   << e.LowPointer << "\t"
                   << e.HighPointer << "\t"
                   << e.StoreFlag << "\t"
-                  << e.BasePointer;
+                  << e.BasePointer << "\t\t"
+                  << static_cast<const RSEntry&>(e);
     }
 };
 
 class SeedReservationStation: public ReservationStation<SRSEntry> {
     public:
-        SeedReservationStation(Config *);
-        void updateBasePointer(int);
+        SeedReservationStation(string, Config *);
         void setStoreFlag(int);
+        void updateBasePointer(int);
         void updateLowPointer(int, bitset<32>);
         void updateHighPointer(int, bitset<32>);
 };
 
-class FetchUnit {
+class FetchStage {
     public:
-        FetchUnit(Config *, bitset<32>);
+        // Constructor
+        FetchStage(Config *, string, bitset<32>);
 
-        void step();
-        void connect(DRAM<bitset<32>, bitset<64>> *);
+        // Common for all Pipeline stages - called from core
+        void print();
+        bool isHalted();
+        void connect(); // connect with other components within core
+        void connectDRAM(DRAM<bitset<32>, bitset<64>> *); // connect with off-chip components
+        void step(); // clock trigger
 
+        // API methods for getting and setting from internal registers.
         pair<int, SRSEntry> getNextReadyEntry();
+        void writeBack(int, bitset<32>, bitset<32>);
         void setInProgress(int);
         void setEmptyState(int);
         void setReadyState(int);
-        void writeBack(int, bitset<32>, bitset<32>);
         void setStoreFlag(int);
         bool emptySRS();
-        void print();
+        
+    private:
+        // Constant for a reference genome - input from CoreReg.mem file.
+        bitset<32> RefCount;
 
+        // PRINT - Registers/Sequential logic that changes at clock trigger.
+        bitset<32> SeedPointer;
+        SeedReservationStation * SRS; // SeedReservationStation - intermediate between Fetch stage and the 
+        Queue<bitset<6>> * FillIdxQueue; // Helper structure to fill multiple SRS entries per cycle.
+
+        // External component - This one is off-chip DRAM that stores the seed queries.
+        DRAM<bitset<32>, bitset<64>> * SDMEM; // Initial state input from SdMEM.mem file.
+
+        // Performance measurement related
+        int cycle_count;
         bool halted;
 
-    private:
-        bitset<32> SeedPointer;
-        bitset<32> NextSeedPointer;
-        bitset<32> RefCount;
-        Queue<bitset<6>> * FillIdxQueue;
-        DRAM<bitset<32>, bitset<64>> * SDMEM;
-        SeedReservationStation * SRS; // SeedReservationStation
+        // Fetch Output file
+        string op_file_path;
 
-        int bufferSize;
-        int bufferPtr;
-
-        int cycle_count;
+        vector<pair<int, pair<bitset<32>, bitset<32>>>> pendingWriteBacks;
+        bool pendingWB;
 };
 
 #endif

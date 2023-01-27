@@ -4,7 +4,8 @@
 #define RS_DEF
 
 template <typename EntryType>
-ReservationStation<EntryType>::ReservationStation(Config * config) {
+ReservationStation<EntryType>::ReservationStation(string name, Config * config) {
+    this->id = name;
     this->numEntries = config->parameters["EntryCount"];
     this->Entries.resize(this->numEntries);
 
@@ -70,16 +71,16 @@ bool ReservationStation<EntryType>::isEmpty() {
 }
 
 template <typename EntryType>
-void ReservationStation<EntryType>::show() {
-    cout << "=================================================================================================================" << endl;
-    // cout << "Idx\t Seed Address\t\t\t\t Seed\t\t\t\t\t\t\t\t\t Low Pointer\t\t\t\t High Pointer\t\t\t\t Base Pointer\t Ready\t Valid" << endl;
-    // cout << "---------------------------------------------------------------------------------------------------------------------------------------------";
-    // cout << "------------------------------------------------------------------------------------------------" << endl;
+void ReservationStation<EntryType>::show(ostream& op) {
+    op << ".........................................." << endl;
+    op << "Reservation Station: " << this->id << endl;
+    op << "Idx\t| Value" << endl;
     int i = 0;
     for (auto entry: this->Entries) {
-        cout << i << '\t' << entry << "\t\t" << entry.Ready << '\t' << entry.Empty << endl;
+        op << i << "\t| " << entry << endl;
         i++;
     }
+    op << ".........................................." << endl;
 }
 
 #endif

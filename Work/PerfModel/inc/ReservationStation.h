@@ -9,12 +9,17 @@
 struct RSEntry {
     bool Ready;
     bool Empty;
+
+    friend std::ostream& operator <<(std::ostream& os, RSEntry const& e) {
+        return os << e.Ready << "\t"
+                  << e.Empty;
+    }
 };
 
 template <typename EntryType>
 class ReservationStation {
     public:
-        ReservationStation(Config *);
+        ReservationStation(string, Config *);
 
         int numVacant();
         void fill(bitset<6>, EntryType);
@@ -26,11 +31,13 @@ class ReservationStation {
         void setWaitingState(int);
         bool isEmpty();
 
-        void show();
+        void show(ostream&);
 
     protected:
         vector<EntryType> Entries;
         int numEntries;
+
+        string id;
 };
 
 #include <../src/ReservationStation.cpp>

@@ -23,6 +23,7 @@ class Config {
     public:
         map<string, int> parameters;
         map<string, Config *> children;
+        map<char, BaseConfig> BaseMap = {{'A', PL_A}, {'C', PL_C}, {'G', PL_G}, {'T', PL_T}};
 
         Config(string);
         void add_parameters(string, int);
@@ -32,7 +33,6 @@ class Config {
     
     private:
         string id;
-        map<string, BaseConfig> BaseMap = {{"A", PL_A}, {"C", PL_C,}, {"G", PL_G}, {"T", PL_T}};
 };
 
 class ConfigParser {

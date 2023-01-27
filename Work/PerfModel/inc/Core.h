@@ -26,24 +26,26 @@ class Core {
 
         DRAM<bitset<32>, bitset<32>> * OCMEM;
 
-        FetchUnit * FU;
-        DispatchUnit * DU;
+        FetchStage * FU;
+        DispatchStage * DU;
 
-        ReserveUnit * RUA;
-        ComputeUnit * CUA;
-        LoadUnit * LUA;
+        ReserveStage * RUA;
+        ComputeStage * CUA;
+        LoadStage * LUA;
 
-        ReserveUnit * RUC;
-        ComputeUnit * CUC;
-        LoadUnit * LUC;
+        ReserveStage * RUC;
+        ComputeStage * CUC;
+        LoadStage * LUC;
 
-        ReserveUnit * RUG;
-        ComputeUnit * CUG;
-        LoadUnit * LUG;
+        ReserveStage * RUG;
+        ComputeStage * CUG;
+        LoadStage * LUG;
         
-        ReserveUnit * RUT;
-        ComputeUnit * CUT;
-        LoadUnit * LUT;
+        ReserveStage * RUT;
+        ComputeStage * CUT;
+        LoadStage * LUT;
 
-        StoreUnit * SU;
+        StoreStage * SU;
+
+        bool allStagesHalted();
 };

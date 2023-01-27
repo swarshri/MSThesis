@@ -19,7 +19,8 @@ class DRAM {
         bool writeDone = false;
 
         DRAM(string, Config *, bool);
-        void load(string);
+        void input(string);
+        void output(string);
 
         void readAccess(AddressType);
         void writeAccess(AddressType, vector<DataType>);

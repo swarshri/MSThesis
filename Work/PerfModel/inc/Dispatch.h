@@ -19,10 +19,9 @@ struct DispatchQueueEntry {
     bitset<32> LowPointer;
     bitset<32> HighPointer;
     bitset<6> SRSWBIndex;
-    bool ready = false;
 
     friend std::ostream& operator <<(std::ostream& os, const DispatchQueueEntry& dqe) {
-        os << dqe.base << "\t" << dqe.LowPointer << "\t" << dqe.HighPointer << "\t" << dqe.SRSWBIndex << "\t" << dqe.ready << endl;
+        os << dqe.base << "\t" << dqe.LowPointer << "\t" << dqe.HighPointer << "\t" << dqe.SRSWBIndex;
         return os;
     }
 };
@@ -32,33 +31,44 @@ struct StoreQueueEntry {
     bitset<64> StoreVal;
 
     friend std::ostream& operator <<(std::ostream& os, const StoreQueueEntry& sqe) {
-        os << sqe.StoreAddress << "\t" << sqe.StoreVal << endl;
+        os << sqe.StoreAddress << "\t" << sqe.StoreVal;
         return os;
     }
 };
 
-class DispatchUnit {
+class DispatchStage {
     public:
+        // Constructor
+        DispatchStage(Config*, string);
 
-        DispatchUnit(Config*);
-
-        bool halted = false;
-
-        void step();
-        void connect(FetchUnit *);
+        // Common for all Pipeline stages - called from core
+        void print();
         bool isHalted();
+        void connect(FetchStage *);
+        void step();
+
+        // API methods for getting from internal queues.
         pair<bool, DispatchQueueEntry> popNextDispatch(int);
         pair<bool, StoreQueueEntry> popNextStore();
 
     private:
-        int cycle_count = 0;
+        // Dispatch scheme from the config file.
         int dispatchScheme;
-        FetchUnit * coreFU;
+        void dispatchSequential(int);
+        
+        // Performance measurement related
+        int cycle_count = 0;
+        bool halted = false;
+        
+        // External component - other stages in the core.
+        FetchStage * coreFU;
 
+        // PRINT - Registers/Sequential logic that changes at clock trigger.
         map<int, Queue<DispatchQueueEntry>*> DispatchQueues;
         Queue<StoreQueueEntry> * StoreQueue;
 
-        void dispatchSequential(int);
+        // Dispatch Output file
+        string op_file_path;
 };
 
 #endif
