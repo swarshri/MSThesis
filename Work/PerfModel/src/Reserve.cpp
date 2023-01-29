@@ -85,6 +85,7 @@ void ReserveStage::step() {
             bool lorh = get<1>(entry);
             bitset<32> value = get<2>(entry);
             this->fillInCRS(idx, lorh, value);
+            cout << "RS: Filling in CRS data at index: " << idx << " with data: " << lorh << " " << value << endl;
         }
         this->pendingCRSEntries.clear();
         this->pendingCRSE = false;
@@ -96,6 +97,7 @@ void ReserveStage::step() {
         }
         this->pendingEmptyLRSIdcs.clear();
         this->pendingLRSEmpty = false;
+        this->print();
     }
     if (!this->halted) {
         pair<bool, DispatchQueueEntry> currentDispatch;
@@ -153,11 +155,12 @@ void ReserveStage::step() {
                 }
                 if (this->LRSIdxQ->getCount() >= newLoadRequests.size()) {
                     for (auto nlr = newLoadRequests.begin(); nlr != newLoadRequests.end(); nlr++) {
-                        this->LRS->fill(this->LRSIdxQ->pop(), *nlr);
+                        bitset<6> idx = this->LRSIdxQ->pop();
+                        this->LRS->fill(idx, *nlr);
+                        this->LRS->setReadyState(idx.to_ulong());
                         int nfe = this->LRS->nextFreeEntry();
                         if (nfe != -1) {
                             this->LRSIdxQ->push(bitset<6>(nfe));
-                            this->LRS->setReadyState(nfe);
                         }
                     }
                     cout << "RS: Updated Load Reservation Station with " << newLoadRequests.size() << " new Load Requests." << endl;

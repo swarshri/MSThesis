@@ -53,6 +53,8 @@ template <typename EntryType>
 void ReservationStation<EntryType>::setReadyState(int idx) {
     this->Entries[idx].Empty = false;
     this->Entries[idx].Ready = true;
+    cout << "LRS: Ready state set at idx: " << idx << endl;
+    cout << this->Entries[idx] << endl;
 }
 
 template <typename EntryType>
