@@ -2,6 +2,72 @@ import os
 import shutil
 import argparse
 
+class Query(object):
+    count = -1
+    
+    def __init__(self, q_str):
+        
+        self._str = q_str
+        self._len = len(q_str)
+        Query.count += 1
+        self._id = self.count
+        
+    @property
+    def uid(self):
+        return self._id
+    
+    @property
+    def length(self):
+        return self._len     
+    
+    @property
+    def qstr(self):
+        return self._str
+    
+    def char_from_idx(self, idx):
+        return self._str[idx]
+
+class ReadAlignment(object):    
+    def __init__(self, ref_fmi):
+        self._fmi = ref_fmi
+        self._pos = {}
+        
+    def run_fmibackwardsearch(self, query):
+        it_count = 0
+        print("self._fmi.length:", self._fmi.length)
+        low = 0; high = self._fmi.length
+        m = query.length
+        for i in range(m-1, -1, -1):
+            char = query.char_from_idx(i)
+            print("iteration:", it_count, "char:", char, "low:", low, "high:", high)
+            low = self._fmi.count(char) + self._fmi.occ(char, low)
+            high = self._fmi.count(char) + self._fmi.occ(char, high)
+            print("iteration:", it_count, "char:", char, "low:", low, "high:", high)
+            print("")
+            
+            if (low >= high):
+                print("Low greater than or equal to high:", low, high)
+                low_bin = bin(low).replace('0b', '')
+                low_bin = '0'*(32-len(low_bin)) + low_bin
+                high_bin = bin(high).replace('0b', '')
+                high_bin = '0'*(32-len(high_bin)) + high_bin
+                return [query.qstr + " " + str(low) + "\t" + str(high) + "\t\t" + str([]) + "\n",
+                        low_bin + high_bin + "\n"]
+            
+            it_count += 1
+        
+        pos_list = []
+        for i in range(low, high):
+            pos_list.append(self._fmi.sa_idx(i))
+        
+        print("Index locations:", pos_list)
+        self._pos[query] = sorted(pos_list)
+        low_bin = bin(low).replace('0b', '')
+        low_bin = '0'*(32-len(low_bin)) + low_bin
+        high_bin = bin(high).replace('0b', '')
+        high_bin = '0'*(32-len(high_bin)) + high_bin
+        return [query.qstr + " " + str(low) + "\t" + str(high) + "\t\t" + str(pos_list) + "\n", low_bin + high_bin + "\n"]
+
 base_chars = ['$', 'A', 'C', 'G', 'T']
 base_mem_dict = {'A': '000',
                  'C': '001',
@@ -63,21 +129,24 @@ class FMI(object):
     def count(self, char):
         return self._count[char]
     
-    def occ(self, char, idx):
-        occ_access_location_row_wise = (self.base_chars.index(char)-1) * (self._length+1) + idx
-        self._occ_access_locations_row_wise.append(occ_access_location_row_wise)
-        #print("new access row:", occ_access_location_row_wise, "   length:", len(self._occ_access_locations_col_wise))
-        occ_access_location_col_wise = (len(self.base_chars)-1)*idx + self.base_chars.index(char)-1
-        self._occ_access_locations_col_wise.append(occ_access_location_col_wise)
-        #print("new access col:", occ_access_location_col_wise, "   length:", len(self._occ_access_locations_col_wise))
-        
-        for ch in base_chars[1:]:
-            if ch == char:
-                self._occ_char_wise_access_location[ch].append(idx)
-            else:
-                self._occ_char_wise_access_location[ch].append(0)
-                
-        return self._occ[char][idx]
+    def occ(self, char, idx = None):
+        if idx != None:
+            occ_access_location_row_wise = (base_chars.index(char)-1) * (self._length+1) + idx
+            self._occ_access_locations_row_wise.append(occ_access_location_row_wise)
+            #print("new access row:", occ_access_location_row_wise, "   length:", len(self._occ_access_locations_col_wise))
+            occ_access_location_col_wise = (len(base_chars)-1)*idx + base_chars.index(char)-1
+            self._occ_access_locations_col_wise.append(occ_access_location_col_wise)
+            #print("new access col:", occ_access_location_col_wise, "   length:", len(self._occ_access_locations_col_wise))
+
+            for ch in base_chars[1:]:
+                if ch == char:
+                    self._occ_char_wise_access_location[ch].append(idx)
+                else:
+                    self._occ_char_wise_access_location[ch].append(0)
+
+            return self._occ[char][idx]
+        else:
+            return self._occ[char]
     
     @property
     def length(self):
@@ -86,14 +155,6 @@ class FMI(object):
     @property
     def suffix_array(self):
         return self._suffix_array
-
-    @property
-    def count(self):
-        return self._count
-
-    @property
-    def occ(self):
-        return self._occ
 
     def sa_idx(self, pos):
         return self._suffix_array[pos]
@@ -122,6 +183,50 @@ class FastFilesParser(object):
         self._fq_file_path = os.path.join(dirpath, fastqfile)
         self._op_dir_path = os.path.join(dirpath, "mem")
 
+        self._ref_name = ""
+        self._ref_genome_seq = ""
+        self._ref_fmi = None
+        self._fastq_reads = []
+        self._seeds = []
+
+    def parse(self):        
+        reference_genome = ""
+        with open(self._fa_file_path, "r") as fasta:
+            reference_name = fasta.readline().split('>')[1].strip()
+            reference_genome = ''.join(fasta.readlines()).replace('\n', '').upper()
+            self._ref_genome_seq = reference_genome
+
+        if self._ref_genome_seq != "":
+            self._ref_fmi = FMI(reference_name, reference_genome)
+
+        with open(self._fq_file_path, "r") as fastq:
+            sample_name = fastq.readline().split('.')[0].replace('@', '')
+            self._fastq_reads = [line.upper().strip() for line in fastq.readlines() if line[0] not in ['@', '+', '?', '\'', '5']]
+        print("Fastq Reads:", len(self._fastq_reads), len(self._fastq_reads[-1]), self._fastq_reads)
+            
+        for read in self._fastq_reads:
+            self._seeds.extend([read[i:i+20] for i in range(0, len(read), 20) if 'N' not in read[i:i+20]])
+        # print("Seeds:", len(seeds), seeds)
+
+    def backwardSearch(self):
+        readAligner = ReadAlignment(self._ref_fmi)
+        line_op = ""
+        line_bop = ""
+        for seed in self._seeds:
+            query = Query(seed)
+            lines = readAligner.run_fmibackwardsearch(query)
+            line_op += lines[0]
+            line_bop += lines[1]
+        
+        fop_path = os.path.join(self._dir_path, "FuncOP.out")
+        with open(fop_path, "w") as fop:
+            line_op = "Seed \t\t\t\t Low\tHigh\tIndex Positions\n" + line_op
+            fop.writelines(line_op)
+        
+        fbop_path = os.path.join(self._dir_path, "ExpSiMEM.out")
+        with open(fbop_path, "w") as fbop:
+            fbop.writelines(line_bop)
+
     def generateSaiMemFile(self, ref_fmi):
         saimem_file_path = os.path.join(self._op_dir_path, "SaiMEM.mem")
         with open(saimem_file_path, "w") as imem:
@@ -137,7 +242,7 @@ class FastFilesParser(object):
         for base, ofile in omem_files.items():
             omem_file_path = os.path.join(self._op_dir_path, ofile)
             with open(omem_file_path, "w") as omem:
-                lines = [mem_format(occval) for occval in ref_fmi.occ[base]]
+                lines = [mem_format(occval) for occval in ref_fmi.occ(base)]
                 lines[-1] = lines[-1].replace('\n', '')
                 omem.writelines(lines)
 
@@ -146,26 +251,23 @@ class FastFilesParser(object):
         with open(corereg_file_path, "w") as creg:
             lines = [mem_format(ref_fmi.length)]
             for base in base_chars[1:]:
-                lines += mem_format(ref_fmi.count[base])
+                lines += mem_format(ref_fmi.count(base))
             for base in base_chars[1:]:
-                lines += mem_format(ref_fmi.occ[base][-1])
+                lines += mem_format(ref_fmi.occ(base)[-1])
             lines[-1] = lines[-1].replace('\n', '')
             creg.writelines(lines)
 
     def generateSdMemFile(self, fastq_reads):
-        seeds = []
-        for read in fastq_reads:
-            seeds.extend([read[i:i+20] for i in range(0, len(read), 20)])
-        print("Seeds:", len(seeds), seeds)
-
         sdmem_file = os.path.join(self._op_dir_path, "SdMEM.mem")
         with open(sdmem_file, "w") as sdmem:
             lines = []
-            for seed in seeds:
+            print("-------------------------------------------")
+            for seed in self._seeds:
                 write_bitstr = "111"
                 write_bitstr = write_bitstr + "".join([base_mem_dict[base] for base in seed])
                 write_bitstr = '0'*(64-len(write_bitstr)) + write_bitstr + "\n"
                 lines.append(write_bitstr)
+                print(seed, ":", write_bitstr)
             lines.append('1'*64 + '\n')
             lines[-1] = lines[-1].replace('\n', '')
             sdmem.writelines(lines)
@@ -182,28 +284,16 @@ class FastFilesParser(object):
             shutil.rmtree(self._op_dir_path)
         os.mkdir(self._op_dir_path)
 
-        reference_genome = ""
-        with open(self._fa_file_path, "r") as fasta:
-            reference_name = fasta.readline().split('>')[1].strip()
-            reference_genome = ''.join(fasta.readlines()).replace('\n', '').upper()
-
-        if reference_genome != "":
-            ref_fmi = FMI(reference_name, reference_genome)
-            self.generateSaiMemFile(ref_fmi)
-            self.generateOccMemFiles(ref_fmi)
-            self.generateCoreRegFile(ref_fmi)
+        if self._ref_fmi != None:
+            self.generateSaiMemFile(self._ref_fmi)
+            self.generateOccMemFiles(self._ref_fmi)
+            self.generateCoreRegFile(self._ref_fmi)
         else:
             print("WARNING!!! Found empty Reference Genome from the fasta file:", self._fa_file_path)
             print("No SaiMEM, OccMEM, and CoreReg file generated.")
 
-        fastq_reads = []
-        with open(self._fq_file_path, "r") as fastq:
-            sample_name = fastq.readline().split('.')[0].replace('@', '')
-            fastq_reads = [line.upper().strip() for line in fastq.readlines() if line[0] not in ['@', '+', '?', '\'', '5']]
-
-        print("Fastq Reads:", len(fastq_reads), len(fastq_reads[-1]), fastq_reads)
-        if len(fastq_reads) != 0:
-            self.generateSdMemFile(fastq_reads)
+        if len(self._fastq_reads) != 0:
+            self.generateSdMemFile(self._fastq_reads)
         else:
             print("WARNING!!! Found no Read Sequences from the fastq file:", self._fq_file_path)
             print("No SdMEM file generated.")
@@ -246,4 +336,6 @@ if __name__ == "__main__":
     fastq_file = fastq_files[0]
     print("Parsing the Reference Genome (fasta) file:", fasta_file, "and the Read Sequence (fastq) file:", fastq_file)
     ffParser = FastFilesParser(iodir, fasta_file, fastq_file)
+    ffParser.parse()
     ffParser.generateMemFiles()
+    ffParser.backwardSearch()
