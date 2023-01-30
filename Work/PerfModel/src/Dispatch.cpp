@@ -70,10 +70,12 @@ void DispatchStage::dispatchSequential(int count) {
             newStoreQueueEntry.StoreAddress = nre.second.SeedAddress;
             newStoreQueueEntry.StoreVal = bitset<64>((nre.second.LowPointer.to_ulong() << 32) + nre.second.HighPointer.to_ulong());
             this->StoreQueue->push(newStoreQueueEntry);
-            // Reset SRS Entry status to Empty.
-            this->coreFU->setEmptyState(nre.first);
             cout << "DS: Queued into Store Queue." << endl;
             this->print();
+            // Reset SRS Entry status to Empty.
+            this->coreFU->scheduleToSetEmptyState(nre.first);
+            cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
+            this->coreFU->print();
         }
         //if base queue has space, schedule it and update the SRS entry state.
         else if (!this->DispatchQueues[base.to_ulong()]->isFull()) {

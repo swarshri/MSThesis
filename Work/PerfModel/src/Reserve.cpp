@@ -161,6 +161,7 @@ void ReserveStage::step() {
                         int nfe = this->LRS->nextFreeEntry();
                         if (nfe != -1) {
                             this->LRSIdxQ->push(bitset<6>(nfe));
+                            this->LRS->setScheduledState(nfe);
                         }
                     }
                     cout << "RS: Updated Load Reservation Station with " << newLoadRequests.size() << " new Load Requests." << endl;

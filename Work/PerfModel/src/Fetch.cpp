@@ -51,6 +51,7 @@ FetchStage::FetchStage(Config * config, string iodir, bitset<32> refCount) {
     this->halted = false;
 
     pendingWB = false;
+    pendingEmpty = false;
 
     // Output file path    
 #ifdef _WIN32
@@ -80,6 +81,11 @@ void FetchStage::writeBack(int idx, bitset<32> lowVal, bitset<32> highVal) {
     pair<int, pair<bitset<32>, bitset<32>>> newWB = pair<int, pair<bitset<32>, bitset<32>>>(idx, pair<bitset<32>, bitset<32>>(lowVal, highVal));
     this->pendingWriteBacks.push_back(newWB);
     this->pendingWB = true;
+}
+
+void FetchStage::scheduleToSetEmptyState(int idx) {
+    this->pendingEmptyIdcs.push_back(idx);
+    this->pendingEmpty = true;
 }
 
 void FetchStage::setInProgress(int idx) {
@@ -149,8 +155,19 @@ void FetchStage::step() {
         }
         this->pendingWriteBacks.clear();
         this->pendingWB = false;
+        this->print();
+    }
+    if (this->pendingEmpty) {
+        for (int idx: this->pendingEmptyIdcs) {
+            this->setEmptyState(idx);
+            cout << "FS: Setting Empty State in FS SRS at index: " << idx << endl;
+        }
+        this->pendingEmptyIdcs.clear();
+        this->pendingEmpty = false;
+        this->print();
     }
     if (!this->halted) {
+        this->cycle_count++;
         if (this->SDMEM->readDone) {
             for (int i = 0; i < this->SDMEM->getChannelWidth(); i++) {
                 bitset<64> nextReadData = this->SDMEM->lastReadData[i];
@@ -160,7 +177,9 @@ void FetchStage::step() {
                         int idx = this->FillIdxQueue->pop().to_ulong();
                         this->SRS->setEmptyState(idx);
                     }
-                    break;
+                    cout << "Found Halt Seed at i: " << i << endl;
+                    this->print();
+                    return;
                 }
                 else {
                     int nextIdx = this->FillIdxQueue->pop().to_ulong();
@@ -189,7 +208,8 @@ void FetchStage::step() {
                 cout << "FS: Sent Read Request from address: " << this->SeedPointer << endl;
             }
         }
-        else if (!this->FillIdxQueue->isFull()) {
+        
+        if (!this->FillIdxQueue->isFull()) {
             int nextFreeEntry = this->SRS->nextFreeEntry();
             if (nextFreeEntry != -1) {
                 this->FillIdxQueue->push(nextFreeEntry);
@@ -198,7 +218,6 @@ void FetchStage::step() {
                 this->print();
             }
         }
-        this->cycle_count++;
     }
     else
         cout << "FS: Halted" << endl;

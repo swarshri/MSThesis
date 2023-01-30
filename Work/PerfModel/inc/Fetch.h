@@ -53,6 +53,7 @@ class FetchStage {
         // API methods for getting and setting from internal registers.
         pair<int, SRSEntry> getNextReadyEntry();
         void writeBack(int, bitset<32>, bitset<32>);
+        void scheduleToSetEmptyState(int);
         void setInProgress(int);
         void setEmptyState(int);
         void setReadyState(int);
@@ -80,6 +81,9 @@ class FetchStage {
 
         vector<pair<int, pair<bitset<32>, bitset<32>>>> pendingWriteBacks;
         bool pendingWB;
+
+        vector<int> pendingEmptyIdcs;
+        bool pendingEmpty;
 };
 
 #endif
