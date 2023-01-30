@@ -189,6 +189,7 @@ void FetchStage::step() {
                     newSRSEntry.LowPointer = bitset<32>(0);
                     newSRSEntry.HighPointer = this->RefCount;
                     newSRSEntry.BasePointer = bitset<6>(0);
+                    newSRSEntry.StoreFlag = false;
                     newSRSEntry.Ready = true;
                     newSRSEntry.Empty = false;
                     this->SRS->fill(bitset<6>(nextIdx), newSRSEntry);

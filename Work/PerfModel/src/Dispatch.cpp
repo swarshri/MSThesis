@@ -75,7 +75,6 @@ void DispatchStage::dispatchSequential(int count) {
             // Reset SRS Entry status to Empty.
             this->coreFU->scheduleToSetEmptyState(nre.first);
             cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
-            this->coreFU->print();
         }
         //if base queue has space, schedule it and update the SRS entry state.
         else if (!this->DispatchQueues[base.to_ulong()]->isFull()) {
