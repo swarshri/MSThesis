@@ -87,7 +87,7 @@ template <typename AddressType, typename DataType>
 void DRAM<AddressType, DataType>::readAccess(AddressType address) {
     srand(time(NULL));
     int randomLatency = (rand() % (this->latencymax - this->latencymin)) + this->latencymin;
-    this->readWaitCycles = 5; // randomLatency;
+    this->readWaitCycles = 50; // randomLatency;
     this->nextReadAddress = address;
     this->readPending = true;
     this->readDone = false;
@@ -102,7 +102,7 @@ void DRAM<AddressType, DataType>::writeAccess(AddressType address, vector<DataTy
     if (this->readonly)
         cout << "WARNING: Attempt to write into a read-only memory: " << this->id << endl;
     else {
-        this->writeWaitCycles = 5; // randomLatency;
+        this->writeWaitCycles = 50; // randomLatency;
         this->nextWriteAddress = address;
         this->nextWriteData = data;
         this->writePending = true;
