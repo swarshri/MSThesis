@@ -23,7 +23,7 @@ struct LRSEntry:RSEntry {
 };
 
 struct CRSEntry:RSEntry {
-    bitset<32> Count;
+    //bitset<32> Count;
     bitset<32> LowOcc;
     bool LowOccReady;
     bitset<32> HighOcc;
@@ -31,7 +31,7 @@ struct CRSEntry:RSEntry {
     bitset<6> SRSWBIndex;
 
     friend std::ostream& operator <<(std::ostream& os, CRSEntry const& e) {
-        return os << e.Count << "\t"
+        return os //<< e.Count << "\t"
                   << e.LowOcc << "\t"
                   << e.LowOccReady << "\t"
                   << e.HighOcc << "\t"
@@ -50,7 +50,7 @@ class ComputeReservationStation: public ReservationStation<CRSEntry> {
 
 class ReserveStage {
     public:
-        ReserveStage(Config*, char, string, vector<bitset<32>> *);
+        ReserveStage(Config*, char, string);
 
         void connect(DispatchStage *);
         void step();
@@ -73,9 +73,9 @@ class ReserveStage {
         bool halted;
         char base;
         int base_num;
-        bitset<32> RefCount;
-        bitset<32> CountReg;
-        bitset<32> OccLastValReg;
+        // bitset<32> RefCount;
+        // bitset<32> CountReg;
+        // bitset<32> OccLastValReg;
 
         DispatchStage * coreDU;
         pair<bool, DispatchQueueEntry> pendingToBeReserved;

@@ -22,12 +22,12 @@ void ComputeReservationStation::fillHighOccVal(int idx, bitset<32> data) {
         this->setReadyState(idx);
 }
 
-ReserveStage::ReserveStage(Config * config, char base, string iodir, vector<bitset<32>> * refIndexInfo) {
+ReserveStage::ReserveStage(Config * config, char base, string iodir) {
     this->base = base;
     this->base_num = config->BaseMap[base];
-    this->RefCount = bitset<32>(refIndexInfo->at(0).to_ulong());
-    this->CountReg = refIndexInfo->at(this->base_num + 1);
-    this->OccLastValReg = refIndexInfo->at(this->base_num + 5);
+    // this->RefCount = bitset<32>(refIndexInfo->at(0).to_ulong());
+    // this->CountReg = refIndexInfo->at(this->base_num + 1);
+    // this->OccLastValReg = refIndexInfo->at(this->base_num + 5);
 
     this->CRS = new ComputeReservationStation("ComputeRS", config->children["ComputeReservationStation"]);
     
@@ -114,25 +114,25 @@ void ReserveStage::step() {
             CRSEntry * newCRSEntry = new CRSEntry;
             newCRSEntry->LowOccReady = true;
             newCRSEntry->HighOccReady = true;
-            newCRSEntry->Count = this->CountReg;
+            // newCRSEntry->Count = this->CountReg;
 
-            if (currentDispatch.second.LowPointer == bitset<32>(0))
-                newCRSEntry->LowOcc = bitset<32>(0);
-            else if (currentDispatch.second.LowPointer == this->RefCount)
-                newCRSEntry->LowOcc = this->OccLastValReg;
-            else {
+            // if (currentDispatch.second.LowPointer == bitset<32>(0))
+            //     newCRSEntry->LowOcc = bitset<32>(0);
+            // else if (currentDispatch.second.LowPointer == this->RefCount)
+            //     newCRSEntry->LowOcc = this->OccLastValReg;
+            // else {
                 newCRSEntry->LowOccReady = false;
                 newCRSEntry->LowOcc = bitset<32>(0);
-            }
+            // }
 
-            if (currentDispatch.second.HighPointer == bitset<32>(0))
-                newCRSEntry->HighOcc = bitset<32>(0);
-            else if (currentDispatch.second.HighPointer == this->RefCount)
-                newCRSEntry->HighOcc = this->OccLastValReg;
-            else {
+            // if (currentDispatch.second.HighPointer == bitset<32>(0))
+            //     newCRSEntry->HighOcc = bitset<32>(0);
+            // else if (currentDispatch.second.HighPointer == this->RefCount)
+            //     newCRSEntry->HighOcc = this->OccLastValReg;
+            // else {
                 newCRSEntry->HighOccReady = false;
                 newCRSEntry->HighOcc = bitset<32>(0);
-            }
+            // }
 
             newCRSEntry->SRSWBIndex = currentDispatch.second.SRSWBIndex;
             int nextCRSIdx = this->CRS->nextFreeEntry();

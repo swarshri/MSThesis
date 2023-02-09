@@ -1,9 +1,11 @@
 #include<Compute.h>
 
-ComputeStage::ComputeStage(Config * config, char base, string iodir) {
+ComputeStage::ComputeStage(Config * config, char base, string iodir, bitset<32> countVal) {
     this->base = base;
     this->halted = false;
     this->cycle_count = 0;
+
+    this->CountReg = countVal;
 }
 
 void ComputeStage::connect(ReserveStage * ru, FetchStage * fu) {
@@ -20,8 +22,8 @@ void ComputeStage::step() {
     if (!this->halted) {
         pair<int, CRSEntry> nce = this->coreRU->getNextComputeEntry();
         if (nce.first != -1) {
-            bitset<32> lowResult = bitset<32>(nce.second.Count.to_ulong() + nce.second.LowOcc.to_ulong());
-            bitset<32> highResult = bitset<32>(nce.second.Count.to_ulong() + nce.second.HighOcc.to_ulong());
+            bitset<32> lowResult = bitset<32>(this->CountReg.to_ulong() + nce.second.LowOcc.to_ulong());
+            bitset<32> highResult = bitset<32>(this->CountReg.to_ulong() + nce.second.HighOcc.to_ulong());
             this->coreFU->writeBack(nce.second.SRSWBIndex.to_ulong(), lowResult, highResult);
             cout << "CS: Write Back scheduled into FS SRS at Index: " << nce.second.SRSWBIndex << " LowResult: " << lowResult << endl;
             cout << "CS: Write Back scheduled into FS SRS at Index: " << nce.second.SRSWBIndex << " HighResult: " << highResult << endl;

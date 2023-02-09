@@ -30,30 +30,30 @@ Core::Core(string id, string ioDir, Config * config) {
     this->DU = new DispatchStage(config->children["DispatchStage"], ioDir);
     this->DU->connect(this->FU);
 
-    this->RUA = new ReserveStage(config->children["ReserveStage"], 'A', ioDir, &coremem);
+    this->RUA = new ReserveStage(config->children["ReserveStage"], 'A', ioDir);
     this->RUA->connect(this->DU);
-    this->CUA = new ComputeStage(config->children["ComputeStage"], 'A', ioDir);
+    this->CUA = new ComputeStage(config->children["ComputeStage"], 'A', ioDir, coremem[1]);
     this->CUA->connect(this->RUA, this->FU);
     this->LUA = new LoadStage(config->children["LoadStage"], 'A', ioDir);
     this->LUA->connectRU(this->RUA);
 
-    this->RUC = new ReserveStage(config->children["ReserveStage"], 'C', ioDir, &coremem);
+    this->RUC = new ReserveStage(config->children["ReserveStage"], 'C', ioDir);
     this->RUC->connect(this->DU);
-    this->CUC = new ComputeStage(config->children["ComputeStage"], 'C', ioDir);
+    this->CUC = new ComputeStage(config->children["ComputeStage"], 'C', ioDir, coremem[2]);
     this->CUC->connect(this->RUC, this->FU);
     this->LUC = new LoadStage(config->children["LoadStage"], 'C', ioDir);
     this->LUC->connectRU(this->RUC);
 
-    this->RUG = new ReserveStage(config->children["ReserveStage"], 'G', ioDir, &coremem);
+    this->RUG = new ReserveStage(config->children["ReserveStage"], 'G', ioDir);
     this->RUG->connect(this->DU);
-    this->CUG = new ComputeStage(config->children["ComputeStage"], 'G', ioDir);
+    this->CUG = new ComputeStage(config->children["ComputeStage"], 'G', ioDir, coremem[3]);
     this->CUG->connect(this->RUG, this->FU);
     this->LUG = new LoadStage(config->children["LoadStage"], 'G', ioDir);
     this->LUG->connectRU(this->RUG);
 
-    this->RUT = new ReserveStage(config->children["ReserveStage"], 'T', ioDir, &coremem);
+    this->RUT = new ReserveStage(config->children["ReserveStage"], 'T', ioDir);
     this->RUT->connect(this->DU);
-    this->CUT = new ComputeStage(config->children["ComputeStage"], 'T', ioDir);
+    this->CUT = new ComputeStage(config->children["ComputeStage"], 'T', ioDir, coremem[4]);
     this->CUT->connect(this->RUT, this->FU);
     this->LUT = new LoadStage(config->children["LoadStage"], 'T', ioDir);
     this->LUT->connectRU(this->RUT);
