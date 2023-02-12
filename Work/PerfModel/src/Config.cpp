@@ -29,6 +29,14 @@ string Config::get_name() {
     return this->id;
 }
 
+bool Config::has_child(string compName) {
+    return this->children.count(compName);
+}
+
+bool Config::has_parameter(string paramName) {
+    return this->parameters.count(paramName);
+}
+
 void ConfigParser::remove_whitespaces(string * strval) {
     list<char> to_find = {' ', '\t'};
     for (char c : to_find) {

@@ -19,9 +19,10 @@ struct DispatchQueueEntry {
     bitset<32> LowPointer;
     bitset<32> HighPointer;
     bitset<6> SRSWBIndex;
+    bitset<6> BasePointer;
 
     friend std::ostream& operator <<(std::ostream& os, const DispatchQueueEntry& dqe) {
-        os << dqe.base << "\t" << dqe.LowPointer << "\t" << dqe.HighPointer << "\t" << dqe.SRSWBIndex;
+        os << dqe.base << "\t" << dqe.LowPointer << "\t" << dqe.HighPointer << "\t" << dqe.SRSWBIndex << "\t" << dqe.BasePointer;
         return os;
     }
 };

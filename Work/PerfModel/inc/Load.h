@@ -3,6 +3,7 @@
 #include <Config.h>
 #include <Reserve.h>
 #include <DRAM.h>
+#include <Cache.h>
 
 class LoadStage {
     public:

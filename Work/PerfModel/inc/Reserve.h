@@ -5,6 +5,7 @@
 #include <Queue.h>
 #include <Dispatch.h>
 #include <ReservationStation.h>
+#include <Cache.h>
 
 #ifndef RES_H
 #define RES_H
@@ -13,17 +14,18 @@ struct LRSEntry:RSEntry {
     bitset<32> OccMemoryAddress;
     bool LowOrHigh; // false is low, true is high - DUH!
     bitset<6> ResStatIndex;
+    bitset<6> BasePointer;
     
     friend std::ostream& operator <<(std::ostream& os, LRSEntry const& e) {
         return os << e.LowOrHigh << "\t"
                   << e.OccMemoryAddress << "\t"
-                  << e.ResStatIndex << "\t\t"
+                  << e.ResStatIndex << "\t"
+                  << e.BasePointer << "\t\t"
                   << static_cast<const RSEntry&>(e);
     }
 };
 
 struct CRSEntry:RSEntry {
-    //bitset<32> Count;
     bitset<32> LowOcc;
     bool LowOccReady;
     bitset<32> HighOcc;
@@ -31,8 +33,7 @@ struct CRSEntry:RSEntry {
     bitset<6> SRSWBIndex;
 
     friend std::ostream& operator <<(std::ostream& os, CRSEntry const& e) {
-        return os //<< e.Count << "\t"
-                  << e.LowOcc << "\t"
+        return os << e.LowOcc << "\t"
                   << e.LowOccReady << "\t"
                   << e.HighOcc << "\t"
                   << e.HighOccReady << "\t"
@@ -65,6 +66,7 @@ class ReserveStage {
         pair<int, LRSEntry> getNextLoadEntry();
         void setLRSEToEmptyState(int);
         void scheduleToSetLRSEToEmptyState(int);
+        void scheduleWriteIntoCache(IncomingCacheStruct);
 
         void print();
 
@@ -73,9 +75,6 @@ class ReserveStage {
         bool halted;
         char base;
         int base_num;
-        // bitset<32> RefCount;
-        // bitset<32> CountReg;
-        // bitset<32> OccLastValReg;
 
         DispatchStage * coreDU;
         pair<bool, DispatchQueueEntry> pendingToBeReserved;
@@ -83,6 +82,8 @@ class ReserveStage {
         Queue<bitset<6>> * LRSIdxQ;
         ReservationStation<LRSEntry> * LRS; // LoadReservationStation - acts very similar to Queue. Using RS instead because, we want to enqueue atmost two entries in each cycle.
         ComputeReservationStation * CRS; // ComputeReservationStation
+        Cache * LocalCache;
+        bool hasCache;
 
         string op_file_path;
 
@@ -94,6 +95,9 @@ class ReserveStage {
 
         vector<int> pendingEmptyLRSIdcs;
         bool pendingLRSEmpty;
+
+        IncomingCacheStruct pendingCacheInput;
+        bool pendingCacheWrite;
 };
 
 #endif

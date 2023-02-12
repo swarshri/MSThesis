@@ -25,9 +25,6 @@ void ComputeReservationStation::fillHighOccVal(int idx, bitset<32> data) {
 ReserveStage::ReserveStage(Config * config, char base, string iodir) {
     this->base = base;
     this->base_num = config->BaseMap[base];
-    // this->RefCount = bitset<32>(refIndexInfo->at(0).to_ulong());
-    // this->CountReg = refIndexInfo->at(this->base_num + 1);
-    // this->OccLastValReg = refIndexInfo->at(this->base_num + 5);
 
     this->CRS = new ComputeReservationStation("ComputeRS", config->children["ComputeReservationStation"]);
     
@@ -38,6 +35,15 @@ ReserveStage::ReserveStage(Config * config, char base, string iodir) {
     this->LRS->setScheduledState(0);
     this->LRS->setScheduledState(1);
 
+    if (config->has_child("Cache")) {
+        this->LocalCache = new Cache(this->base, config->children["Cache"]);
+        this->hasCache = true;
+    }
+    else {
+        this->LocalCache = nullptr;
+        this->hasCache = false;
+    }
+
     this->halted = false;
     this->cycle_count = 0;
     this->pendingToBeReserved = pair<bool, DispatchQueueEntry>(false, *(new DispatchQueueEntry));
@@ -45,6 +51,7 @@ ReserveStage::ReserveStage(Config * config, char base, string iodir) {
     this->pendingCRSEmpty = false;
     this->pendingCRSE = false;
     this->pendingLRSEmpty = false;
+    this->pendingCacheWrite = false;
 
     // Output file path    
 #ifdef _WIN32
@@ -79,6 +86,7 @@ void ReserveStage::step() {
         this->pendingEmptyCRSIdcs.clear();
         this->pendingCRSEmpty = false;
     }
+
     if (this->pendingCRSE) {
         for (auto entry: this->pendingCRSEntries) {
             int idx = get<0>(entry);
@@ -90,6 +98,7 @@ void ReserveStage::step() {
         this->pendingCRSEntries.clear();
         this->pendingCRSE = false;
     }
+
     if (this->pendingLRSEmpty) {
         for (int idx: this->pendingEmptyLRSIdcs) {
             this->setLRSEToEmptyState(idx);
@@ -99,6 +108,17 @@ void ReserveStage::step() {
         this->pendingLRSEmpty = false;
         this->print();
     }
+
+    if (this->hasCache && this->pendingCacheWrite) {
+        cout << "RS: Pending Cache input: " << this->pendingCacheInput << endl;
+        bool written = this->LocalCache->write(this->pendingCacheInput);
+        if (written)
+            cout << "RS: Written into Local Cache." << endl;
+        else
+            cout << "RS: Not stored in Local Cache." << endl;
+        this->pendingCacheWrite = false;
+    }
+
     if (!this->halted) {
         pair<bool, DispatchQueueEntry> currentDispatch;
         if (this->pendingToBeReserved.first) {
@@ -114,25 +134,31 @@ void ReserveStage::step() {
             CRSEntry * newCRSEntry = new CRSEntry;
             newCRSEntry->LowOccReady = true;
             newCRSEntry->HighOccReady = true;
-            // newCRSEntry->Count = this->CountReg;
 
-            // if (currentDispatch.second.LowPointer == bitset<32>(0))
-            //     newCRSEntry->LowOcc = bitset<32>(0);
-            // else if (currentDispatch.second.LowPointer == this->RefCount)
-            //     newCRSEntry->LowOcc = this->OccLastValReg;
-            // else {
+            pair<bool, bitset<32>> cacheHitLowData;
+            pair<bool, bitset<32>> cacheHitHighData;
+            if (this->hasCache) {
+                cacheHitLowData = this->LocalCache->read(currentDispatch.second.LowPointer);
+                cacheHitHighData = this->LocalCache->read(currentDispatch.second.HighPointer);
+            }
+            else {
+                cacheHitLowData = pair<bool, bitset<32>>(false, bitset<32>(0));
+                cacheHitHighData = pair<bool, bitset<32>>(false, bitset<32>(0));
+            }
+
+            if (cacheHitLowData.first)
+                newCRSEntry->LowOcc = cacheHitLowData.second;
+            else {
                 newCRSEntry->LowOccReady = false;
                 newCRSEntry->LowOcc = bitset<32>(0);
-            // }
+            }
 
-            // if (currentDispatch.second.HighPointer == bitset<32>(0))
-            //     newCRSEntry->HighOcc = bitset<32>(0);
-            // else if (currentDispatch.second.HighPointer == this->RefCount)
-            //     newCRSEntry->HighOcc = this->OccLastValReg;
-            // else {
+            if (cacheHitHighData.first)
+                newCRSEntry->HighOcc = cacheHitHighData.second;
+            else {
                 newCRSEntry->HighOccReady = false;
                 newCRSEntry->HighOcc = bitset<32>(0);
-            // }
+            }
 
             newCRSEntry->SRSWBIndex = currentDispatch.second.SRSWBIndex;
             int nextCRSIdx = this->CRS->nextFreeEntry();
@@ -257,4 +283,9 @@ void ReserveStage::setLRSEToEmptyState(int idx) {
 void ReserveStage::scheduleToSetLRSEToEmptyState(int idx) {
     this->pendingEmptyLRSIdcs.push_back(idx);
     this->pendingLRSEmpty = true;
+}
+
+void ReserveStage::scheduleWriteIntoCache(IncomingCacheStruct cacheInput) {
+    this->pendingCacheInput = cacheInput;
+    this->pendingCacheWrite = true;
 }

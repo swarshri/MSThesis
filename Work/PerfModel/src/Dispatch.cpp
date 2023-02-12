@@ -83,6 +83,7 @@ void DispatchStage::dispatchSequential(int count) {
             dispatchNewEntry.LowPointer = nre.second.LowPointer;
             dispatchNewEntry.HighPointer = nre.second.HighPointer;
             dispatchNewEntry.SRSWBIndex = bitset<6>(nre.first);
+            dispatchNewEntry.BasePointer = nre.second.BasePointer;
             this->DispatchQueues[base.to_ulong()]->push(dispatchNewEntry);
 
             this->coreFU->setInProgress(nre.first);

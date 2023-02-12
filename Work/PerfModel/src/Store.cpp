@@ -1,7 +1,8 @@
 #include <Store.h>
 
 StoreStage::StoreStage(Config * config) {
-
+    this->halted = false;
+    this->cycle_count = 0;
 }
 
 void StoreStage::connectDU(DispatchStage * du)  {

@@ -7,7 +7,7 @@ OBJ := $(BIN)/obj
 CXX = g++
 CPPFLAGS := -g -O3 -Wall -std=c++11 -I $(INC)
 
-OBJS = $(OBJ)/main.o $(OBJ)/compute.o $(OBJ)/config.o $(OBJ)/core.o $(OBJ)/dram.o $(OBJ)/dispatch.o $(OBJ)/fetch.o $(OBJ)/load.o $(OBJ)/queue.o $(OBJ)/rs.o $(OBJ)/reserve.o $(OBJ)/store.o
+OBJS = $(OBJ)/main.o $(OBJ)/cache.o $(OBJ)/compute.o $(OBJ)/config.o $(OBJ)/core.o $(OBJ)/dram.o $(OBJ)/dispatch.o $(OBJ)/fetch.o $(OBJ)/load.o $(OBJ)/queue.o $(OBJ)/rs.o $(OBJ)/reserve.o $(OBJ)/store.o
 
 .PHONY: all clean
 
@@ -21,6 +21,9 @@ model: $(OBJS)
 
 $(OBJ)/main.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/main.cpp -o $(OBJ)/main.o
+
+$(OBJ)/cache.o:
+	$(CXX) $(CPPFLAGS) -c $(SRC)/Cache.cpp -o $(OBJ)/cache.o
 
 $(OBJ)/compute.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Compute.cpp -o $(OBJ)/compute.o

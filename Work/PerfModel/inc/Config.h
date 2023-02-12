@@ -30,6 +30,8 @@ class Config {
         void add_children(string);
 
         string get_name();
+        bool has_child(string);
+        bool has_parameter(string);
     
     private:
         string id;

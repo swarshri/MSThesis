@@ -24,6 +24,16 @@ void LoadStage::step() {
             this->coreRU->scheduleToSetLRSEToEmptyState(this->LRSEntryInProgress.first);
             cout << "LS: Scheduled to set empty state in Load RS at index: " << this->LRSEntryInProgress.first << endl;
             this->OCCMEM->readDone = false;
+
+            // Also try to keep a copy of this in the Local Cache.
+            IncomingCacheStruct newCacheEntry;
+            newCacheEntry.address = this->LRSEntryInProgress.second.OccMemoryAddress;
+            newCacheEntry.basePointer = this->LRSEntryInProgress.second.BasePointer;
+            vector<bitset<32>> dataPack;
+            dataPack.push_back(this->OCCMEM->lastReadData[0]);
+            newCacheEntry.data = dataPack;
+            this->coreRU->scheduleWriteIntoCache(newCacheEntry);
+            cout << "LS: Scheduled to store a copy in the local cache: " << newCacheEntry << endl;
         }
         else if (this->OCCMEM->isFree()) {
             pair<int, LRSEntry> nle = this->coreRU->getNextLoadEntry();
