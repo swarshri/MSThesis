@@ -28,14 +28,14 @@ Cache::Cache(char base, Config* config) {
             newBlock.valid = false;
 
             newSet.push_back(newBlock);
-            cout << "Cache construction: Pushed a new block into a new set: " << j << endl;
+            // cout << "Cache construction: Pushed a new block into a new set: " << j << endl;
             // cout << " Last added Block: " << newSet[j] << endl;
         }
         cout << "Set size: " << newSet.size() << endl;
         this->Array.push_back(newSet);
-        cout << "Cache construction: Pushed a new set into this->Array: " << i << endl;
+        // cout << "Cache construction: Pushed a new set into this->Array: " << i << endl;
     }
-    cout << "In Cache constructor: " << base << " finishing construction: " << this->Array.size() << endl;
+    cout << "In Cache constructor: " << base << " finished construction: " << this->Array.size() << endl;
 }
 
 pair<bool, bitset<32>> Cache::read(bitset<32> address) {
