@@ -51,8 +51,11 @@ int main(int argc, char * argv[]) {
     OccTMEM->input(ioDir);
     OcMEMs['T'] = OccTMEM;
 
-    DRAM<bitset<32>, bitset<64>> * SiMEM = new DRAM<bitset<32>, bitset<64>>("SiMEM", config->children["SIMemory"], false);
-    SiMEM->input(ioDir);
+    int pos2 = confDir.find_last_of('/');
+    int pos1 = confDir.substr(0, pos2).find_last_of('/');
+    string confName = confDir.substr(pos1 + 1, pos2 - pos1 - 1);
+    cout << "confName: " << confName << endl;
+    DRAM<bitset<32>, bitset<64>> * SiMEM = new DRAM<bitset<32>, bitset<64>>("SiMEM_"+confName, config->children["SIMemory"], false);
 
     Core * CORE = new Core("00", ioDir, config->children["Core"]);
     CORE->connect(SdMEM, OcMEMs, SiMEM);

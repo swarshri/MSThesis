@@ -15,7 +15,7 @@ enum DispatchScheme {
 };
 
 struct DispatchQueueEntry {
-    bitset<2> base;
+    bitset<2> base; // Seems unnecessary without the prefetcher. WIll need more bits for prefetcher though.
     bitset<32> LowPointer;
     bitset<32> HighPointer;
     bitset<6> SRSWBIndex;

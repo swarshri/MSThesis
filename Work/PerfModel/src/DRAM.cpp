@@ -7,6 +7,7 @@ using namespace std;
 
 template <typename AddressType, typename DataType>
 DRAM<AddressType, DataType>::DRAM(string name, Config *config, bool readonly) {
+    cout << "Constructing DRAM with name: " << name << endl;
     this->id = name;
     this->readonly = readonly;
 
@@ -16,6 +17,10 @@ DRAM<AddressType, DataType>::DRAM(string name, Config *config, bool readonly) {
     this->latencymax = config->parameters["LatencyMax"];
     this->memsize = pow(2, config->parameters["AddressLength"]);
     this->MEM.resize(this->memsize);
+
+    int i = 0;
+    while(i < this->memsize)
+        this->MEM[i++] = DataType(0);
 
     this->lastReadData.resize(this->channelwidth);
     this->nextWriteData.resize(this->channelwidth);
@@ -52,11 +57,6 @@ void DRAM<AddressType, DataType>::input(string ioDir) {
             i++;
         }
         mem.close();
-
-        while(i < this->memsize) {
-            this->MEM[i] = DataType(0);
-            i++;
-        }
     }
     else cout<<"Unable to open input file for " << this->id << ": " << ipFilePath << endl;
 }
@@ -73,7 +73,7 @@ void DRAM<AddressType, DataType>::output(string ioDir) {
     filename = filename + ".mem";
 
     string opFilePath = ioDir + filename;
-	mem.open(opFilePath, std::ios_base::trunc);
+	mem.open(opFilePath, std::ios_base::out);
 	if (mem.is_open()) {
         cout << "File opened: " << opFilePath << endl;
 		for (DataType data: this->MEM)

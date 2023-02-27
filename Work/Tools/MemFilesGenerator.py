@@ -1,6 +1,7 @@
 import os
 import shutil
 import argparse
+import time
 
 class Query(object):
     count = -1
@@ -34,19 +35,19 @@ class ReadAlignment(object):
         
     def run_fmibackwardsearch(self, query):
         it_count = 0
-        print("self._fmi.length:", self._fmi.length)
+        # print("self._fmi.length:", self._fmi.length)
         low = 0; high = self._fmi.length
         m = query.length
         for i in range(m-1, -1, -1):
             char = query.char_from_idx(i)
-            print("iteration:", it_count, "char:", char, "low:", low, "high:", high)
+            # print("iteration:", it_count, "char:", char, "low:", low, "high:", high)
             low = self._fmi.count(char) + self._fmi.occ(char, low)
             high = self._fmi.count(char) + self._fmi.occ(char, high)
-            print("iteration:", it_count, "char:", char, "low:", low, "high:", high)
-            print("")
+            # print("iteration:", it_count, "char:", char, "low:", low, "high:", high)
+            # print("")
             
             if (low >= high):
-                print("Low greater than or equal to high:", low, high)
+                # print("Low greater than or equal to high:", low, high)
                 low_bin = bin(low).replace('0b', '')
                 low_bin = '0'*(32-len(low_bin)) + low_bin
                 high_bin = bin(high).replace('0b', '')
@@ -60,7 +61,7 @@ class ReadAlignment(object):
         for i in range(low, high):
             pos_list.append(self._fmi.sa_idx(i))
         
-        print("Index locations:", pos_list)
+        # print("Index locations:", pos_list)
         self._pos[query] = sorted(pos_list)
         low_bin = bin(low).replace('0b', '')
         low_bin = '0'*(32-len(low_bin)) + low_bin
@@ -100,7 +101,7 @@ class FMI(object):
         self._occ_char_wise_access_location = {'A': [], 'C': [], 'G': [], 'T': []}
         
     def _bwttransform(self, r_str):
-        print("Reference:", r_str)
+        print("Reference:", len(r_str))
         bwt_matrix = [r_str]
         while(r_str[-1] != '$'):
             r_str = r_str[-1] + r_str[:-1]
@@ -109,7 +110,7 @@ class FMI(object):
         bwt_matrix = sorted(bwt_matrix)
         self._suffix_array = [self._length-1-x.find('$') for x in bwt_matrix]
         self._bwt = ''.join([x[-1] for x in bwt_matrix])
-        print("BWT:", (self._bwt))
+        # print("BWT:", (self._bwt))
         
     def _render_count(self, r_str):
         alpha_count = [r_str.count(x) for x in base_chars]
@@ -196,17 +197,21 @@ class FastFilesParser(object):
             reference_genome = ''.join(fasta.readlines()).replace('\n', '').upper()
             self._ref_genome_seq = reference_genome
 
+        start_time = time.time()        
         if self._ref_genome_seq != "":
             self._ref_fmi = FMI(reference_name, reference_genome)
 
+        time_elapsed = time.time() - start_time
+        print("Time taken to get FMI for the given reference genome is:", time_elapsed, "seconds.")
+
         with open(self._fq_file_path, "r") as fastq:
             sample_name = fastq.readline().split('.')[0].replace('@', '')
-            self._fastq_reads = [line.upper().strip() for line in fastq.readlines() if line[0] not in ['@', '+', '?', '\'', '5']]
-        print("Fastq Reads:", len(self._fastq_reads), len(self._fastq_reads[-1]), self._fastq_reads)
+            self._fastq_reads = [line.upper().strip() for line in fastq.readlines() if line[0] not in ['@', '+', '?', '\'', '5', '#']]
+        print("Fastq Reads:", len(self._fastq_reads), len(self._fastq_reads[-1]))
             
         for read in self._fastq_reads:
             self._seeds.extend([read[i:i+20] for i in range(0, len(read), 20) if 'N' not in read[i:i+20]])
-        # print("Seeds:", len(seeds), seeds)
+        print("Seeds:", len(self._seeds))
 
     def backwardSearch(self):
         readAligner = ReadAlignment(self._ref_fmi)
@@ -267,7 +272,7 @@ class FastFilesParser(object):
                 write_bitstr = write_bitstr + "".join([base_mem_dict[base] for base in seed])
                 write_bitstr = '0'*(64-len(write_bitstr)) + write_bitstr + "\n"
                 lines.append(write_bitstr)
-                print(seed, ":", write_bitstr)
+                # print(seed, ":", write_bitstr)
             lines.append('1'*64 + '\n')
             lines[-1] = lines[-1].replace('\n', '')
             sdmem.writelines(lines)
@@ -298,7 +303,7 @@ class FastFilesParser(object):
             print("WARNING!!! Found no Read Sequences from the fastq file:", self._fq_file_path)
             print("No SdMEM file generated.")
 
-        self.generateSiMemFile()
+        # self.generateSiMemFile()
 
 if __name__ == "__main__":
     #parse arguments for input file location
@@ -338,4 +343,8 @@ if __name__ == "__main__":
     ffParser = FastFilesParser(iodir, fasta_file, fastq_file)
     ffParser.parse()
     ffParser.generateMemFiles()
+
+    start_time = time.time()
     ffParser.backwardSearch()
+    time_elapsed = time.time() - start_time
+    print("Time taken for backward search on all seeds:", time_elapsed)

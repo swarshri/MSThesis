@@ -5,8 +5,37 @@ using namespace std;
 #ifndef PERF_REC_H
 #define PERF_REC_H
 
-struct PerfMetrics {
+struct UnitPerfMetrics {
+    bool active; // not halted.
+};
 
+struct FetchUnitPM:UnitPerfMetrics {
+
+};
+
+struct DispatchUnitPM:UnitPerfMetrics {
+
+};
+
+struct ReserveUnitPM:UnitPerfMetrics {
+
+};
+
+struct LoadUnitPM:UnitPerfMetrics {
+
+};
+
+struct ComputeUnitPM:UnitPerfMetrics {
+
+};
+
+struct PerfMetrics {
+    int numCycles;
+    FetchUnitPM fetchpm;
+    DispatchUnitPM dispatchpm;
+    ReserveUnitPM reservepm;
+    LoadUnitPM loadpm;
+    ComputeUnitPM computepm;
 };
 
 class PerformanceRecorder {
@@ -17,6 +46,8 @@ class PerformanceRecorder {
 
     private:
         string opFilePath;
+
+        PerfMetrics Metrics;
 };
 
 #endif
