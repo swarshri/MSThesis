@@ -16,7 +16,7 @@
 class Core {
     public:
         bool halted = false;
-        Core(string, string, Config *);
+        Core(string, string, SysConfig *);
 
         void connect(DRAM<bitset<32>, bitset<64>> *, map<char, DRAM<bitset<32>, bitset<32>>*>, DRAM<bitset<32>, bitset<64>> *);
         void step();

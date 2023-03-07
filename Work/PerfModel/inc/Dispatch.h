@@ -40,7 +40,7 @@ struct StoreQueueEntry {
 class DispatchStage {
     public:
         // Constructor
-        DispatchStage(Config*, string);
+        DispatchStage(SysConfig*, string);
 
         // Common for all Pipeline stages - called from core
         void print();

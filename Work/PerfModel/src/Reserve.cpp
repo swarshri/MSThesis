@@ -1,6 +1,6 @@
 #include <Reserve.h>
 
-ComputeReservationStation::ComputeReservationStation(string name, Config * config)
+ComputeReservationStation::ComputeReservationStation(string name, SysConfig * config)
 : ReservationStation(name, config) {
     for (auto entry = this->Entries.begin(); entry != this->Entries.end(); entry++) {
         (*entry).LowOccReady = false;
@@ -22,7 +22,7 @@ void ComputeReservationStation::fillHighOccVal(int idx, bitset<32> data) {
         this->setReadyState(idx);
 }
 
-ReserveStage::ReserveStage(Config * config, char base, string iodir) {
+ReserveStage::ReserveStage(SysConfig * config, char base, string iodir) {
     this->base = base;
     this->base_num = config->BaseMap[base];
 

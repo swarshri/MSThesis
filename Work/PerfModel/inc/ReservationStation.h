@@ -19,7 +19,7 @@ struct RSEntry {
 template <typename EntryType>
 class ReservationStation {
     public:
-        ReservationStation(string, Config *);
+        ReservationStation(string, SysConfig *);
 
         int numVacant();
         void fill(bitset<6>, EntryType);

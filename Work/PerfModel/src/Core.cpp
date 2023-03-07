@@ -1,6 +1,6 @@
 #include<Core.h>
 
-Core::Core(string id, string ioDir, Config * config) {
+Core::Core(string id, string ioDir, SysConfig * config) {
     this->id = id;
 
     ifstream mem;

@@ -31,7 +31,7 @@ struct SRSEntry:RSEntry {
 
 class SeedReservationStation: public ReservationStation<SRSEntry> {
     public:
-        SeedReservationStation(string, Config *);
+        SeedReservationStation(string, SysConfig *);
         void setStoreFlag(int);
         void updateBasePointer(int);
         void updateLowPointer(int, bitset<32>);
@@ -41,7 +41,7 @@ class SeedReservationStation: public ReservationStation<SRSEntry> {
 class FetchStage {
     public:
         // Constructor
-        FetchStage(Config *, string, bitset<32>);
+        FetchStage(SysConfig *, string, bitset<32>);
 
         // Common for all Pipeline stages - called from core
         void print();

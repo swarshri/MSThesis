@@ -1,6 +1,6 @@
 #include <Store.h>
 
-StoreStage::StoreStage(Config * config) {
+StoreStage::StoreStage(SysConfig * config) {
     this->halted = false;
     this->cycle_count = 0;
 }

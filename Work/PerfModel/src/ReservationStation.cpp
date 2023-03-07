@@ -4,7 +4,7 @@
 #define RS_DEF
 
 template <typename EntryType>
-ReservationStation<EntryType>::ReservationStation(string name, Config * config) {
+ReservationStation<EntryType>::ReservationStation(string name, SysConfig * config) {
     this->id = name;
     this->numEntries = config->parameters["EntryCount"];
     this->Entries.resize(this->numEntries);

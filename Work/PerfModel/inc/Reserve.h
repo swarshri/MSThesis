@@ -44,14 +44,14 @@ struct CRSEntry:RSEntry {
 
 class ComputeReservationStation: public ReservationStation<CRSEntry> {
     public:
-        ComputeReservationStation(string, Config *);
+        ComputeReservationStation(string, SysConfig *);
         void fillLowOccVal(int, bitset<32>);
         void fillHighOccVal(int, bitset<32>);
 };
 
 class ReserveStage {
     public:
-        ReserveStage(Config*, char, string);
+        ReserveStage(SysConfig*, char, string);
 
         void connect(DispatchStage *);
         void step();
