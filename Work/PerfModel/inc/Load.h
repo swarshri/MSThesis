@@ -7,7 +7,7 @@
 
 class LoadStage {
     public:
-        LoadStage(Config *, char, string);
+        LoadStage(SysConfig *, char, string);
 
         void connectRU(ReserveStage *);
         void connectDRAM(DRAM<bitset<32>, bitset<32>> *);

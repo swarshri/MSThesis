@@ -1,6 +1,6 @@
 #include <Load.h>
 
-LoadStage::LoadStage(Config * config, char base, string iodir) {
+LoadStage::LoadStage(SysConfig * config, char base, string iodir) {
     this->base = base;
     this->halted = false;
     this->cycle_count = 0;

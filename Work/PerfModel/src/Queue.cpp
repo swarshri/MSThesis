@@ -4,7 +4,7 @@
 #define QUEUE_DEF
 
 template <typename DataType>
-Queue<DataType>::Queue(Config * config) {
+Queue<DataType>::Queue(SysConfig * config) {
     this->id = config->get_name();
     this->size = (uint8_t)config->parameters["Size"];
     this->registers.resize(this->size);

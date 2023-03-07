@@ -1,10 +1,10 @@
 #include <Dispatch.h>
 
-DispatchStage::DispatchStage(Config* config, string iodir) {
+DispatchStage::DispatchStage(SysConfig* config, string iodir) {
     this->dispatchScheme = config->parameters["DispatchScheme"];
     map<int, string> baseQName = {{0, "DispatchAQ"}, {1, "DispatchCQ"}, {2, "DispatchGQ"}, {3, "DispatchTQ"}};
     for (int i = 0; i < 4; i++) {
-        Config * cfg = config->children[baseQName[i]];
+        SysConfig * cfg = config->children[baseQName[i]];
         this->DispatchQueues[i] = new Queue<DispatchQueueEntry>(cfg);
     }
     this->StoreQueue = new Queue<StoreQueueEntry>(config->children["StoreQ"]);

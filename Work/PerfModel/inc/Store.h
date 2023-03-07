@@ -6,7 +6,7 @@
 
 class StoreStage {
     public:
-        StoreStage(Config *);
+        StoreStage(SysConfig *);
 
         void step();
         bool isHalted();

@@ -9,6 +9,7 @@
 #include<sys/types.h>
 #include<sys/stat.h>
 
+#include<Config.h>
 #include<Core.h>
 
 using namespace std;
@@ -29,7 +30,7 @@ int main(int argc, char * argv[]) {
         cout << "IO Directory: " << ioDir << endl;
     }
 
-    Config * config = ConfigParser().parse(confDir);
+    SysConfig * config = ConfigParser().parse(confDir);
 
     DRAM<bitset<32>, bitset<64>> * SdMEM = new DRAM<bitset<32>, bitset<64>>("SdMEM", config->children["SeedMemory"], true);
     SdMEM->input(ioDir);

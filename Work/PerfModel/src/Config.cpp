@@ -2,39 +2,46 @@
 
 using namespace std;
 
-Config::Config(string id) {
+SysConfig::SysConfig(string id) {
     this->id = id;
 }
 
-void Config::add_parameters(string pName, int pVal) {
-    this->parameters[pName] = pVal;
-    cout << "Added parameter: " << this->id << " " << pName  << " " << pVal << endl;
+void SysConfig::add_parameter(string pName, string pVal) {
+    // Just check the first character of parVal to determine if it is an int or a string.
+    if (all_of(pVal.begin(), pVal.end(), ::isdigit)) {
+        this->parameters[pName] = stoi(pVal);
+        cout << "Added parameter: " << this->id << " " << pName  << " " << pVal << endl;
+    }
+    else {
+        this->str_parameters[pName] = pVal;
+        cout << "Added string parameter: " << this->id << " " << pName  << " " << pVal << endl;
+    }
 }
 
-void Config::add_children(string cName) {
+void SysConfig::add_child(string cName) {
     cout << "In Here." << endl;
     unsigned int pos = cName.find("Pipeline");
-    this->children[cName] = new Config(cName);
+    this->children[cName] = new SysConfig(cName);
     cout << "Added child: " << this->children[cName]->get_name() << endl;
 
     if (pos < cName.size()) {
         string pName = "Pipeline";
         char basename = *cName.substr(pos + 8, 1).c_str();
         int pVal = (int) this->BaseMap[basename];
-        this->children[cName]->add_parameters(pName, pVal);
+        this->children[cName]->add_parameter(pName, to_string(pVal));
     }
 }
 
-string Config::get_name() {
+string SysConfig::get_name() {
     return this->id;
 }
 
-bool Config::has_child(string compName) {
+bool SysConfig::has_child(string compName) {
     return this->children.count(compName);
 }
 
-bool Config::has_parameter(string paramName) {
-    return this->parameters.count(paramName);
+bool SysConfig::has_parameter(string paramName) {
+    return this->parameters.count(paramName) || this->str_parameters.count(paramName);
 }
 
 void ConfigParser::remove_whitespaces(string * strval) {
@@ -50,7 +57,7 @@ void ConfigParser::remove_whitespaces(string * strval) {
     }
 }
 
-Config * ConfigParser::parse(string confDir) {
+SysConfig * ConfigParser::parse(string confDir) {
     ifstream config;
     string line;
     
@@ -61,14 +68,14 @@ Config * ConfigParser::parse(string confDir) {
 #endif
     cout << "Parsing Config file: " << filepath << endl;
 
-    Config * Model = new Config("Model");
+    SysConfig * Model = new SysConfig("Model");
     
     config.open(filepath);
 
     if (config.is_open()) {
-        Config * cfg = Model;
+        SysConfig * cfg = Model;
 
-        stack<Config *> compStack;
+        stack<SysConfig *> compStack;
         compStack.push(Model);
 
         while (getline(config, line)) {
@@ -76,7 +83,7 @@ Config * ConfigParser::parse(string confDir) {
             cout << "line: " << line << endl;
             if (line.find('{') != string::npos) {
                 string cName = line.substr(0, line.find('{'));
-                cfg->add_children(cName);
+                cfg->add_child(cName);
                 compStack.push(cfg->children[cName]);
                 cfg = compStack.top();
             }
@@ -87,8 +94,8 @@ Config * ConfigParser::parse(string confDir) {
             else if (line.find(':') != string::npos) {
                 line = line.substr(0, line.find('('));
                 string pName = line.substr(0, line.find(':'));
-                int pVal = stoi(line.substr(line.find(':') + 1,  string::npos));
-                cfg->add_parameters(pName, pVal);
+                string pVal = line.substr(line.find(':') + 1,  string::npos);
+                cfg->add_parameter(pName, pVal);
             }
         }
         config.close();

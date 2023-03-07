@@ -18,7 +18,7 @@ class DRAM {
         bool readDone = false;
         bool writeDone = false;
 
-        DRAM(string, Config *, bool);
+        DRAM(string, SysConfig *, bool);
         void input(string);
         void output(string);
 

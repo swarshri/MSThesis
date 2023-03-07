@@ -6,7 +6,7 @@ using namespace std;
 #define DRAM_DEF
 
 template <typename AddressType, typename DataType>
-DRAM<AddressType, DataType>::DRAM(string name, Config *config, bool readonly) {
+DRAM<AddressType, DataType>::DRAM(string name, SysConfig *config, bool readonly) {
     cout << "Constructing DRAM with name: " << name << endl;
     this->id = name;
     this->readonly = readonly;

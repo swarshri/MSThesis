@@ -19,15 +19,16 @@ typedef enum {
     PL_T = 3
 } BaseConfig;
 
-class Config {
+class SysConfig {
     public:
         map<string, int> parameters;
-        map<string, Config *> children;
+        map<string, string> str_parameters;
+        map<string, SysConfig *> children;
         map<char, BaseConfig> BaseMap = {{'A', PL_A}, {'C', PL_C}, {'G', PL_G}, {'T', PL_T}};
 
-        Config(string);
-        void add_parameters(string, int);
-        void add_children(string);
+        SysConfig(string);
+        void add_parameter(string, string);
+        void add_child(string);
 
         string get_name();
         bool has_child(string);
@@ -41,7 +42,7 @@ class ConfigParser {
     public:
         string confDir;
 
-        Config * parse(string);
+        SysConfig * parse(string);
 
     private:
         void remove_whitespaces(string *);

@@ -11,7 +11,7 @@
 template <typename DataType>
 class Queue {
     public:
-        Queue(Config *);
+        Queue(SysConfig *);
 
         void push(DataType);
         DataType pop();

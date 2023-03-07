@@ -1,6 +1,6 @@
 #include<Fetch.h>
 
-SeedReservationStation::SeedReservationStation(string name, Config * config)
+SeedReservationStation::SeedReservationStation(string name, SysConfig * config)
 : ReservationStation<SRSEntry>(name, config) {
     for (auto entry = this->Entries.begin(); entry != this->Entries.end(); entry++)
         (*entry).StoreFlag = false;
@@ -25,7 +25,7 @@ void SeedReservationStation::updateHighPointer(int idx, bitset<32> val) {
 /*--------------
 FETCH STAGE
 ---------------*/
-FetchStage::FetchStage(Config * config, string iodir, bitset<32> refCount) {
+FetchStage::FetchStage(SysConfig * config, string iodir, bitset<32> refCount) {
     // Microarchitecture configuration
 
     // Reference genome inputs
