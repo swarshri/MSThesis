@@ -3,7 +3,7 @@
 #include<vector>
 
 #include<Config.h>
-#include<DRAM.h>
+#include<DRAMWrapper.h>
 #include<Queue.h>
 #include<ReservationStation.h>
 
@@ -47,7 +47,7 @@ class FetchStage {
         void print();
         bool isHalted();
         void connect(); // connect with other components within core
-        void connectDRAM(DRAM<bitset<32>, bitset<64>> *); // connect with off-chip components
+        void connectDRAM(DRAMW<bitset<32>, bitset<64>> *); // connect with off-chip components
         void step(); // clock trigger
 
         // API methods for getting and setting from internal registers.
@@ -70,7 +70,7 @@ class FetchStage {
         Queue<bitset<6>> * FillIdxQueue; // Helper structure to fill multiple SRS entries per cycle.
 
         // External component - This one is off-chip DRAM that stores the seed queries.
-        DRAM<bitset<32>, bitset<64>> * SDMEM; // Initial state input from SdMEM.mem file.
+        DRAMW<bitset<32>, bitset<64>> * SDMEM; // Initial state input from SdMEM.mem file.
 
         // Performance measurement related
         int cycle_count;

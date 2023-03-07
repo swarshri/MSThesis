@@ -9,7 +9,7 @@
 
 class ComputeStage {
     public:
-        ComputeStage(SysConfig*, char, string, bitset<32>);
+        ComputeStage(SysConfig *, char, string, bitset<32>);
 
         void connect(ReserveStage *, FetchStage *);
         bool isHalted();

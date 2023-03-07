@@ -64,7 +64,7 @@ Core::Core(string id, string ioDir, SysConfig * config) {
     this->halted = false;
 }
 
-void Core::connect(DRAM<bitset<32>, bitset<64>> * sdmem, map<char, DRAM<bitset<32>, bitset<32>>*> ocmem, DRAM<bitset<32>, bitset<64>> * simem) {
+void Core::connect(DRAMW<bitset<32>, bitset<64>> * sdmem, map<char, DRAMW<bitset<32>, bitset<32>>*> ocmem, DRAMW<bitset<32>, bitset<64>> * simem) {
     this->FU->connectDRAM(sdmem);
 
     this->LUA->connectDRAM(ocmem['A']);

@@ -5,7 +5,7 @@
 #include<bitset>
 
 #include<Config.h>
-#include<DRAM.h>
+#include<DRAMWrapper.h>
 #include<Fetch.h>
 #include<Dispatch.h>
 #include<Reserve.h>
@@ -18,13 +18,13 @@ class Core {
         bool halted = false;
         Core(string, string, SysConfig *);
 
-        void connect(DRAM<bitset<32>, bitset<64>> *, map<char, DRAM<bitset<32>, bitset<32>>*>, DRAM<bitset<32>, bitset<64>> *);
+        void connect(DRAMW<bitset<32>, bitset<64>> *, map<char, DRAMW<bitset<32>, bitset<32>>*>, DRAMW<bitset<32>, bitset<64>> *);
         void step();
         
     private:
         string id;
 
-        DRAM<bitset<32>, bitset<32>> * OCMEM;
+        DRAMW<bitset<32>, bitset<32>> * OCMEM;
 
         FetchStage * FU;
         DispatchStage * DU;

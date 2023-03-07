@@ -132,7 +132,7 @@ bool FetchStage::isHalted() {
     return this->halted;
 }
 
-void FetchStage::connectDRAM(DRAM<bitset<32>, bitset<64>> * sdmem) {
+void FetchStage::connectDRAM(DRAMW<bitset<32>, bitset<64>> * sdmem) {
     this->SDMEM =  sdmem;
 }
 
@@ -205,7 +205,7 @@ void FetchStage::step() {
         if (this->SDMEM->isFree()) {
             int srsVacancy = this->FillIdxQueue->getCount();
             if (srsVacancy >= this->SDMEM->getChannelWidth()) {
-                this->SDMEM->readAccess(this->SeedPointer);
+                this->SDMEM->readRequest(this->SeedPointer);
                 cout << "FS: Sent Read Request from address: " << this->SeedPointer << endl;
             }
         }

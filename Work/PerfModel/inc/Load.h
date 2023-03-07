@@ -2,7 +2,7 @@
 
 #include <Config.h>
 #include <Reserve.h>
-#include <DRAM.h>
+#include <DRAMWrapper.h>
 #include <Cache.h>
 
 class LoadStage {
@@ -10,7 +10,7 @@ class LoadStage {
         LoadStage(SysConfig *, char, string);
 
         void connectRU(ReserveStage *);
-        void connectDRAM(DRAM<bitset<32>, bitset<32>> *);
+        void connectDRAM(DRAMW<bitset<32>, bitset<32>> *);
         void step();
 
         bool isHalted();
@@ -21,7 +21,7 @@ class LoadStage {
         bool halted;
 
         ReserveStage * coreRU;
-        DRAM<bitset<32>, bitset<32>> * OCCMEM;
+        DRAMW<bitset<32>, bitset<32>> * OCCMEM;
 
         pair<int, LRSEntry> LRSEntryInProgress;
 };

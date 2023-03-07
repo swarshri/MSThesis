@@ -10,7 +10,7 @@ void LoadStage::connectRU(ReserveStage * ru) {
     this->coreRU = ru;
 }
 
-void LoadStage::connectDRAM(DRAM<bitset<32>, bitset<32>> * occmem) {
+void LoadStage::connectDRAM(DRAMW<bitset<32>, bitset<32>> * occmem) {
     this->OCCMEM = occmem;
 }
 
@@ -38,7 +38,7 @@ void LoadStage::step() {
         else if (this->OCCMEM->isFree()) {
             pair<int, LRSEntry> nle = this->coreRU->getNextLoadEntry();
             if (nle.first != -1) {
-                this->OCCMEM->readAccess(nle.second.OccMemoryAddress);
+                this->OCCMEM->readRequest(nle.second.OccMemoryAddress);
                 this->LRSEntryInProgress = nle;
                 cout << "LS: Sent Read Request from address: " << nle.second.OccMemoryAddress << endl;
             }

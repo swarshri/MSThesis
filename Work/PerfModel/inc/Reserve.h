@@ -51,7 +51,7 @@ class ComputeReservationStation: public ReservationStation<CRSEntry> {
 
 class ReserveStage {
     public:
-        ReserveStage(SysConfig*, char, string);
+        ReserveStage(SysConfig *, char, string);
 
         void connect(DispatchStage *);
         void step();
