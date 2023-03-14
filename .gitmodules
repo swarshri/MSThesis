@@ -1,0 +1,3 @@
+[submodule "Work/PerfModel/ext/DRAMsim3"]
+	path = Work/PerfModel/ext/DRAMsim3
+	url = https://github.com/umd-memsys/DRAMsim3.git
