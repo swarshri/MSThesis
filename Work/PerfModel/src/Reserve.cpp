@@ -48,10 +48,11 @@ ReserveStage::ReserveStage(SysConfig * config, char base, string iodir) {
     this->cycle_count = 0;
     this->pendingToBeReserved = pair<bool, DispatchQueueEntry>(false, *(new DispatchQueueEntry));
     
-    this->pendingCRSEmpty = false;
-    this->pendingCRSE = false;
-    this->pendingLRSEmpty = false;
-    this->pendingCacheWrite = false;
+    this->pendingEmptyCRSIdcs.first = false;
+    this->pendingCRSEntries.first = false;
+    this->pendingEmptyLRSIdcs.first = false;
+    this->pendingScheduledLRSIdcs.first = false;
+    this->pendingCacheInput.first = false;
 
     // Output file path    
 #ifdef _WIN32
@@ -78,45 +79,55 @@ void ReserveStage::connect(DispatchStage * du) {
 
 void ReserveStage::step() {
     cout << "----------------------- Reserve " << this->base << " Stage step function --------------------------" << endl;
-    if (this->pendingCRSEmpty) {
-        for (int idx: this->pendingEmptyCRSIdcs) {
+    if (this->pendingEmptyCRSIdcs.first) {
+        for (int idx: this->pendingEmptyCRSIdcs.second) {
             this->setCRSEToEmptyState(idx);
             cout << "RS: Setting CRS to Empty state at index: " << idx << endl;
         }
-        this->pendingEmptyCRSIdcs.clear();
-        this->pendingCRSEmpty = false;
+        this->pendingEmptyCRSIdcs.second.clear();
+        this->pendingEmptyCRSIdcs.first = false;
     }
 
-    if (this->pendingCRSE) {
-        for (auto entry: this->pendingCRSEntries) {
+    if (this->pendingCRSEntries.first) {
+        for (auto entry: this->pendingCRSEntries.second) {
             int idx = get<0>(entry);
             bool lorh = get<1>(entry);
             bitset<32> value = get<2>(entry);
             this->fillInCRS(idx, lorh, value);
             cout << "RS: Filling in CRS data at index: " << idx << " with data: " << lorh << " " << value << endl;
         }
-        this->pendingCRSEntries.clear();
-        this->pendingCRSE = false;
+        this->pendingCRSEntries.second.clear();
+        this->pendingCRSEntries.first = false;
     }
 
-    if (this->pendingLRSEmpty) {
-        for (int idx: this->pendingEmptyLRSIdcs) {
+    if (this->pendingEmptyLRSIdcs.first) {
+        for (int idx: this->pendingEmptyLRSIdcs.second) {
             this->setLRSEToEmptyState(idx);
             cout << "RS: Setting LRS to Empty state at index: " << idx << endl;
         }
-        this->pendingEmptyLRSIdcs.clear();
-        this->pendingLRSEmpty = false;
+        this->pendingEmptyLRSIdcs.second.clear();
+        this->pendingEmptyLRSIdcs.first = false;
         this->print();
     }
 
-    if (this->hasCache && this->pendingCacheWrite) {
-        cout << "RS: Pending Cache input: " << this->pendingCacheInput << endl;
-        bool written = this->LocalCache->write(this->pendingCacheInput);
+    if (this->pendingScheduledLRSIdcs.first) {
+        for (int idx: this->pendingScheduledLRSIdcs.second) {
+            this->setLRSEToScheduledState(idx);
+            cout << "RS: Setting LRS to Scheduled state at index: " << idx << endl;
+        }
+        this->pendingScheduledLRSIdcs.second.clear();
+        this->pendingScheduledLRSIdcs.first = false;
+        this->print();
+    }
+
+    if (this->hasCache && this->pendingCacheInput.first) {
+        cout << "RS: Pending Cache input: " << this->pendingCacheInput.second << endl;
+        bool written = this->LocalCache->write(this->pendingCacheInput.second);
         if (written)
             cout << "RS: Written into Local Cache." << endl;
         else
             cout << "RS: Not stored in Local Cache." << endl;
-        this->pendingCacheWrite = false;
+        this->pendingCacheInput.first = false;
     }
 
     if (!this->halted) {
@@ -283,6 +294,15 @@ void ReserveStage::setLRSEToEmptyState(int idx) {
 void ReserveStage::scheduleToSetLRSEToEmptyState(int idx) {
     this->pendingEmptyLRSIdcs.push_back(idx);
     this->pendingLRSEmpty = true;
+}
+
+void ReserveStage::setLRSEToScheduledState(int idx) {
+    this->LRS->setScheduledState(idx);
+}
+
+void ReserveStage::scheduleToSetLRSEToScheduledState(int idx) {
+    this->pendingScheduledLRSIdcs.push_back(idx);
+    this->pendingLRSScheduled = true;
 }
 
 void ReserveStage::scheduleWriteIntoCache(IncomingCacheStruct cacheInput) {

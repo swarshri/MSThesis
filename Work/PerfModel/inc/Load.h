@@ -23,5 +23,5 @@ class LoadStage {
         ReserveStage * coreRU;
         DRAMW<bitset<32>, bitset<32>> * OCCMEM;
 
-        pair<int, LRSEntry> LRSEntryInProgress;
+        vector<pair<int, LRSEntry>> LRSEntryInProgress;
 };

@@ -66,6 +66,8 @@ class ReserveStage {
         pair<int, LRSEntry> getNextLoadEntry();
         void setLRSEToEmptyState(int);
         void scheduleToSetLRSEToEmptyState(int);
+        void setLRSEToScheduledState(int);
+        void scheduleToSetLRSEToScheduledState(int);
         void scheduleWriteIntoCache(IncomingCacheStruct);
 
         void print();
@@ -87,17 +89,14 @@ class ReserveStage {
 
         string op_file_path;
 
-        vector<int> pendingEmptyCRSIdcs;
-        bool pendingCRSEmpty;
+        pair<bool, vector<int>> pendingEmptyCRSIdcs;
 
-        vector<tuple<int, bool, bitset<32>>> pendingCRSEntries;
-        bool pendingCRSE;
+        pair<bool, vector<tuple<int, bool, bitset<32>>>> pendingCRSEntries;
 
-        vector<int> pendingEmptyLRSIdcs;
-        bool pendingLRSEmpty;
+        pair<bool, vector<int>> pendingEmptyLRSIdcs;
+        pair<bool, vector<int>> pendingScheduledLRSIdcs;
 
-        IncomingCacheStruct pendingCacheInput;
-        bool pendingCacheWrite;
+        pair<bool, IncomingCacheStruct> pendingCacheInput;
 };
 
 #endif
