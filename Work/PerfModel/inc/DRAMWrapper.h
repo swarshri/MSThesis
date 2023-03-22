@@ -3,8 +3,6 @@
 
 #include "../ext/DRAMsim3/src/memory_system.h"
 #include <Config.h>
-// #include <ReservationStation.h>
-#include <Reserve.h>
 
 using namespace dramsim3;
 using namespace std;
@@ -21,7 +19,7 @@ struct PMAEntry { //:RSEntry { // PMA stands for Pending Memory Access.
     int64_t RequestCoreClock;
     int64_t DoneCoreClock;
     vector<DataType> Data;
-    uint32_t RequestID; // This is unused for Write Requests. // For read requests use this to determine if the writeback has finished too.
+    int32_t RequestID; // This is unused for Write Requests. // For read requests use this to determine if the writeback has finished too.
 
     friend std::ostream& operator <<(std::ostream& os, PMAEntry const& e) {
         return os << e.AccessAddress << "\t"
@@ -44,7 +42,7 @@ class DRAMW {
         void input();
         void output();
 
-        bool readRequest(LRSEntry, uint32_t);
+        bool readRequest(AddressType, uint32_t = 0);
         bool writeRequest(AddressType, vector<DataType>);
         void ReadCompleteHandler(uint64_t);
         void WriteCompleteHandler(uint64_t);
@@ -83,8 +81,8 @@ class DRAMW {
         MemorySystem * MemSystem;
         int64_t clk;
 
-        vector<PMAEntry> pendingReads;
-        vector<PMAEntry> pendingWrites;
+        vector<PMAEntry<DataType>*> pendingReads;
+        vector<PMAEntry<DataType>*> pendingWrites;
         // Doesn't mean this requires a hardware Reservation Station structure.
         // Modeling it this way for convenience and reuse the behaviour.
         //ReservationStation<PMAEntry> pendingReads;

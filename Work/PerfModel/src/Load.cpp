@@ -22,7 +22,7 @@ void LoadStage::step() {
         // Get the next load request from the Load Reservation Station.
         pair<int, LRSEntry> nle = this->coreRU->getNextLoadEntry();
         if (nle.first != -1) {
-            bool success = this->OCCMEM->readRequest(nle.second, nle.first);
+            bool success = this->OCCMEM->readRequest(nle.second.OccMemoryAddress, nle.first);
             if (success)
                 this->coreRU->scheduleToSetLRSEToScheduledState(nle.first);
         }
@@ -30,14 +30,14 @@ void LoadStage::step() {
         // Get all finished reads from OCCMEM and write into CRS
         pair<bool, vector<PMAEntry<bitset<32>>>> nwb = this->OCCMEM->getNextWriteBack();
         if (nwb.first) {
-            for (auto wbentry = nwb.second.begin(); wbentry != nwb.second.end(); wbentry++) {
-                for (auto inprogentry = this->LRSEntryInProgress.begin(); inprogentry != this->LRSEntryInProgress.end(); inprogentry++) {
+            for (auto wbentry : nwb.second) {
+                for (auto inprogentry : this->LRSEntryInProgress) {
                     if (inprogentry.first == wbentry.RequestID) {
                         this->coreRU->scheduleToFillInCRS(inprogentry.second.ResStatIndex.to_ulong(), inprogentry.second.LowOrHigh, wbentry.Data[0]);
-                        cout << "LS: Scheduled to fill in Compute RS at index: " << this->LRSEntryInProgress.second.ResStatIndex.to_ulong() << endl;
-                        cout << "LS: Scheduled data: " << this->LRSEntryInProgress.second.LowOrHigh << " " << this->OCCMEM->lastReadData[0] << endl;
+                        cout << "LS: Scheduled to fill in Compute RS at index: " << inprogentry.second.ResStatIndex.to_ulong() << endl;
+                        cout << "LS: Scheduled data: " << inprogentry.second.LowOrHigh << " " << this->OCCMEM->lastReadData[0] << endl;
                         this->coreRU->scheduleToSetLRSEToEmptyState(inprogentry.first);
-                        cout << "LS: Scheduled to set empty state in Load RS at index: " << this->LRSEntryInProgress.first << endl;
+                        cout << "LS: Scheduled to set empty state in Load RS at index: " << inprogentry.first << endl;
 
                         // Also try to keep a copy of this in the Local Cache.
                         IncomingCacheStruct newCacheEntry;

@@ -93,20 +93,20 @@ void DRAMW<AddressType, DataType>::output() {
 }
 
 template <typename AddressType, typename DataType>
-bool DRAMW<AddressType, DataType>::readRequest(LRSEntry request, uint32_t lrssrcid) {
-    uint64_t address64 = request.OccMemoryAddress.to_ullong();
+bool DRAMW<AddressType, DataType>::readRequest(AddressType address, uint32_t requestid) {
+    uint64_t address64 = address.to_ullong();
     if (this->MemSystem->WillAcceptTransaction(address64, false)) {
         bool success = this->MemSystem->AddTransaction(address64, false);
         if (success) {
             // Only keep track of successfully requested transaction.
             // Otherwise just send false and the core will take care of what to do next.
-            PMAEntry * newma = new PMAEntry;
+            PMAEntry<DataType> * newma = new PMAEntry<DataType>;
             newma->AccessAddress = address64;
             newma->RequestCoreClock = this->clk;
             newma->DoneCoreClock = -1;
-            newma->Data = DataType(0);
-            newma->LRSSrcID = lrssrcid;
-            newma->CRSDestID = request.ResStatIndex.to_ullong();
+            newma->Data.clear();
+            newma->Data.push_back(DataType(0));
+            newma->RequestID = requestid;
             this->pendingReads.push_back(newma);
             // TODO - think if you want to have a single list of pending reads and writes.
             // I don't think that will make any difference at least at present for this design.
@@ -125,12 +125,12 @@ bool DRAMW<AddressType, DataType>::writeRequest(AddressType address, vector<Data
         if (success) {
             // Only keep track of successfully requested transaction.
             // Otherwise just send false and the core will take care of what to do next.
-            PMAEntry * newma = new PMAEntry;
+            PMAEntry<DataType> * newma = new PMAEntry<DataType>;
             newma->AccessAddress = address64;
             newma->RequestCoreClock = this->clk;
             newma->DoneCoreClock = -1;
             newma->Data = data;
-            newma->DestID = -1; // Nothing to write back.
+            newma->RequestID = -1; // Nothing to write back.
             this->pendingWrites.push_back(newma);
             // TODO - think if you want to have a single list of pending reads and writes.
             // I don't think that will make any difference at least at present for this design.
@@ -148,8 +148,8 @@ void DRAMW<AddressType, DataType>::ReadCompleteHandler(uint64_t address) {
             // This is the read request entry in the list of pending reads that has returned.
             read->DoneCoreClock = this->clk;
             read->Data = this->MEM[address]; // this is what should be returned to core (Read back by core in this case)
-            cout << "Finished read scheduled in clock cycle: " << read-> << " at address: " << get<1>(*read);
-            cout << " in clock cycle: " << this->clk << endl;
+            cout << "Finished read scheduled in clock cycle: " << read->RequestCoreClock << " at address: " << read->AccessAddress;
+            cout << " in clock cycle: " << read->DoneCoreClock << endl;
             break;
         }
     }
@@ -160,8 +160,8 @@ void DRAMW<AddressType, DataType>::WriteCompleteHandler(uint64_t address) {
     for (auto write = this->pendingWrites.begin(); write != this->pendingWrites.end(); write++) {
         if (address == write->AccessAddress && write->DoneCoreClock != -1) {
             write->DoneCoreClock = this->clk;
-            cout << "Finished write scheduled in clock cycle: " << get<0>(*write) << " at address: " << get<1>(*write);
-            cout << " in clock cycle: " << this->clk_ << endl;
+            cout << "Finished write scheduled in clock cycle: " << write->RequestCoreClock << " at address: " << write->AccessAddress;
+            cout << " in clock cycle: " << write->DoneCoreClock << endl;
             break;
         }
     }
@@ -170,7 +170,7 @@ void DRAMW<AddressType, DataType>::WriteCompleteHandler(uint64_t address) {
 template <typename AddressType, typename DataType>
 void DRAMW<AddressType, DataType>::step() {
     // Remove the entry from the read pending list if (its done clock is not -1 and is more than the start clock) and 
-    // their DestID is set to -1 - indicating the writeback is done.
+    // their RequestID is set to -1 - indicating the writeback is done. - not necessary done in readHandler
 
 
     // Remove entries from the write pending list if (their done clock is not -1 and is more than the start clock).
@@ -181,10 +181,11 @@ void DRAMW<AddressType, DataType>::step() {
 template <typename AddressType, typename DataType>
 pair<bool, vector<PMAEntry<DataType>>> DRAMW<AddressType, DataType>::getNextWriteBack() {
     vector<PMAEntry<DataType>> returnVec;
-    for (PMAEntry entry = this->pendingReads.begin(); entry != this->pendingReads.end(); entry++) {
-        if (read->DoneCoreClock != -1 && read->DestID != -1) {
-            returnVec.push_back(entry);
-            this->pendingReads.erase(entry);
+    for (auto entry : this->pendingReads) {
+        if (entry->DoneCoreClock != -1 && entry->RequestID != -1) {
+            returnVec.push_back(*entry);
+            //this->pendingReads.erase(entry);
+            remove(this->pendingReads.begin(), this->pendingReads.end(), entry);
         }
     }
     if (returnVec.size() > 0)

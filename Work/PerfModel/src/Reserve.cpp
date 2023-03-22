@@ -267,8 +267,8 @@ void ReserveStage::setCRSEToEmptyState(int idx) {
 }
 
 void ReserveStage::scheduleToSetCRSEToEmptyState(int idx) {
-    this->pendingEmptyCRSIdcs.push_back(idx);
-    this->pendingCRSEmpty = true;
+    this->pendingEmptyCRSIdcs.second.push_back(idx);
+    this->pendingEmptyCRSIdcs.first = true;
 }
 
 void ReserveStage::fillInCRS(int idx, bool high, bitset<32> dataVal) {
@@ -279,8 +279,8 @@ void ReserveStage::fillInCRS(int idx, bool high, bitset<32> dataVal) {
 }
 
 void ReserveStage::scheduleToFillInCRS(int idx, bool high, bitset<32> dataVal) {
-    this->pendingCRSEntries.push_back(tuple<int, bool, bitset<32>>(idx, high, dataVal));
-    this->pendingCRSE = true;
+    this->pendingCRSEntries.second.push_back(tuple<int, bool, bitset<32>>(idx, high, dataVal));
+    this->pendingCRSEntries.first = true;
 }
 
 pair<int, LRSEntry> ReserveStage::getNextLoadEntry() {
@@ -292,8 +292,8 @@ void ReserveStage::setLRSEToEmptyState(int idx) {
 }
 
 void ReserveStage::scheduleToSetLRSEToEmptyState(int idx) {
-    this->pendingEmptyLRSIdcs.push_back(idx);
-    this->pendingLRSEmpty = true;
+    this->pendingEmptyLRSIdcs.second.push_back(idx);
+    this->pendingEmptyLRSIdcs.first = true;
 }
 
 void ReserveStage::setLRSEToScheduledState(int idx) {
@@ -301,11 +301,11 @@ void ReserveStage::setLRSEToScheduledState(int idx) {
 }
 
 void ReserveStage::scheduleToSetLRSEToScheduledState(int idx) {
-    this->pendingScheduledLRSIdcs.push_back(idx);
-    this->pendingLRSScheduled = true;
+    this->pendingScheduledLRSIdcs.second.push_back(idx);
+    this->pendingScheduledLRSIdcs.first = true;
 }
 
 void ReserveStage::scheduleWriteIntoCache(IncomingCacheStruct cacheInput) {
-    this->pendingCacheInput = cacheInput;
-    this->pendingCacheWrite = true;
+    this->pendingCacheInput.second = cacheInput;
+    this->pendingCacheInput.first = true;
 }

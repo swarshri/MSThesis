@@ -168,6 +168,43 @@ void FetchStage::step() {
     }
     if (!this->halted) {
         this->cycle_count++;
+        pair<bool, vector<PMAEntry<bitset<64>>>> nwbe = this->SDMEM->getNextWriteBack();
+        if (nwbe.first) {
+            if (nwbe.second.size() != 1) {
+                // Throw error - because for this memory, we are only expecting one BL bytes of data out of it every cycle.
+            }
+            else {
+                // Unpack values and put them in SRS in the right places in FillIdxQueue.
+                auto pmae = nwbe.second[0];
+                int i = 0;
+                for (auto data = pmae.Data.begin(); data != pmae.Data.end(); data++) {
+                    if (data->count() == 64) {
+                        this->halted = true;
+                        while(!this->FillIdxQueue->isEmpty()) {
+                            int idx = this->FillIdxQueue->pop().to_ulong();
+                            this->SRS->setEmptyState(idx);
+                        }
+                        cout << "Found Halt Seed at i: " << i << endl;
+                        this->print();
+                        return;
+                    }
+                    else {
+                        int nextIdx = this->FillIdxQueue->pop().to_ulong();
+                        SRSEntry newSRSEntry;
+                        newSRSEntry.SeedAddress = bitset<32>(this->SeedPointer.to_ulong() + i); // Don't understand how to do this.
+                        newSRSEntry.Seed = *data;
+                        newSRSEntry.LowPointer = bitset<32>(0);
+                        newSRSEntry.HighPointer = this->RefCount;
+                        newSRSEntry.BasePointer = bitset<6>(0);
+                        newSRSEntry.StoreFlag = false;
+                        newSRSEntry.Ready = true;
+                        newSRSEntry.Empty = false;
+                        this->SRS->fill(bitset<6>(nextIdx), newSRSEntry);
+                    }
+                    i++;
+                }
+            }
+        }
         if (this->SDMEM->readDone) {
             for (int i = 0; i < this->SDMEM->getChannelWidth(); i++) {
                 bitset<64> nextReadData = this->SDMEM->lastReadData[i];
