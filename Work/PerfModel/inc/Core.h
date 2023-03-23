@@ -18,13 +18,13 @@ class Core {
         bool halted = false;
         Core(string, string, SysConfig *);
 
-        void connect(DRAMW<bitset<32>, bitset<64>> *, map<char, DRAMW<bitset<32>, bitset<32>>*>, DRAMW<bitset<32>, bitset<64>> *);
+        void connect(DRAMW<32, 64> *, map<char, DRAMW<32, 32>*>, DRAMW<32, 64> *);
         void step();
         
     private:
         string id;
 
-        DRAMW<bitset<32>, bitset<32>> * OCMEM;
+        DRAMW<32, 32> * OCMEM;
 
         FetchStage * FU;
         DispatchStage * DU;

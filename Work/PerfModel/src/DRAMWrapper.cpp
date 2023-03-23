@@ -3,32 +3,31 @@
 #ifndef DRAMW_DEF
 #define DRAMW_DEF
 
-template <typename AddressType, typename DataType>
-DRAMW<AddressType, DataType>::DRAMW(string name, string ioDir, SysConfig * config, bool readonly) {
+template <int alen, int dlen>
+DRAMW<alen, dlen>::DRAMW(string name, string ioDir, SysConfig * config, SysConfig * coreConfig, bool readonly) {
     this->id = name;
     this->readonly = readonly;
     this->dataIODir = ioDir;
 
     this->addressibility = config->parameters["Addressibility"];
     this->channelwidth = config->parameters["ChannelWidth"];
-    this->latencymin = config->parameters["LatencyMin"];
-    this->latencymax = config->parameters["LatencyMax"];
     this->memsize = pow(2, config->parameters["AddressLength"]);
     this->dramsim3configfile = config->str_parameters["DramSim3ConfigFile"];
+    cout << "DRAMWrapper " << this->id << " - dramsim3configfile: " << this->dramsim3configfile << endl;
 
     this->MEM.resize(this->memsize);
     int i = 0;
     while(i < this->memsize)
-        this->MEM[i++] = DataType(0);
+        this->MEM[i++] = bitset<dlen>(0);
 
     this->lastReadData.resize(this->channelwidth);
     this->nextWriteData.resize(this->channelwidth);
 
-    this->nextReadAddress = AddressType(0);
+    this->nextReadAddress = bitset<alen>(0);
     this->readWaitCycles = 0;
     this->readPending = false;
 
-    this->nextWriteAddress = AddressType(0);
+    this->nextWriteAddress = bitset<alen>(0);
     this->writeWaitCycles = 0;
     this->writePending = false;
 
@@ -36,15 +35,29 @@ DRAMW<AddressType, DataType>::DRAMW(string name, string ioDir, SysConfig * confi
     this->MemSystem = new MemorySystem(this->dramsim3configfile, output_dir,
                                        bind(&DRAMW::ReadCompleteHandler, this, std::placeholders::_1),
                                        bind(&DRAMW::WriteCompleteHandler, this, std::placeholders::_1));
+
+    double tdram = this->MemSystem->GetTCK(); // assuming that this is in ns
+    double tcore = coreConfig->parameters["ClockCycleTime"]; // in ns
+    if (tcore > tdram) {
+        cout << "Core clock is slower than the DRAM clock. Tcore: " << tcore << " Tdram: " << tdram << endl;
+        cout << "DRAM will be ticked for every cycle of core." << endl;
+        this->memSysClockTriggerConst = 1;
+    }
+    else
+        this->memSysClockTriggerConst = ceil(tdram / tcore);
+
+    this->clkTriggerCount = 0;
+
+    cout << "DRAM " << this->id << " - memSysClockTriggerCycle: " << this->memSysClockTriggerCycle << endl;
 }
 
-template <typename AddressType, typename DataType>
-void DRAMW<AddressType, DataType>::printStats() { 
+template <int alen, int dlen>
+void DRAMW<alen, dlen>::printStats() { 
     this->MemSystem->PrintStats();
 }
 
-template <typename AddressType, typename DataType>
-void DRAMW<AddressType, DataType>::input() {
+template <int alen, int dlen>
+void DRAMW<alen, dlen>::input() {
     ifstream mem;
     string line;
 
@@ -62,7 +75,7 @@ void DRAMW<AddressType, DataType>::input() {
         cout << "File opened: " << ipFilePath << endl;
         int i=0;
         while (getline(mem, line)) {
-            this->MEM[i] = DataType(line);
+            this->MEM[i] = bitset<dlen>(line);
             i++;
         }
         mem.close();
@@ -70,8 +83,8 @@ void DRAMW<AddressType, DataType>::input() {
     else cout<<"Unable to open input file for " << this->id << ": " << ipFilePath << endl;
 }
 
-template <typename AddressType, typename DataType>
-void DRAMW<AddressType, DataType>::output() {
+template <int alen, int dlen>
+void DRAMW<alen, dlen>::output() {
     ofstream mem;
 
 #ifdef _WIN32
@@ -85,27 +98,27 @@ void DRAMW<AddressType, DataType>::output() {
 	mem.open(opFilePath, std::ios_base::out);
 	if (mem.is_open()) {
         cout << "File opened: " << opFilePath << endl;
-		for (DataType data: this->MEM)
+		for (bitset<dlen> data: this->MEM)
 			mem << data <<endl;
 	}
 	else cout<<"Unable to open input file for " << this->id << ": " << opFilePath << endl;
 	mem.close();
 }
 
-template <typename AddressType, typename DataType>
-bool DRAMW<AddressType, DataType>::readRequest(AddressType address, uint32_t requestid) {
+template <int alen, int dlen>
+bool DRAMW<alen, dlen>::readRequest(bitset<alen> address, uint32_t requestid) {
     uint64_t address64 = address.to_ullong();
     if (this->MemSystem->WillAcceptTransaction(address64, false)) {
         bool success = this->MemSystem->AddTransaction(address64, false);
         if (success) {
             // Only keep track of successfully requested transaction.
             // Otherwise just send false and the core will take care of what to do next.
-            PMAEntry<DataType> * newma = new PMAEntry<DataType>;
+            PMAEntry<dlen> * newma = new PMAEntry<dlen>;
             newma->AccessAddress = address64;
             newma->RequestCoreClock = this->clk;
             newma->DoneCoreClock = -1;
             newma->Data.clear();
-            newma->Data.push_back(DataType(0));
+            newma->Data.push_back(bitset<dlen>(0));
             newma->RequestID = requestid;
             this->pendingReads.push_back(newma);
             // TODO - think if you want to have a single list of pending reads and writes.
@@ -117,15 +130,15 @@ bool DRAMW<AddressType, DataType>::readRequest(AddressType address, uint32_t req
     return false;
 }
 
-template <typename AddressType, typename DataType>
-bool DRAMW<AddressType, DataType>::writeRequest(AddressType address, vector<DataType> data) {
+template <int alen, int dlen>
+bool DRAMW<alen, dlen>::writeRequest(bitset<alen> address, vector<bitset<dlen>> data) {
     uint64_t address64 = address.to_ullong();
     if (this->MemSystem->WillAcceptTransaction(address64, true)) {
         bool success = this->MemSystem->AddTransaction(address64, true);
         if (success) {
             // Only keep track of successfully requested transaction.
             // Otherwise just send false and the core will take care of what to do next.
-            PMAEntry<DataType> * newma = new PMAEntry<DataType>;
+            PMAEntry<dlen> * newma = new PMAEntry<dlen>;
             newma->AccessAddress = address64;
             newma->RequestCoreClock = this->clk;
             newma->DoneCoreClock = -1;
@@ -141,13 +154,14 @@ bool DRAMW<AddressType, DataType>::writeRequest(AddressType address, vector<Data
     return false;
 }
 
-template <typename AddressType, typename DataType>
-void DRAMW<AddressType, DataType>::ReadCompleteHandler(uint64_t address) {
-    for (auto read = this->pendingReads.begin(); read != this->pendingReads.end(); read++) {
-        if (address == read->AccessAddress && read->DoneCoreClock == -1 && read->DestID != -1) {
+template <int alen, int dlen>
+void DRAMW<alen, dlen>::ReadCompleteHandler(uint64_t address) {
+    for (auto read : this->pendingReads) {
+        if (address == read->AccessAddress && read->DoneCoreClock == -1 && read->RequestID != -1) {
             // This is the read request entry in the list of pending reads that has returned.
             read->DoneCoreClock = this->clk;
-            read->Data = this->MEM[address]; // this is what should be returned to core (Read back by core in this case)
+            read->Data.clear(); // this is what should be returned to core (Read back by core in this case)
+            read->Data.push_back(this->MEM[address]); // this is what should be returned to core (Read back by core in this case)
             cout << "Finished read scheduled in clock cycle: " << read->RequestCoreClock << " at address: " << read->AccessAddress;
             cout << " in clock cycle: " << read->DoneCoreClock << endl;
             break;
@@ -155,9 +169,9 @@ void DRAMW<AddressType, DataType>::ReadCompleteHandler(uint64_t address) {
     }
 }
 
-template <typename AddressType, typename DataType>
-void DRAMW<AddressType, DataType>::WriteCompleteHandler(uint64_t address) {
-    for (auto write = this->pendingWrites.begin(); write != this->pendingWrites.end(); write++) {
+template <int alen, int dlen>
+void DRAMW<alen, dlen>::WriteCompleteHandler(uint64_t address) {
+    for (auto write : this->pendingWrites) {
         if (address == write->AccessAddress && write->DoneCoreClock != -1) {
             write->DoneCoreClock = this->clk;
             cout << "Finished write scheduled in clock cycle: " << write->RequestCoreClock << " at address: " << write->AccessAddress;
@@ -167,20 +181,24 @@ void DRAMW<AddressType, DataType>::WriteCompleteHandler(uint64_t address) {
     }
 }
 
-template <typename AddressType, typename DataType>
-void DRAMW<AddressType, DataType>::step() {
+template <int alen, int dlen>
+void DRAMW<alen, dlen>::step() {
     // Remove the entry from the read pending list if (its done clock is not -1 and is more than the start clock) and 
-    // their RequestID is set to -1 - indicating the writeback is done. - not necessary done in readHandler
-
-
+    // their RequestID is set to -1 - indicating the writeback is done.
     // Remove entries from the write pending list if (their done clock is not -1 and is more than the start clock).
+    // - not necessary done in readHandler
 
-    // TODO Question - can I do both in the same clock cycle or only one at a time???
+    // step the memory system relative to the core clock cycle.
+    this->clkTriggerCount++;
+    if (this->clkTriggerCount == this->memSysClockTriggerConst) {
+        this->MemSystem->ClockTick();
+        this->clkTriggerCount = 0;
+    }
 }
 
-template <typename AddressType, typename DataType>
-pair<bool, vector<PMAEntry<DataType>>> DRAMW<AddressType, DataType>::getNextWriteBack() {
-    vector<PMAEntry<DataType>> returnVec;
+template <int alen, int dlen>
+pair<bool, vector<PMAEntry<dlen>>> DRAMW<alen, dlen>::getNextWriteBack() {
+    vector<PMAEntry<dlen>> returnVec;
     for (auto entry : this->pendingReads) {
         if (entry->DoneCoreClock != -1 && entry->RequestID != -1) {
             returnVec.push_back(*entry);
@@ -189,18 +207,18 @@ pair<bool, vector<PMAEntry<DataType>>> DRAMW<AddressType, DataType>::getNextWrit
         }
     }
     if (returnVec.size() > 0)
-        return pair<bool, vector<PMAEntry<DataType>>>(true, returnVec);
+        return pair<bool, vector<PMAEntry<dlen>>>(true, returnVec);
     else
-        return pair<bool, vector<PMAEntry<DataType>>>(false, returnVec);
+        return pair<bool, vector<PMAEntry<dlen>>>(false, returnVec);
 }
 
-template <typename AddressType, typename DataType>
-bool DRAMW<AddressType, DataType>::isFree() {
+template <int alen, int dlen>
+bool DRAMW<alen, dlen>::isFree() {
     return false;
 }
 
-template <typename AddressType, typename DataType>
-int DRAMW<AddressType, DataType>::getChannelWidth() {
+template <int alen, int dlen>
+int DRAMW<alen, dlen>::getChannelWidth() {
     return 4;
 }
 

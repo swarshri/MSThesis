@@ -9,7 +9,7 @@ void StoreStage::connectDU(DispatchStage * du)  {
     this->coreDU = du;
 }
 
-void StoreStage::connectDRAM(DRAMW<bitset<32>, bitset<64>> * simem) {
+void StoreStage::connectDRAM(DRAMW<32, 64> * simem) {
     this->SIMEM = simem;
 }
 

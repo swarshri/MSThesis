@@ -132,7 +132,7 @@ bool FetchStage::isHalted() {
     return this->halted;
 }
 
-void FetchStage::connectDRAM(DRAMW<bitset<32>, bitset<64>> * sdmem) {
+void FetchStage::connectDRAM(DRAMW<32, 64> * sdmem) {
     this->SDMEM =  sdmem;
 }
 
@@ -168,7 +168,7 @@ void FetchStage::step() {
     }
     if (!this->halted) {
         this->cycle_count++;
-        pair<bool, vector<PMAEntry<bitset<64>>>> nwbe = this->SDMEM->getNextWriteBack();
+        pair<bool, vector<PMAEntry<64>>> nwbe = this->SDMEM->getNextWriteBack();
         if (nwbe.first) {
             if (nwbe.second.size() != 1) {
                 // Throw error - because for this memory, we are only expecting one BL bytes of data out of it every cycle.

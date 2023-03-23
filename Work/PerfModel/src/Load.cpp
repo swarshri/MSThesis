@@ -12,7 +12,7 @@ void LoadStage::connectRU(ReserveStage * ru) {
     this->coreRU = ru;
 }
 
-void LoadStage::connectDRAM(DRAMW<bitset<32>, bitset<32>> * occmem) {
+void LoadStage::connectDRAM(DRAMW<32, 32> * occmem) {
     this->OCCMEM = occmem;
 }
 
@@ -28,7 +28,7 @@ void LoadStage::step() {
         }
 
         // Get all finished reads from OCCMEM and write into CRS
-        pair<bool, vector<PMAEntry<bitset<32>>>> nwb = this->OCCMEM->getNextWriteBack();
+        pair<bool, vector<PMAEntry<32>>> nwb = this->OCCMEM->getNextWriteBack();
         if (nwb.first) {
             for (auto wbentry : nwb.second) {
                 for (auto inprogentry : this->LRSEntryInProgress) {

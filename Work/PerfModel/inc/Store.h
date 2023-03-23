@@ -11,12 +11,12 @@ class StoreStage {
         void step();
         bool isHalted();
         void connectDU(DispatchStage *);
-        void connectDRAM(DRAMW<bitset<32>, bitset<64>> *);
+        void connectDRAM(DRAMW<32, 64> *);
 
     private:
         int cycle_count;
         bool halted;
 
         DispatchStage * coreDU;
-        DRAMW<bitset<32>, bitset<64>> * SIMEM;
+        DRAMW<32, 64> * SIMEM;
 };

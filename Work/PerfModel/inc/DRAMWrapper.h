@@ -1,5 +1,6 @@
 #include <vector>
 #include <string>
+#include <bitset>
 
 #include "../ext/DRAMsim3/src/memory_system.h"
 #include <Config.h>
@@ -10,7 +11,7 @@ using namespace std;
 #ifndef DRAMW_H
 #define DRAMW_H
 
-template <typename DataType>
+template <int dlen>
 struct PMAEntry { //:RSEntry { // PMA stands for Pending Memory Access.
     // this is not really a ReservationStation entry.
     // But it is convenient to model it this way.
@@ -18,7 +19,7 @@ struct PMAEntry { //:RSEntry { // PMA stands for Pending Memory Access.
     uint64_t AccessAddress;
     int64_t RequestCoreClock;
     int64_t DoneCoreClock;
-    vector<DataType> Data;
+    vector<bitset<dlen>> Data;
     int32_t RequestID; // This is unused for Write Requests. // For read requests use this to determine if the writeback has finished too.
 
     friend std::ostream& operator <<(std::ostream& os, PMAEntry const& e) {
@@ -31,19 +32,19 @@ struct PMAEntry { //:RSEntry { // PMA stands for Pending Memory Access.
     }
 };
 
-template<typename AddressType, typename DataType>
+template<int alen, int dlen>
 class DRAMW {
     public:
-        vector<DataType> lastReadData;
+        vector<bitset<dlen>> lastReadData;
         bool readDone = false;
         bool writeDone = false;
 
-        DRAMW(string, string, SysConfig *, bool);
+        DRAMW(string, string, SysConfig *, SysConfig *, bool);
         void input();
         void output();
 
-        bool readRequest(AddressType, uint32_t = 0);
-        bool writeRequest(AddressType, vector<DataType>);
+        bool readRequest(bitset<alen>, uint32_t = 0);
+        bool writeRequest(bitset<alen>, vector<bitset<dlen>>);
         void ReadCompleteHandler(uint64_t);
         void WriteCompleteHandler(uint64_t);
 
@@ -53,12 +54,12 @@ class DRAMW {
 
         int getChannelWidth();
 
-        pair<bool, vector<PMAEntry<DataType>>> getNextWriteBack();
+        pair<bool, vector<PMAEntry<dlen>>> getNextWriteBack();
 
         void printStats();
 
     private:
-        vector<DataType> MEM;
+        vector<bitset<dlen>> MEM;
 
         int addressibility; // Maybe use this to verify that the chosen DRAM config matches this requirement.
         int channelwidth; // Same as above.
@@ -69,20 +70,21 @@ class DRAMW {
         bool readonly;
         string dataIODir;
 
-        AddressType nextReadAddress;
+        bitset<alen> nextReadAddress;
         int readWaitCycles;
         bool readPending;
 
-        AddressType nextWriteAddress;
-        vector<DataType> nextWriteData;
+        bitset<alen> nextWriteAddress;
+        vector<bitset<dlen>> nextWriteData;
         int writeWaitCycles;
         bool writePending;
         
         MemorySystem * MemSystem;
+        uint16_t memSysClockTriggerConst, clkTriggerCount;
         int64_t clk;
 
-        vector<PMAEntry<DataType>*> pendingReads;
-        vector<PMAEntry<DataType>*> pendingWrites;
+        vector<PMAEntry<dlen>*> pendingReads;
+        vector<PMAEntry<dlen>*> pendingWrites;
         // Doesn't mean this requires a hardware Reservation Station structure.
         // Modeling it this way for convenience and reuse the behaviour.
         //ReservationStation<PMAEntry> pendingReads;

@@ -10,7 +10,7 @@ class LoadStage {
         LoadStage(SysConfig *, char, string);
 
         void connectRU(ReserveStage *);
-        void connectDRAM(DRAMW<bitset<32>, bitset<32>> *);
+        void connectDRAM(DRAMW<32, 32> *);
         void step();
 
         bool isHalted();
@@ -21,7 +21,7 @@ class LoadStage {
         bool halted;
 
         ReserveStage * coreRU;
-        DRAMW<bitset<32>, bitset<32>> * OCCMEM;
+        DRAMW<32, 32> * OCCMEM;
 
         vector<pair<int, LRSEntry>> LRSEntryInProgress;
 };
