@@ -22,6 +22,7 @@ void ComputeStage::step() {
     if (!this->halted) {
         pair<int, CRSEntry> nce = this->coreRU->getNextComputeEntry();
         if (nce.first != -1) {
+            cout << "Count reg value: " << this->CountReg << endl;
             bitset<32> lowResult = bitset<32>(this->CountReg.to_ulong() + nce.second.LowOcc.to_ulong());
             bitset<32> highResult = bitset<32>(this->CountReg.to_ulong() + nce.second.HighOcc.to_ulong());
             this->coreFU->writeBack(nce.second.SRSWBIndex.to_ulong(), lowResult, highResult);
@@ -37,4 +38,7 @@ void ComputeStage::step() {
     }
     else
         cout << "CS: Halted" << endl;
+
+    if (this->cycle_count >= 3000)
+        this->halted = true;
 }

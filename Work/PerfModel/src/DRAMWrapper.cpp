@@ -8,6 +8,7 @@ DRAMW<alen, dlen>::DRAMW(string name, string ioDir, SysConfig * config, SysConfi
     this->id = name;
     this->readonly = readonly;
     this->dataIODir = ioDir;
+    this->clk = 0;
 
     this->addressibility = config->parameters["Addressibility"];
     this->channelwidth = config->parameters["ChannelWidth"];
@@ -19,6 +20,8 @@ DRAMW<alen, dlen>::DRAMW(string name, string ioDir, SysConfig * config, SysConfi
     int i = 0;
     while(i < this->memsize)
         this->MEM[i++] = bitset<dlen>(0);
+
+    this->input();
 
     this->lastReadData.resize(this->channelwidth);
     this->nextWriteData.resize(this->channelwidth);
@@ -36,6 +39,7 @@ DRAMW<alen, dlen>::DRAMW(string name, string ioDir, SysConfig * config, SysConfi
                                        bind(&DRAMW::ReadCompleteHandler, this, std::placeholders::_1),
                                        bind(&DRAMW::WriteCompleteHandler, this, std::placeholders::_1));
 
+    cout << "Done initializing MemSystem." << endl;
     double tdram = this->MemSystem->GetTCK(); // assuming that this is in ns
     double tcore = coreConfig->parameters["ClockCycleTime"]; // in ns
     if (tcore > tdram) {
@@ -48,7 +52,7 @@ DRAMW<alen, dlen>::DRAMW(string name, string ioDir, SysConfig * config, SysConfi
 
     this->clkTriggerCount = 0;
 
-    cout << "DRAM " << this->id << " - memSysClockTriggerCycle: " << this->memSysClockTriggerCycle << endl;
+    cout << "DRAM " << this->id << " - memSysClockTriggerConst: " << this->memSysClockTriggerConst << endl;
 }
 
 template <int alen, int dlen>
@@ -106,7 +110,13 @@ void DRAMW<alen, dlen>::output() {
 }
 
 template <int alen, int dlen>
-bool DRAMW<alen, dlen>::readRequest(bitset<alen> address, uint32_t requestid) {
+bool DRAMW<alen, dlen>::willAcceptRequest(bitset<alen> address, bool write) {
+    uint64_t address64 = address.to_ullong();
+    return this->MemSystem->WillAcceptTransaction(address64, write);
+}
+
+template <int alen, int dlen>
+bool DRAMW<alen, dlen>::readRequest(bitset<alen> address, uint32_t requestid, bool burstmode) {
     uint64_t address64 = address.to_ullong();
     if (this->MemSystem->WillAcceptTransaction(address64, false)) {
         bool success = this->MemSystem->AddTransaction(address64, false);
@@ -120,6 +130,7 @@ bool DRAMW<alen, dlen>::readRequest(bitset<alen> address, uint32_t requestid) {
             newma->Data.clear();
             newma->Data.push_back(bitset<dlen>(0));
             newma->RequestID = requestid;
+            newma->BurstMode = burstmode; // false by default.
             this->pendingReads.push_back(newma);
             // TODO - think if you want to have a single list of pending reads and writes.
             // I don't think that will make any difference at least at present for this design.
@@ -161,9 +172,16 @@ void DRAMW<alen, dlen>::ReadCompleteHandler(uint64_t address) {
             // This is the read request entry in the list of pending reads that has returned.
             read->DoneCoreClock = this->clk;
             read->Data.clear(); // this is what should be returned to core (Read back by core in this case)
-            read->Data.push_back(this->MEM[address]); // this is what should be returned to core (Read back by core in this case)
-            cout << "Finished read scheduled in clock cycle: " << read->RequestCoreClock << " at address: " << read->AccessAddress;
+            int bl = 1;
+            if (read->BurstMode)
+                bl = this->MemSystem->GetBurstLength();
+            cout << this->id << " - Burst Length: " << bl << endl;
+            for (int i = 0; i < bl; i++)
+                read->Data.push_back(this->MEM[address + i]); // this is what should be returned to core (Read back by core in this case)
+            // TODO - This needs to be changed to return one word of data every DRAM cycle till we reach burst length.
+            cout << this->id << " - Finished read scheduled in clock cycle: " << read->RequestCoreClock << " at address: " << read->AccessAddress;
             cout << " in clock cycle: " << read->DoneCoreClock << endl;
+            cout << " pending reads count: " << this->pendingReads.size() << endl;
             break;
         }
     }
@@ -187,7 +205,7 @@ void DRAMW<alen, dlen>::step() {
     // their RequestID is set to -1 - indicating the writeback is done.
     // Remove entries from the write pending list if (their done clock is not -1 and is more than the start clock).
     // - not necessary done in readHandler
-
+    this->clk++;
     // step the memory system relative to the core clock cycle.
     this->clkTriggerCount++;
     if (this->clkTriggerCount == this->memSysClockTriggerConst) {
@@ -198,12 +216,14 @@ void DRAMW<alen, dlen>::step() {
 
 template <int alen, int dlen>
 pair<bool, vector<PMAEntry<dlen>>> DRAMW<alen, dlen>::getNextWriteBack() {
+    cout << "this->pendingReads.size():" << this->pendingReads.size() << endl;
     vector<PMAEntry<dlen>> returnVec;
     for (auto entry : this->pendingReads) {
         if (entry->DoneCoreClock != -1 && entry->RequestID != -1) {
             returnVec.push_back(*entry);
             //this->pendingReads.erase(entry);
             remove(this->pendingReads.begin(), this->pendingReads.end(), entry);
+            break;
         }
     }
     if (returnVec.size() > 0)
@@ -219,7 +239,7 @@ bool DRAMW<alen, dlen>::isFree() {
 
 template <int alen, int dlen>
 int DRAMW<alen, dlen>::getChannelWidth() {
-    return 4;
+    return this->MemSystem->GetBurstLength();
 }
 
 #endif

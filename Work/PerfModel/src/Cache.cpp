@@ -31,7 +31,7 @@ Cache::Cache(char base, SysConfig* config) {
             // cout << "Cache construction: Pushed a new block into a new set: " << j << endl;
             // cout << " Last added Block: " << newSet[j] << endl;
         }
-        cout << "Set size: " << newSet.size() << endl;
+        // cout << "Set size: " << newSet.size() << endl;
         this->Array.push_back(newSet);
         // cout << "Cache construction: Pushed a new set into this->Array: " << i << endl;
     }

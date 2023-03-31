@@ -21,13 +21,15 @@ struct PMAEntry { //:RSEntry { // PMA stands for Pending Memory Access.
     int64_t DoneCoreClock;
     vector<bitset<dlen>> Data;
     int32_t RequestID; // This is unused for Write Requests. // For read requests use this to determine if the writeback has finished too.
+    bool BurstMode;
 
     friend std::ostream& operator <<(std::ostream& os, PMAEntry const& e) {
         return os << e.AccessAddress << "\t"
                   << e.RequestCoreClock << "\t"
                   << e.DoneCoreClock << "\t"
                   << e.Data << "\t"
-                  << e.RequestID << endl; // "\t\t"
+                  << e.RequestID << "\t"
+                  << e.BurstMode << endl; // "\t\t"
                   //<< static_cast<const RSEntry&>(e);
     }
 };
@@ -43,7 +45,8 @@ class DRAMW {
         void input();
         void output();
 
-        bool readRequest(bitset<alen>, uint32_t = 0);
+        bool willAcceptRequest(bitset<alen>, bool);
+        bool readRequest(bitset<alen>, uint32_t = 0, bool = false);
         bool writeRequest(bitset<alen>, vector<bitset<dlen>>);
         void ReadCompleteHandler(uint64_t);
         void WriteCompleteHandler(uint64_t);

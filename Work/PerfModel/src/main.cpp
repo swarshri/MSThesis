@@ -5,6 +5,7 @@
 #include<map>
 #include<fstream>
 #include<iostream>
+#include<thread>
 
 #include<sys/types.h>
 #include<sys/stat.h>
@@ -14,6 +15,11 @@
 #include<Core.h>
 
 using namespace std;
+
+template<int alen, int dlen>
+void createMem(string name, string ioDir, string configName, SysConfig* config, DRAMW<alen, dlen>* retObj) {
+    retObj = new DRAMW<alen, dlen>(name, ioDir, config->children[configName], config->children["Core"], true);
+}
 
 int main(int argc, char * argv[]) {
     string confDir = "";
@@ -36,6 +42,7 @@ int main(int argc, char * argv[]) {
     DRAMW<32, 64> * SdMEM = new DRAMW<32, 64>("SdMEM", ioDir, config->children["SeedMemory"], config->children["Core"], true);
 
     map<char, DRAMW<32, 32>*> OcMEMs;
+
     DRAMW<32, 32> * OccAMEM = new DRAMW<32, 32>("OccAMEM", ioDir, config->children["OccMemory"], config->children["Core"], true);
     OcMEMs['A'] = OccAMEM;
 
@@ -84,10 +91,10 @@ int main(int argc, char * argv[]) {
         CORE->step();
 
         SdMEM->step();
-        OccAMEM->step();
-        OccCMEM->step();
-        OccGMEM->step();
-        OccTMEM->step();
+        OcMEMs['A']->step();
+        OcMEMs['C']->step();
+        OcMEMs['G']->step();
+        OcMEMs['T']->step();
         SiMEM->step();
     }
 

@@ -22,13 +22,24 @@ void LoadStage::step() {
         // Get the next load request from the Load Reservation Station.
         pair<int, LRSEntry> nle = this->coreRU->getNextLoadEntry();
         if (nle.first != -1) {
-            bool success = this->OCCMEM->readRequest(nle.second.OccMemoryAddress, nle.first);
-            if (success)
+            bool success = this->OCCMEM->willAcceptRequest(nle.second.OccMemoryAddress, false);
+            if (success) {
+                this->OCCMEM->readRequest(nle.second.OccMemoryAddress, nle.first);
                 this->coreRU->scheduleToSetLRSEToScheduledState(nle.first);
+                cout << "Successfully sent read request for LRS entry index: " << nle.first << endl;
+                cout << "Read request sent for OccMEM address: " << nle.second.OccMemoryAddress << endl;
+                this->LRSEntryInProgress.push_back(nle);
+            }
+            else
+                cout << "Couldn't send read request to OccMEM address: " << nle.second.OccMemoryAddress << endl; 
+        }
+        else {
+            cout << "No ready entry in LRS to request read." << endl;
         }
 
         // Get all finished reads from OCCMEM and write into CRS
         pair<bool, vector<PMAEntry<32>>> nwb = this->OCCMEM->getNextWriteBack();
+        cout << "next writeback acquired. nwb.first:" << nwb.first << endl;
         if (nwb.first) {
             for (auto wbentry : nwb.second) {
                 for (auto inprogentry : this->LRSEntryInProgress) {
@@ -50,7 +61,11 @@ void LoadStage::step() {
                 }
             }
         }
+        this->cycle_count++;
     }
+    // Logic for halting load stage.
+    if (this->cycle_count > 3000)
+        this->halted = true;
 }
 
 // void LoadStage::step() {

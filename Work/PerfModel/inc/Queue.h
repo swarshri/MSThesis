@@ -11,7 +11,7 @@
 template <typename DataType>
 class Queue {
     public:
-        Queue(SysConfig *);
+        Queue(SysConfig *, uint8_t = 1);
 
         void push(DataType);
         DataType pop();
@@ -19,6 +19,7 @@ class Queue {
         unsigned int getCount();
         bool isEmpty();
         bool isFull();
+        void resize(int);
 
         void show(ostream&);
 

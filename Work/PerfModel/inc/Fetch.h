@@ -49,6 +49,7 @@ class FetchStage {
         void connect(); // connect with other components within core
         void connectDRAM(DRAMW<32, 64> *); // connect with off-chip components
         void step(); // clock trigger
+        void step_old(); // clock trigger
 
         // API methods for getting and setting from internal registers.
         pair<int, SRSEntry> getNextReadyEntry();

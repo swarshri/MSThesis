@@ -35,16 +35,9 @@ FetchStage::FetchStage(SysConfig * config, string iodir, bitset<32> refCount) {
     this->SeedPointer = bitset<32>(0);
 
     this->FillIdxQueue = new Queue<bitset<6>>(config->children["FillIdxQ"]);
-    this->FillIdxQueue->push(bitset<6>(0));
-    this->FillIdxQueue->push(bitset<6>(1));
-    this->FillIdxQueue->push(bitset<6>(2));
-    this->FillIdxQueue->push(bitset<6>(3));
-
     this->SRS = new SeedReservationStation("SeedRS", config->children["SeedReservationStation"]);
-    this->SRS->setScheduledState(0);
-    this->SRS->setScheduledState(1);
-    this->SRS->setScheduledState(2);
-    this->SRS->setScheduledState(3);
+
+    cout << "FetchUnit: Created FillIdxQueue and SRS." << endl;
 
     // Clear performance metrics
     this->cycle_count = 0;
@@ -53,7 +46,7 @@ FetchStage::FetchStage(SysConfig * config, string iodir, bitset<32> refCount) {
     pendingWB = false;
     pendingEmpty = false;
 
-    // Output file path    
+    // Output file path
 #ifdef _WIN32
     this->op_file_path = iodir + "\\OP\\FetchStage.out";
 #else
@@ -119,7 +112,6 @@ void FetchStage::print() {
 
     if (output.is_open()) {
         cout << "Seed Pointer: " << this->SeedPointer << endl;
-        this->FillIdxQueue->show(cout);
         this->SRS->show(cout);
 
         output.close();
@@ -133,11 +125,64 @@ bool FetchStage::isHalted() {
 }
 
 void FetchStage::connectDRAM(DRAMW<32, 64> * sdmem) {
-    this->SDMEM =  sdmem;
+    this->SDMEM = sdmem;
 }
 
 void FetchStage::step() {
     cout << "----------------------- Fetch Stage step function --------------------------" << endl;
+    if (!this->halted) {
+        cout << "Fetch stage not halted: Cycle count: " << this->cycle_count << endl;
+        pair<bool, vector<PMAEntry<64>>> nwbe = this->SDMEM->getNextWriteBack();
+        // TODO - this only returns 1 entry right now. We need to use the burst mode to use the bandwidth better.
+        if (nwbe.first) {
+            cout << "nwbe count: " << nwbe.second.size() << endl;
+            for (auto pmae : nwbe.second) {
+                // Unpack values and put them in SRS in the right places per their RequestID.
+                if (pmae.Data.size() != 1) 
+                    cout << "More than 1 word returned for request access. Taking only the first data as burst mode is disabled." << endl;
+
+                auto data = pmae.Data[0];
+                cout << "FS: Unpacked data from SDMEM: " << data << " at address: " << bitset<32>(pmae.AccessAddress) << endl;
+                if (data.count() == 64) {
+                    this->halted = true;
+                    cout << "Found Halt Seed at seed pointer: " << pmae.AccessAddress << endl;
+                    this->print();
+                    break;
+                }
+                else {
+                    SRSEntry newSRSEntry;
+                    newSRSEntry.SeedAddress = bitset<32>(pmae.AccessAddress);
+                    newSRSEntry.Seed = data;
+                    newSRSEntry.LowPointer = bitset<32>(0);
+                    newSRSEntry.HighPointer = this->RefCount;
+                    newSRSEntry.BasePointer = bitset<6>(0);
+                    newSRSEntry.StoreFlag = false;
+                    newSRSEntry.Ready = true;
+                    newSRSEntry.Empty = false;
+                    this->SRS->fill(bitset<6>(pmae.RequestID), newSRSEntry);
+                }
+            }
+            cout << "FS: Updated SRS." << endl;
+            this->print();
+        }
+
+        int nextFreeEntry = this->SRS->nextFreeEntry();
+        if (nextFreeEntry != -1 && this->SDMEM->willAcceptRequest(this->SeedPointer, false)) {
+            cout << "FS: Sending read request for seed at: " << this->SeedPointer << "." << endl;
+            this->SDMEM->readRequest(this->SeedPointer, nextFreeEntry);
+            this->SRS->setScheduledState(nextFreeEntry);
+            this->SeedPointer = bitset<32>(this->SeedPointer.to_ulong() + 1); // seedpointer + 1 because we are not using the DRAMs in burst mode.
+            cout << "FS: Updated seed pointer: " << this->SeedPointer << endl;
+        }
+        else {
+            if (nextFreeEntry == -1)
+                cout << "FS: Stalled because SRS is filled. Read request not sent to SDMEM for SP: " << this->SeedPointer << endl;
+            else
+                cout << "FS: Stalled because SDMEM cannot accept request for address: " << this->SeedPointer << endl;
+        }
+        this->cycle_count++;
+    }
+    
     if (this->pendingWB) {
         for (auto wb:this->pendingWriteBacks) {
             int idx = wb.first;
@@ -166,97 +211,104 @@ void FetchStage::step() {
         this->pendingEmpty = false;
         this->print();
     }
-    if (!this->halted) {
-        this->cycle_count++;
-        pair<bool, vector<PMAEntry<64>>> nwbe = this->SDMEM->getNextWriteBack();
-        if (nwbe.first) {
-            if (nwbe.second.size() != 1) {
-                // Throw error - because for this memory, we are only expecting one BL bytes of data out of it every cycle.
-            }
-            else {
-                // Unpack values and put them in SRS in the right places in FillIdxQueue.
-                auto pmae = nwbe.second[0];
-                int i = 0;
-                for (auto data = pmae.Data.begin(); data != pmae.Data.end(); data++) {
-                    if (data->count() == 64) {
-                        this->halted = true;
-                        while(!this->FillIdxQueue->isEmpty()) {
-                            int idx = this->FillIdxQueue->pop().to_ulong();
-                            this->SRS->setEmptyState(idx);
-                        }
-                        cout << "Found Halt Seed at i: " << i << endl;
-                        this->print();
-                        return;
-                    }
-                    else {
-                        int nextIdx = this->FillIdxQueue->pop().to_ulong();
-                        SRSEntry newSRSEntry;
-                        newSRSEntry.SeedAddress = bitset<32>(this->SeedPointer.to_ulong() + i); // Don't understand how to do this.
-                        newSRSEntry.Seed = *data;
-                        newSRSEntry.LowPointer = bitset<32>(0);
-                        newSRSEntry.HighPointer = this->RefCount;
-                        newSRSEntry.BasePointer = bitset<6>(0);
-                        newSRSEntry.StoreFlag = false;
-                        newSRSEntry.Ready = true;
-                        newSRSEntry.Empty = false;
-                        this->SRS->fill(bitset<6>(nextIdx), newSRSEntry);
-                    }
-                    i++;
-                }
-            }
-        }
-        if (this->SDMEM->readDone) {
-            for (int i = 0; i < this->SDMEM->getChannelWidth(); i++) {
-                bitset<64> nextReadData = this->SDMEM->lastReadData[i];
-                if (nextReadData.count() == 64) {
-                    this->halted = true;
-                    while(!this->FillIdxQueue->isEmpty()) {
-                        int idx = this->FillIdxQueue->pop().to_ulong();
-                        this->SRS->setEmptyState(idx);
-                    }
-                    cout << "Found Halt Seed at i: " << i << endl;
-                    this->print();
-                    return;
-                }
-                else {
-                    int nextIdx = this->FillIdxQueue->pop().to_ulong();
-                    SRSEntry newSRSEntry;
-                    newSRSEntry.SeedAddress = bitset<32>(this->SeedPointer.to_ulong() + i);
-                    newSRSEntry.Seed = nextReadData;
-                    newSRSEntry.LowPointer = bitset<32>(0);
-                    newSRSEntry.HighPointer = this->RefCount;
-                    newSRSEntry.BasePointer = bitset<6>(0);
-                    newSRSEntry.StoreFlag = false;
-                    newSRSEntry.Ready = true;
-                    newSRSEntry.Empty = false;
-                    this->SRS->fill(bitset<6>(nextIdx), newSRSEntry);
-                }
-            }
-            this->SDMEM->readDone = false;
-            this->SeedPointer = bitset<32>(this->SeedPointer.to_ulong() + this->SDMEM->getChannelWidth());
-            cout << "FS: Updated SRS." << endl;
-            cout << "FS: Updated Seed Pointer." << endl;
-            this->print();
-        }
-
-        if (this->SDMEM->isFree()) {
-            int srsVacancy = this->FillIdxQueue->getCount();
-            if (srsVacancy >= this->SDMEM->getChannelWidth()) {
-                this->SDMEM->readRequest(this->SeedPointer);
-                cout << "FS: Sent Read Request from address: " << this->SeedPointer << endl;
-            }
-        }
-        
-        if (!this->FillIdxQueue->isFull()) {
-            int nextFreeEntry = this->SRS->nextFreeEntry();
-            if (nextFreeEntry != -1) {
-                this->FillIdxQueue->push(nextFreeEntry);
-                this->SRS->setScheduledState(nextFreeEntry);
-                cout << "FS: Updated Fill Index Queue." << endl;
-                this->print();
-            }
-        }
-    }
-    else
-        cout << "FS: Halted" << endl;
+    // Logic for halting fetch stage.
+    if (this->cycle_count > 3000)
+        this->halted = true;
 }
+
+// void FetchStage::step_old() {
+//     cout << "----------------------- Fetch Stage step function --------------------------" << endl;
+//     if (this->pendingWB) {
+//         for (auto wb:this->pendingWriteBacks) {
+//             int idx = wb.first;
+//             long int lowResult = wb.second.first.to_ulong();
+//             long int highResult = wb.second.second.to_ulong();
+//             this->SRS->updateLowPointer(idx, lowResult);
+//             this->SRS->updateHighPointer(idx, highResult);
+//             cout << "FS: Writing Back into FS SRS at Index: " << idx << endl;
+//             if (lowResult >= highResult) {
+//                 this->setStoreFlag(idx);
+//                 cout << "FS: Setting Store Flag in FS SRS at Index: " << idx << endl;
+//             }
+//             this->setReadyState(idx);
+//             cout << "FS: Setting Ready State in FS SRS at Index: " << idx << endl;
+//         }
+//         this->pendingWriteBacks.clear();
+//         this->pendingWB = false;
+//         this->print();
+//     }
+//     if (this->pendingEmpty) {
+//         for (int idx: this->pendingEmptyIdcs) {
+//             this->setEmptyState(idx);
+//             cout << "FS: Setting Empty State in FS SRS at index: " << idx << endl;
+//         }
+//         this->pendingEmptyIdcs.clear();
+//         this->pendingEmpty = false;
+//         this->print();
+//     }
+//     if (!this->halted) {
+//         this->cycle_count++;
+//         pair<bool, vector<PMAEntry<64>>> nwbe = this->SDMEM->getNextWriteBack();
+//         if (nwbe.first) {
+//             if (nwbe.second.size() != 1) {
+//                 // Throw error - because for this memory, we are only expecting one BL bytes of data out of it every cycle.
+//             }
+//             else {
+//                 // Unpack values and put them in SRS in the right places in FillIdxQueue.
+//                 auto pmae = nwbe.second[0];
+//                 int i = 0;
+//                 for (auto data = pmae.Data.begin(); data != pmae.Data.end(); data++) {
+//                     if (data->count() == 64) {
+//                         this->halted = true;
+//                         while(!this->FillIdxQueue->isEmpty()) {
+//                             int idx = this->FillIdxQueue->pop().to_ulong();
+//                             this->SRS->setEmptyState(idx);
+//                         }
+//                         cout << "Found Halt Seed at i: " << i << endl;
+//                         this->print();
+//                         return;
+//                     }
+//                     else {
+//                         int nextIdx = this->FillIdxQueue->pop().to_ulong();
+//                         SRSEntry newSRSEntry;
+//                         newSRSEntry.SeedAddress = bitset<32>(this->SeedPointer.to_ulong() + i); // Don't understand how to do this.
+//                         newSRSEntry.Seed = *data;
+//                         newSRSEntry.LowPointer = bitset<32>(0);
+//                         newSRSEntry.HighPointer = this->RefCount;
+//                         newSRSEntry.BasePointer = bitset<6>(0);
+//                         newSRSEntry.StoreFlag = false;
+//                         newSRSEntry.Ready = true;
+//                         newSRSEntry.Empty = false;
+//                         this->SRS->fill(bitset<6>(nextIdx), newSRSEntry);
+//                     }
+//                     i++;
+//                 }
+//             }
+//             cout << "FS: Updated SRS." << endl;
+//             cout << "FS: Updated Seed Pointer." << endl;
+//             this->print();
+//         }
+//         if (this->SDMEM->willAcceptRequest(this->SeedPointer, false)) {
+//             int srsVacancy = this->FillIdxQueue->getCount();
+//             if (srsVacancy >= this->SDMEM->getChannelWidth()) {
+//                 this->SDMEM->readRequest(this->SeedPointer);
+//                 cout << "FS: Sent Read Request from address: " << this->SeedPointer << endl;
+//                 this->SeedPointer = bitset<32>(this->SeedPointer.to_ulong() + this->SDMEM->getChannelWidth());
+//             }
+//         }
+        
+//         if (!this->FillIdxQueue->isFull()) {
+//             int nextFreeEntry = this->SRS->nextFreeEntry();
+//             if (nextFreeEntry != -1) {
+//                 this->FillIdxQueue->push(nextFreeEntry);
+//                 this->SRS->setScheduledState(nextFreeEntry);
+//                 cout << "FS: Updated Fill Index Queue." << endl;
+//                 this->print();
+//             }
+//         }
+//         if (this->cycle_count > 50)
+//             this->halted = true;
+//     }
+//     else
+//         cout << "FS: Halted" << endl;
+// }

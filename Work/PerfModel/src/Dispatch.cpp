@@ -88,7 +88,8 @@ void DispatchStage::dispatchSequential(int count) {
 
             this->coreFU->setInProgress(nre.first);
             cout << "DS: Queued into Dispatch <" << base << "> Queue." << endl;
-            this->print();
+            this->DispatchQueues[base.to_ulong()]->show(cout);
+            //this->print();
         }
         else {
             // Right now, nothing - wait until the queue has vacancy. This could mean that the entire pipeline will
@@ -128,6 +129,9 @@ void DispatchStage::step() {
     }
     else
         cout << "DS: Halted" << endl;
+    
+    if (this->cycle_count >= 3000)
+        this->halted = true;
 }
 
 pair<bool, DispatchQueueEntry> DispatchStage::popNextDispatch(int base) {

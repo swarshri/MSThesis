@@ -234,6 +234,9 @@ void ReserveStage::step() {
     }
     else
         cout << "RS: Halted" << endl;
+
+    if (this->cycle_count >= 3000)
+        this->halted = true;
 }
 
 void ReserveStage::print() {

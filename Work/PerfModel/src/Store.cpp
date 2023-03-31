@@ -20,6 +20,7 @@ bool StoreStage::isHalted() {
 void StoreStage::step() {
     cout << "----------------------- Store Stage step function --------------------------" << endl;
     if (!this->halted) {
+        // TODO: use the new dramsim3
         if (this->SIMEM->isFree()) {
             pair<bool, StoreQueueEntry> nse = this->coreDU->popNextStore();
             cout << "SS: nse.first: " << nse.first << endl;
@@ -34,7 +35,11 @@ void StoreStage::step() {
                 cout << "SS: Set halted to true." << endl;
             }
         }
+        this->cycle_count++;
     }
     else
         cout << "SS: Halted" << endl;
+
+    if (this->cycle_count >= 3000)
+        this->halted = true;
 }
