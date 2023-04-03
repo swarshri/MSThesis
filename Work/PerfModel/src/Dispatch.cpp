@@ -147,3 +147,17 @@ pair<bool, StoreQueueEntry> DispatchStage::popNextStore() {
         return pair<bool, StoreQueueEntry>(true, this->StoreQueue->pop());
     return pair<bool, StoreQueueEntry>(false, *(new StoreQueueEntry));
 }
+
+pair<bool, DispatchQueueEntry> DispatchStage::getNextDispatch(int base) {
+    cout << "Pop next dispatch for base: " << base << " is Queue empty? " << this->DispatchQueues[base]->isEmpty() << endl;
+    if (!this->DispatchQueues[base]->isEmpty())
+        return pair<bool, DispatchQueueEntry>(true, this->DispatchQueues[base]->next());
+    return pair<bool, DispatchQueueEntry>(false, *(new DispatchQueueEntry));
+}
+
+pair<bool, StoreQueueEntry> DispatchStage::getNextStore() {
+    cout << "Pop next dispatch for store: is Queue empty? " << this->StoreQueue->isEmpty() << endl;
+    if (!this->StoreQueue->isEmpty())
+        return pair<bool, StoreQueueEntry>(true, this->StoreQueue->next());
+    return pair<bool, StoreQueueEntry>(false, *(new StoreQueueEntry));
+}

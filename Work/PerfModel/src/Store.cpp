@@ -21,14 +21,22 @@ void StoreStage::step() {
     cout << "----------------------- Store Stage step function --------------------------" << endl;
     if (!this->halted) {
         // TODO: use the new dramsim3
-        if (this->SIMEM->isFree()) {
-            pair<bool, StoreQueueEntry> nse = this->coreDU->popNextStore();
-            cout << "SS: nse.first: " << nse.first << endl;
+        pair<bool, StoreQueueEntry> nse = this->coreDU->getNextStore();
+        cout << "SS: nse.first: " << nse.first << endl;
+        if (nse.first && this->SIMEM->willAcceptRequest(nse.second.StoreAddress, true)) {
             if (nse.first) {
                 vector<bitset<64>> storeVals;
                 storeVals.push_back(nse.second.StoreVal);
-                this->SIMEM->writeRequest(nse.second.StoreAddress, storeVals);
-                cout << "SS: Sent Write Request to address: " << nse.second.StoreAddress << endl;
+                bool writeReqSuccess = this->SIMEM->writeRequest(nse.second.StoreAddress, storeVals);
+                if (writeReqSuccess) {
+                    cout << "SS: Successfully sent Write request to address: " << nse.second.StoreAddress << endl;
+                    this->coreDU->popNextStore();
+                    cout << "SS: Popped the Store request off the Store Queue. Store value: " << nse.second.StoreVal << endl;
+                }
+                else {
+                    cout << "SS: Couldn't send the Write request to address: " << nse.second.StoreAddress << endl;
+                    cout << "SS: Will be tried again in the next cycle." << endl;
+                }                
             }
             else if (this->coreDU->isHalted()) {
                 this->halted = true;

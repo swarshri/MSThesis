@@ -142,7 +142,7 @@ bool DRAMW<alen, dlen>::readRequest(bitset<alen> address, uint32_t requestid, bo
 }
 
 template <int alen, int dlen>
-bool DRAMW<alen, dlen>::writeRequest(bitset<alen> address, vector<bitset<dlen>> data) {
+bool DRAMW<alen, dlen>::writeRequest(bitset<alen> address, vector<bitset<dlen>> data, bool burstmode) {
     uint64_t address64 = address.to_ullong();
     if (this->MemSystem->WillAcceptTransaction(address64, true)) {
         bool success = this->MemSystem->AddTransaction(address64, true);
@@ -155,10 +155,12 @@ bool DRAMW<alen, dlen>::writeRequest(bitset<alen> address, vector<bitset<dlen>> 
             newma->DoneCoreClock = -1;
             newma->Data = data;
             newma->RequestID = -1; // Nothing to write back.
+            newma->BurstMode = burstmode; // false by default.
             this->pendingWrites.push_back(newma);
             // TODO - think if you want to have a single list of pending reads and writes.
             // I don't think that will make any difference at least at present for this design.
             cout << this->id << " - Scheduled Write in cycle: " << this->clk << " from address: " << address64 << endl;
+            cout << this->id << " - Pending writes size: " << this->pendingWrites.size() << endl;
         }
         return success;
     }
@@ -189,10 +191,20 @@ void DRAMW<alen, dlen>::ReadCompleteHandler(uint64_t address) {
 
 template <int alen, int dlen>
 void DRAMW<alen, dlen>::WriteCompleteHandler(uint64_t address) {
+    cout << this->id << " - Calling WriteCompleteHandler on address: " << address << endl;
+    cout << this->id << " - Pending writes size: " << this->pendingWrites.size() << endl;
     for (auto write : this->pendingWrites) {
-        if (address == write->AccessAddress && write->DoneCoreClock != -1) {
+        cout << "Write accessaddress: " << write->AccessAddress << endl;
+        cout << "Write DoneCoreClock: " << write->DoneCoreClock << endl;
+        if (address == write->AccessAddress && write->DoneCoreClock == -1) {
+            int bl = 1;
+            if (write->BurstMode)
+                bl = this->MemSystem->GetBurstLength();
+            cout << this->id << " - Burst Length: " << bl << endl;
+            for (int i = 0; i < bl; i++)
+                this->MEM[address + i] = write->Data[i];
             write->DoneCoreClock = this->clk;
-            cout << "Finished write scheduled in clock cycle: " << write->RequestCoreClock << " at address: " << write->AccessAddress;
+            cout << this->id << " - Finished write scheduled in clock cycle: " << write->RequestCoreClock << " at address: " << write->AccessAddress;
             cout << " in clock cycle: " << write->DoneCoreClock << endl;
             break;
         }

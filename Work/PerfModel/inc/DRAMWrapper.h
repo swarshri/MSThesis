@@ -47,7 +47,7 @@ class DRAMW {
 
         bool willAcceptRequest(bitset<alen>, bool);
         bool readRequest(bitset<alen>, uint32_t = 0, bool = false);
-        bool writeRequest(bitset<alen>, vector<bitset<dlen>>);
+        bool writeRequest(bitset<alen>, vector<bitset<dlen>>, bool = false);
         void ReadCompleteHandler(uint64_t);
         void WriteCompleteHandler(uint64_t);
 

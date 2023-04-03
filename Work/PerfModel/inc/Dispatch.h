@@ -51,6 +51,8 @@ class DispatchStage {
         // API methods for getting from internal queues.
         pair<bool, DispatchQueueEntry> popNextDispatch(int);
         pair<bool, StoreQueueEntry> popNextStore();
+        pair<bool, DispatchQueueEntry> getNextDispatch(int);
+        pair<bool, StoreQueueEntry> getNextStore();
 
     private:
         // Dispatch scheme from the config file.

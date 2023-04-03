@@ -47,6 +47,11 @@ DataType Queue<DataType>::pop() {
 }
 
 template <typename DataType>
+DataType Queue<DataType>::next() {
+    return this->registers[readPointer];
+}
+
+template <typename DataType>
 unsigned int Queue<DataType>::getCount() {
     return this->count;
 }

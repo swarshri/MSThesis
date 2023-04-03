@@ -15,6 +15,7 @@ class Queue {
 
         void push(DataType);
         DataType pop();
+        DataType next();
 
         unsigned int getCount();
         bool isEmpty();
