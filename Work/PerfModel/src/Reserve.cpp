@@ -27,13 +27,7 @@ ReserveStage::ReserveStage(SysConfig * config, char base, string iodir) {
     this->base_num = config->BaseMap[base];
 
     this->CRS = new ComputeReservationStation("ComputeRS", config->children["ComputeReservationStation"]);
-    
-    this->LRSIdxQ = new Queue<bitset<6>>(config->children["LRSIdxQ"]);
-    this->LRSIdxQ->push(bitset<6>(0));
-    this->LRSIdxQ->push(bitset<6>(1));
-    this->LRS = new ReservationStation<LRSEntry>("LoadRS", config->children["LoadReservationStation"]);
-    this->LRS->setScheduledState(0);
-    this->LRS->setScheduledState(1);
+    this->LQ = new Queue<LQEntry>(config->children["LoadQ"]);
 
     if (config->has_child("Cache")) {
         this->LocalCache = new Cache(this->base, config->children["Cache"]);
@@ -50,8 +44,6 @@ ReserveStage::ReserveStage(SysConfig * config, char base, string iodir) {
     
     this->pendingEmptyCRSIdcs.first = false;
     this->pendingCRSEntries.first = false;
-    this->pendingEmptyLRSIdcs.first = false;
-    this->pendingScheduledLRSIdcs.first = false;
     this->pendingCacheInput.first = false;
 
     // Output file path    
@@ -60,17 +52,17 @@ ReserveStage::ReserveStage(SysConfig * config, char base, string iodir) {
 #else
     this->op_file_path = iodir + "OP/ReserveStage.out";
 #endif
-    cout << "Output File: " << this->op_file_path << endl;
+    // cout << "Output File: " << this->op_file_path << endl;
 
     ofstream output;
     output.open(this->op_file_path, ios_base::trunc);
     if (output.is_open()) {
         output.clear();
         output.close();
-        cout << "ReserveStage Output file opened." << endl;
+        // cout << "ReserveStage Output file opened." << endl;
     }
-    else
-        cout << "Unable to open file for ReserveStage Output." << this->op_file_path << endl;
+    // else
+        // cout << "Unable to open file for ReserveStage Output." << this->op_file_path << endl;
 }
 
 void ReserveStage::connect(DispatchStage * du) {
@@ -82,7 +74,7 @@ void ReserveStage::step() {
     if (this->pendingEmptyCRSIdcs.first) {
         for (int idx: this->pendingEmptyCRSIdcs.second) {
             this->setCRSEToEmptyState(idx);
-            cout << "RS: Setting CRS to Empty state at index: " << idx << endl;
+            // cout << "RS: Setting CRS to Empty state at index: " << idx << endl;
         }
         this->pendingEmptyCRSIdcs.second.clear();
         this->pendingEmptyCRSIdcs.first = false;
@@ -94,39 +86,20 @@ void ReserveStage::step() {
             bool lorh = get<1>(entry);
             bitset<32> value = get<2>(entry);
             this->fillInCRS(idx, lorh, value);
-            cout << "RS: Filling in CRS data at index: " << idx << " with data: " << lorh << " " << value << endl;
+            // cout << "RS: Filling in CRS data at index: " << idx << " with data: " << lorh << " " << value << endl;
         }
+        this->print();
         this->pendingCRSEntries.second.clear();
         this->pendingCRSEntries.first = false;
     }
 
-    if (this->pendingEmptyLRSIdcs.first) {
-        for (int idx: this->pendingEmptyLRSIdcs.second) {
-            this->setLRSEToEmptyState(idx);
-            cout << "RS: Setting LRS to Empty state at index: " << idx << endl;
-        }
-        this->pendingEmptyLRSIdcs.second.clear();
-        this->pendingEmptyLRSIdcs.first = false;
-        this->print();
-    }
-
-    if (this->pendingScheduledLRSIdcs.first) {
-        for (int idx: this->pendingScheduledLRSIdcs.second) {
-            this->setLRSEToScheduledState(idx);
-            cout << "RS: Setting LRS to Scheduled state at index: " << idx << endl;
-        }
-        this->pendingScheduledLRSIdcs.second.clear();
-        this->pendingScheduledLRSIdcs.first = false;
-        this->print();
-    }
-
     if (this->hasCache && this->pendingCacheInput.first) {
-        cout << "RS: Pending Cache input: " << this->pendingCacheInput.second << endl;
+        // cout << "RS: Pending Cache input: " << this->pendingCacheInput.second << endl;
         bool written = this->LocalCache->write(this->pendingCacheInput.second);
-        if (written)
-            cout << "RS: Written into Local Cache." << endl;
-        else
-            cout << "RS: Not stored in Local Cache." << endl;
+        // if (written)
+            // cout << "RS: Written into Local Cache." << endl;
+        // else
+            // cout << "RS: Not stored in Local Cache." << endl;
         this->pendingCacheInput.first = false;
     }
 
@@ -134,11 +107,11 @@ void ReserveStage::step() {
         pair<bool, DispatchQueueEntry> currentDispatch;
         if (this->pendingToBeReserved.first) {
             currentDispatch = this->pendingToBeReserved;
-            cout << "RS: Pending to be reserved due to resource constraints." << endl;
+            // cout << "RS: Using dispatch from the pending to be reserved due to resource constraints." << endl;
         }
         else {
             currentDispatch = this->coreDU->popNextDispatch(this->base_num);
-            cout << "RS: Getting new dispatch. currentDispatch.first: " << currentDispatch.first << endl;
+            // cout << "RS: Getting new dispatch. currentDispatch.first: " << currentDispatch.first << endl;
         }
 
         if (currentDispatch.first) {
@@ -175,37 +148,31 @@ void ReserveStage::step() {
             int nextCRSIdx = this->CRS->nextFreeEntry();
             
             if (nextCRSIdx != -1) {
-                vector<LRSEntry> newLoadRequests;
+                vector<LQEntry> newLoadRequests;
                 if (!newCRSEntry->LowOccReady) {
-                    LRSEntry newLoadRequest;
+                    LQEntry newLoadRequest;
                     newLoadRequest.LowOrHigh = false;
                     newLoadRequest.OccMemoryAddress = currentDispatch.second.LowPointer;
                     newLoadRequest.ResStatIndex = nextCRSIdx;
                     newLoadRequests.push_back(newLoadRequest);
-                }
+                } 
                 if (!newCRSEntry->HighOccReady) {
-                    LRSEntry newLoadRequest;
+                    LQEntry newLoadRequest;
                     newLoadRequest.LowOrHigh = true;
                     newLoadRequest.OccMemoryAddress = currentDispatch.second.HighPointer;
                     newLoadRequest.ResStatIndex = nextCRSIdx;
                     newLoadRequests.push_back(newLoadRequest);
                 }
-                if (this->LRSIdxQ->getCount() >= newLoadRequests.size()) {
+                if (this->LQ->getEmptyCount() >= newLoadRequests.size()) {
                     for (auto nlr = newLoadRequests.begin(); nlr != newLoadRequests.end(); nlr++) {
-                        bitset<6> idx = this->LRSIdxQ->pop();
-                        this->LRS->fill(idx, *nlr);
-                        this->LRS->setReadyState(idx.to_ulong());
-                        int nfe = this->LRS->nextFreeEntry();
-                        if (nfe != -1) {
-                            this->LRSIdxQ->push(bitset<6>(nfe));
-                            this->LRS->setScheduledState(nfe);
-                        }
+                        this->LQ->push(*nlr);
+                        // // cout << "RS: Pushed address: " << nlr->OccMemoryAddress << " into Load Queue." << endl;
+                        // // cout << "RS: Low or High: " << nlr->LowOrHigh << endl;
                     }
-                    cout << "RS: Updated Load Reservation Station with " << newLoadRequests.size() << " new Load Requests." << endl;
-                    cout << "RS: Possibly updated LRS Index Queue as well." << endl;
+                    // // cout << "RS: Updated Load Reservation Station with " << newLoadRequests.size() << " new Load Requests." << endl;
 
                     this->CRS->fill(bitset<6>(nextCRSIdx), *newCRSEntry);
-                    cout << "RS: Added into Compute Reservation Station at index: " << nextCRSIdx << endl;
+                    // // cout << "RS: Added into Compute Reservation Station at index: " << nextCRSIdx << endl;
                     if (newLoadRequests.size() > 0)
                         this->CRS->setScheduledState(nextCRSIdx);
                     else
@@ -217,14 +184,14 @@ void ReserveStage::step() {
                 }
                 else { // Not enough available resource in Load Reservation Station.
                     this->pendingToBeReserved = pair<bool, DispatchQueueEntry>(true, currentDispatch.second);
-                    cout << "RS: Not enough available resource in Load Reservation Station. Stalling by adding to pending."  << endl;
-                    cout << "RS: Pending Dispatch: " << this->pendingToBeReserved.second << endl;
+                    // cout << "RS: Not enough available resource in Load Reservation Station. Stalling by adding to pending."  << endl;
+                    // cout << "RS: Pending Dispatch: " << this->pendingToBeReserved.second << endl;
                 }
             }
             else { // No available resource in Compute Reservation Station.
                 this->pendingToBeReserved = pair<bool, DispatchQueueEntry>(true, currentDispatch.second);
-                cout << "RS: Not enough available resource in Compute Reservation Station. Stalling by adding to pending."  << endl;
-                cout << "RS: Pending Dispatch: " << this->pendingToBeReserved.second << endl;
+                // cout << "RS: Not enough available resource in Compute Reservation Station. Stalling by adding to pending."  << endl;
+                // cout << "RS: Pending Dispatch: " << this->pendingToBeReserved.second << endl;
             }
         }
         else if (this->coreDU->isHalted() && !this->pendingToBeReserved.first)
@@ -234,9 +201,6 @@ void ReserveStage::step() {
     }
     else
         cout << "RS: Halted" << endl;
-
-    if (this->cycle_count >= 3000)
-        this->halted = true;
 }
 
 void ReserveStage::print() {
@@ -247,14 +211,13 @@ void ReserveStage::print() {
     output.open(this->op_file_path, ios_base::app);
 
     if (output.is_open()) {
-        this->LRSIdxQ->show(cout);
-        this->LRS->show(cout);
+        this->LQ->show(cout);
         this->CRS->show(cout);
 
         output.close();
     }
-    else
-        cout << "Unable to open file for FetchStage Output." << this->op_file_path << endl;
+    // else
+        // cout << "Unable to open file for FetchStage Output." << this->op_file_path << endl;
 }
 
 bool ReserveStage::isHalted() {
@@ -286,26 +249,16 @@ void ReserveStage::scheduleToFillInCRS(int idx, bool high, bitset<32> dataVal) {
     this->pendingCRSEntries.first = true;
 }
 
-pair<int, LRSEntry> ReserveStage::getNextLoadEntry() {
-    return this->LRS->nextReadyEntry();
+pair<bool, LQEntry> ReserveStage::getNextLoadEntry() {
+    if (!this->LQ->isEmpty())
+        return pair<bool, LQEntry>(true, this->LQ->next());
+    return pair<bool, LQEntry>(false, *(new LQEntry));
 }
 
-void ReserveStage::setLRSEToEmptyState(int idx) {
-    this->LRS->setEmptyState(idx);
-}
-
-void ReserveStage::scheduleToSetLRSEToEmptyState(int idx) {
-    this->pendingEmptyLRSIdcs.second.push_back(idx);
-    this->pendingEmptyLRSIdcs.first = true;
-}
-
-void ReserveStage::setLRSEToScheduledState(int idx) {
-    this->LRS->setScheduledState(idx);
-}
-
-void ReserveStage::scheduleToSetLRSEToScheduledState(int idx) {
-    this->pendingScheduledLRSIdcs.second.push_back(idx);
-    this->pendingScheduledLRSIdcs.first = true;
+pair<bool, LQEntry> ReserveStage::popNextLoadEntry() {
+    if (!this->LQ->isEmpty())
+        return pair<bool, LQEntry>(true, this->LQ->pop());
+    return pair<bool, LQEntry>(false, *(new LQEntry));
 }
 
 void ReserveStage::scheduleWriteIntoCache(IncomingCacheStruct cacheInput) {

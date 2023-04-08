@@ -18,6 +18,7 @@ class Queue {
         DataType next();
 
         unsigned int getCount();
+        unsigned int getEmptyCount();
         bool isEmpty();
         bool isFull();
         void resize(int);

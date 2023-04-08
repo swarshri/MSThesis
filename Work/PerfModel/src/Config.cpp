@@ -10,19 +10,18 @@ void SysConfig::add_parameter(string pName, string pVal) {
     // Just check the first character of parVal to determine if it is an int or a string.
     if (all_of(pVal.begin(), pVal.end(), ::isdigit)) {
         this->parameters[pName] = stoi(pVal);
-        cout << "Added parameter: " << this->id << " " << pName  << " " << pVal << endl;
+        // cout << "Added parameter: " << this->id << " " << pName  << " " << pVal << endl;
     }
     else {
         this->str_parameters[pName] = pVal;
-        cout << "Added string parameter: " << this->id << " " << pName  << " " << pVal << endl;
+        // cout << "Added string parameter: " << this->id << " " << pName  << " " << pVal << endl;
     }
 }
 
 void SysConfig::add_child(string cName) {
-    cout << "In Here." << endl;
     unsigned int pos = cName.find("Pipeline");
     this->children[cName] = new SysConfig(cName);
-    cout << "Added child: " << this->children[cName]->get_name() << endl;
+    // cout << "Added child: " << this->children[cName]->get_name() << endl;
 
     if (pos < cName.size()) {
         string pName = "Pipeline";
@@ -80,7 +79,6 @@ SysConfig * ConfigParser::parse(string confDir) {
 
         while (getline(config, line)) {
             this->remove_whitespaces(&line);
-            cout << "line: " << line << endl;
             if (line.find('{') != string::npos) {
                 string cName = line.substr(0, line.find('{'));
                 cfg->add_child(cName);

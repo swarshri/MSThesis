@@ -2,8 +2,8 @@
 
 SeedReservationStation::SeedReservationStation(string name, SysConfig * config)
 : ReservationStation<SRSEntry>(name, config) {
-    for (auto entry = this->Entries.begin(); entry != this->Entries.end(); entry++)
-        (*entry).StoreFlag = false;
+    for (auto entry : this->Entries)
+        entry.StoreFlag = false;
 }
 
 void SeedReservationStation::setStoreFlag(int idx) {
@@ -37,7 +37,7 @@ FetchStage::FetchStage(SysConfig * config, string iodir, bitset<32> refCount) {
     this->FillIdxQueue = new Queue<bitset<6>>(config->children["FillIdxQ"]);
     this->SRS = new SeedReservationStation("SeedRS", config->children["SeedReservationStation"]);
 
-    cout << "FetchUnit: Created FillIdxQueue and SRS." << endl;
+    // cout << "FetchUnit: Created FillIdxQueue and SRS." << endl;
 
     // Clear performance metrics
     this->cycle_count = 0;
@@ -52,17 +52,17 @@ FetchStage::FetchStage(SysConfig * config, string iodir, bitset<32> refCount) {
 #else
     this->op_file_path = iodir + "OP/FetchStage.out";
 #endif
-    cout << "Output File: " << this->op_file_path << endl;
+    // cout << "Output File: " << this->op_file_path << endl;
 
     ofstream output;
     output.open(this->op_file_path, ios_base::trunc);
     if (output.is_open()) {
         output.clear();
         output.close();
-        cout << "FetchStage Output file opened." << endl;
+        // cout << "FetchStage Output file opened." << endl;
     }
-    else
-        cout << "Unable to open file for FetchStage Output." << this->op_file_path << endl;
+    // else
+        // cout << "Unable to open file for FetchStage Output." << this->op_file_path << endl;
 }
 
 // API function definitions
@@ -111,13 +111,13 @@ void FetchStage::print() {
     output.open(this->op_file_path, ios_base::app);
 
     if (output.is_open()) {
-        cout << "Seed Pointer: " << this->SeedPointer << endl;
+        // cout << "Seed Pointer: " << this->SeedPointer << endl;
         this->SRS->show(cout);
 
         output.close();
     }
-    else
-        cout << "Unable to open file for FetchStage Output." << this->op_file_path << endl;
+    // else
+        // cout << "Unable to open file for FetchStage Output." << this->op_file_path << endl;
 }
 
 bool FetchStage::isHalted() {
@@ -131,22 +131,37 @@ void FetchStage::connectDRAM(DRAMW<32, 64> * sdmem) {
 void FetchStage::step() {
     cout << "----------------------- Fetch Stage step function --------------------------" << endl;
     if (!this->halted) {
-        cout << "Fetch stage not halted: Cycle count: " << this->cycle_count << endl;
+        int nextFreeEntry = this->SRS->nextFreeEntry();
+        if (nextFreeEntry != -1 && this->SDMEM->willAcceptRequest(this->SeedPointer, false)) {
+            // cout << "FS: Sending read request for seed at: " << this->SeedPointer << "." << endl;
+            this->SDMEM->readRequest(this->SeedPointer, nextFreeEntry);
+            this->SRS->setScheduledState(nextFreeEntry);
+            this->SeedPointer = bitset<32>(this->SeedPointer.to_ulong() + 1); // seedpointer + 1 because we are not using the DRAMs in burst mode.
+            // cout << "FS: Updated seed pointer: " << this->SeedPointer << endl;
+        }
+        else {
+            // if (nextFreeEntry == -1)
+            //     // cout << "FS: Stalled because SRS is filled. Read request not sent to SDMEM for SP: " << this->SeedPointer << endl;
+            // else
+                // cout << "FS: Stalled because SDMEM cannot accept request for address: " << this->SeedPointer << endl;
+        }
+        
+        // cout << "Fetch stage not halted: Cycle count: " << this->cycle_count << endl;
         pair<bool, vector<PMAEntry<64>>> nwbe = this->SDMEM->getNextWriteBack();
         // TODO - this only returns 1 entry right now. We need to use the burst mode to use the bandwidth better.
         if (nwbe.first) {
-            cout << "nwbe count: " << nwbe.second.size() << endl;
+            // cout << "nwbe count: " << nwbe.second.size() << endl;
             for (auto pmae : nwbe.second) {
                 // Unpack values and put them in SRS in the right places per their RequestID.
-                if (pmae.Data.size() != 1) 
-                    cout << "More than 1 word returned for request access. Taking only the first data as burst mode is disabled." << endl;
+                // if (pmae.Data.size() != 1) 
+                    // cout << "More than 1 word returned for request access. Taking only the first data as burst mode is disabled." << endl;
 
                 auto data = pmae.Data[0];
-                cout << "FS: Unpacked data from SDMEM: " << data << " at address: " << bitset<32>(pmae.AccessAddress) << endl;
+                // cout << "FS: Unpacked data from SDMEM: " << data << " at address: " << bitset<32>(pmae.AccessAddress) << endl;
                 if (data.count() == 64) {
                     this->halted = true;
-                    cout << "Found Halt Seed at seed pointer: " << pmae.AccessAddress << endl;
-                    this->print();
+                    this->SRS->flushScheduledEntries();
+                    // cout << "Found Halt Seed at seed pointer: " << pmae.AccessAddress << " Emptied scheduled entries in SRS." << endl;
                     break;
                 }
                 else {
@@ -162,26 +177,12 @@ void FetchStage::step() {
                     this->SRS->fill(bitset<6>(pmae.RequestID), newSRSEntry);
                 }
             }
-            cout << "FS: Updated SRS." << endl;
-            this->print();
-        }
-
-        int nextFreeEntry = this->SRS->nextFreeEntry();
-        if (nextFreeEntry != -1 && this->SDMEM->willAcceptRequest(this->SeedPointer, false)) {
-            cout << "FS: Sending read request for seed at: " << this->SeedPointer << "." << endl;
-            this->SDMEM->readRequest(this->SeedPointer, nextFreeEntry);
-            this->SRS->setScheduledState(nextFreeEntry);
-            this->SeedPointer = bitset<32>(this->SeedPointer.to_ulong() + 1); // seedpointer + 1 because we are not using the DRAMs in burst mode.
-            cout << "FS: Updated seed pointer: " << this->SeedPointer << endl;
-        }
-        else {
-            if (nextFreeEntry == -1)
-                cout << "FS: Stalled because SRS is filled. Read request not sent to SDMEM for SP: " << this->SeedPointer << endl;
-            else
-                cout << "FS: Stalled because SDMEM cannot accept request for address: " << this->SeedPointer << endl;
+            // this->print();
         }
         this->cycle_count++;
     }
+    else
+        cout << "FS: Halted" << endl;
     
     if (this->pendingWB) {
         for (auto wb:this->pendingWriteBacks) {
@@ -190,13 +191,13 @@ void FetchStage::step() {
             long int highResult = wb.second.second.to_ulong();
             this->SRS->updateLowPointer(idx, lowResult);
             this->SRS->updateHighPointer(idx, highResult);
-            cout << "FS: Writing Back into FS SRS at Index: " << idx << endl;
+            // cout << "FS: Writing Back into FS SRS at Index: " << idx << endl;
             if (lowResult >= highResult) {
                 this->setStoreFlag(idx);
-                cout << "FS: Setting Store Flag in FS SRS at Index: " << idx << endl;
+                // cout << "FS: Setting Store Flag in FS SRS at Index: " << idx << endl;
             }
             this->setReadyState(idx);
-            cout << "FS: Setting Ready State in FS SRS at Index: " << idx << endl;
+            // cout << "FS: Setting Ready State in FS SRS at Index: " << idx << endl;
         }
         this->pendingWriteBacks.clear();
         this->pendingWB = false;
@@ -211,13 +212,10 @@ void FetchStage::step() {
         this->pendingEmpty = false;
         this->print();
     }
-    // Logic for halting fetch stage.
-    if (this->cycle_count > 3000)
-        this->halted = true;
 }
 
 // void FetchStage::step_old() {
-//     cout << "----------------------- Fetch Stage step function --------------------------" << endl;
+//     // cout << "----------------------- Fetch Stage step function --------------------------" << endl;
 //     if (this->pendingWB) {
 //         for (auto wb:this->pendingWriteBacks) {
 //             int idx = wb.first;
@@ -225,13 +223,13 @@ void FetchStage::step() {
 //             long int highResult = wb.second.second.to_ulong();
 //             this->SRS->updateLowPointer(idx, lowResult);
 //             this->SRS->updateHighPointer(idx, highResult);
-//             cout << "FS: Writing Back into FS SRS at Index: " << idx << endl;
+//             // cout << "FS: Writing Back into FS SRS at Index: " << idx << endl;
 //             if (lowResult >= highResult) {
 //                 this->setStoreFlag(idx);
-//                 cout << "FS: Setting Store Flag in FS SRS at Index: " << idx << endl;
+//                 // cout << "FS: Setting Store Flag in FS SRS at Index: " << idx << endl;
 //             }
 //             this->setReadyState(idx);
-//             cout << "FS: Setting Ready State in FS SRS at Index: " << idx << endl;
+//             // cout << "FS: Setting Ready State in FS SRS at Index: " << idx << endl;
 //         }
 //         this->pendingWriteBacks.clear();
 //         this->pendingWB = false;
@@ -240,7 +238,7 @@ void FetchStage::step() {
 //     if (this->pendingEmpty) {
 //         for (int idx: this->pendingEmptyIdcs) {
 //             this->setEmptyState(idx);
-//             cout << "FS: Setting Empty State in FS SRS at index: " << idx << endl;
+//             // cout << "FS: Setting Empty State in FS SRS at index: " << idx << endl;
 //         }
 //         this->pendingEmptyIdcs.clear();
 //         this->pendingEmpty = false;
@@ -264,7 +262,7 @@ void FetchStage::step() {
 //                             int idx = this->FillIdxQueue->pop().to_ulong();
 //                             this->SRS->setEmptyState(idx);
 //                         }
-//                         cout << "Found Halt Seed at i: " << i << endl;
+//                         // cout << "Found Halt Seed at i: " << i << endl;
 //                         this->print();
 //                         return;
 //                     }
@@ -284,15 +282,15 @@ void FetchStage::step() {
 //                     i++;
 //                 }
 //             }
-//             cout << "FS: Updated SRS." << endl;
-//             cout << "FS: Updated Seed Pointer." << endl;
+//             // cout << "FS: Updated SRS." << endl;
+//             // cout << "FS: Updated Seed Pointer." << endl;
 //             this->print();
 //         }
 //         if (this->SDMEM->willAcceptRequest(this->SeedPointer, false)) {
 //             int srsVacancy = this->FillIdxQueue->getCount();
 //             if (srsVacancy >= this->SDMEM->getChannelWidth()) {
 //                 this->SDMEM->readRequest(this->SeedPointer);
-//                 cout << "FS: Sent Read Request from address: " << this->SeedPointer << endl;
+//                 // cout << "FS: Sent Read Request from address: " << this->SeedPointer << endl;
 //                 this->SeedPointer = bitset<32>(this->SeedPointer.to_ulong() + this->SDMEM->getChannelWidth());
 //             }
 //         }
@@ -302,7 +300,7 @@ void FetchStage::step() {
 //             if (nextFreeEntry != -1) {
 //                 this->FillIdxQueue->push(nextFreeEntry);
 //                 this->SRS->setScheduledState(nextFreeEntry);
-//                 cout << "FS: Updated Fill Index Queue." << endl;
+//                 // cout << "FS: Updated Fill Index Queue." << endl;
 //                 this->print();
 //             }
 //         }
@@ -310,5 +308,5 @@ void FetchStage::step() {
 //             this->halted = true;
 //     }
 //     else
-//         cout << "FS: Halted" << endl;
+//         // cout << "FS: Halted" << endl;
 // }

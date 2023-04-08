@@ -29,6 +29,7 @@ class ReservationStation {
         void setScheduledState(int);
         void setReadyState(int);
         void setWaitingState(int);
+        void flushScheduledEntries();
         bool isEmpty();
 
         void show(ostream&);

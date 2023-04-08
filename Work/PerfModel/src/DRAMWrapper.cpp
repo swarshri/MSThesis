@@ -159,7 +159,7 @@ bool DRAMW<alen, dlen>::writeRequest(bitset<alen> address, vector<bitset<dlen>> 
             this->pendingWrites.push_back(newma);
             // TODO - think if you want to have a single list of pending reads and writes.
             // I don't think that will make any difference at least at present for this design.
-            cout << this->id << " - Scheduled Write in cycle: " << this->clk << " from address: " << address64 << endl;
+            cout << this->id << " - Scheduled Write into address: " << address64 << " in cycle: " << this->clk << endl;
             cout << this->id << " - Pending writes size: " << this->pendingWrites.size() << endl;
         }
         return success;
@@ -169,7 +169,9 @@ bool DRAMW<alen, dlen>::writeRequest(bitset<alen> address, vector<bitset<dlen>> 
 
 template <int alen, int dlen>
 void DRAMW<alen, dlen>::ReadCompleteHandler(uint64_t address) {
-    for (auto read : this->pendingReads) {
+    cout << this->id << " - Called ReadCompleteHandler on address: " << address << endl;
+    for (int i = 0; i < this->pendingReads.size(); i++) {
+        auto read = this->pendingReads[i];
         if (address == read->AccessAddress && read->DoneCoreClock == -1 && read->RequestID != -1) {
             // This is the read request entry in the list of pending reads that has returned.
             read->DoneCoreClock = this->clk;
@@ -193,7 +195,8 @@ template <int alen, int dlen>
 void DRAMW<alen, dlen>::WriteCompleteHandler(uint64_t address) {
     cout << this->id << " - Calling WriteCompleteHandler on address: " << address << endl;
     cout << this->id << " - Pending writes size: " << this->pendingWrites.size() << endl;
-    for (auto write : this->pendingWrites) {
+    for (int i = 0; i < this->pendingWrites.size(); i++) {
+        auto write = this->pendingWrites[i];
         cout << "Write accessaddress: " << write->AccessAddress << endl;
         cout << "Write DoneCoreClock: " << write->DoneCoreClock << endl;
         if (address == write->AccessAddress && write->DoneCoreClock == -1) {
@@ -206,6 +209,9 @@ void DRAMW<alen, dlen>::WriteCompleteHandler(uint64_t address) {
             write->DoneCoreClock = this->clk;
             cout << this->id << " - Finished write scheduled in clock cycle: " << write->RequestCoreClock << " at address: " << write->AccessAddress;
             cout << " in clock cycle: " << write->DoneCoreClock << endl;
+            this->pendingWrites.erase(this->pendingWrites.begin() + i); 
+            // This is done here because there is no writeback required for writes. This is done in the nextWriteBack() function for reads.
+            cout << " pending writes count: " << this->pendingWrites.size() << endl;
             break;
         }
     }
@@ -228,13 +234,15 @@ void DRAMW<alen, dlen>::step() {
 
 template <int alen, int dlen>
 pair<bool, vector<PMAEntry<dlen>>> DRAMW<alen, dlen>::getNextWriteBack() {
-    cout << "this->pendingReads.size():" << this->pendingReads.size() << endl;
+    cout << this->id << " - Getting nextWriteBack this->pendingReads.size():" << this->pendingReads.size() << endl;
     vector<PMAEntry<dlen>> returnVec;
-    for (auto entry : this->pendingReads) {
+    for (int i = 0; i < this->pendingReads.size(); i++) {
+        auto entry = this->pendingReads[i];
+        cout << "entry at: " << i << ": " << *entry << endl;
         if (entry->DoneCoreClock != -1 && entry->RequestID != -1) {
             returnVec.push_back(*entry);
-            //this->pendingReads.erase(entry);
-            remove(this->pendingReads.begin(), this->pendingReads.end(), entry);
+            this->pendingReads.erase(this->pendingReads.begin() + i);
+            cout << this->id << " - After removing an entry this->pendingReads.size():" << this->pendingReads.size() << endl;
             break;
         }
     }
@@ -245,8 +253,12 @@ pair<bool, vector<PMAEntry<dlen>>> DRAMW<alen, dlen>::getNextWriteBack() {
 }
 
 template <int alen, int dlen>
-bool DRAMW<alen, dlen>::isFree() {
-    return false;
+bool DRAMW<alen, dlen>::isFree(bool write) {
+    cout << this->id << " - isFree() pendingWrites size: " << this->pendingWrites.size() << endl;
+    if (write)
+        return this->pendingWrites.size() == 0;
+    else
+        return this->pendingReads.size() == 0;
 }
 
 template <int alen, int dlen>

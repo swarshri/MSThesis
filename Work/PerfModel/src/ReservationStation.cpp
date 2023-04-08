@@ -64,6 +64,17 @@ void ReservationStation<EntryType>::setWaitingState(int idx) {
 }
 
 template <typename EntryType>
+void ReservationStation<EntryType>::flushScheduledEntries() {
+    for (auto entry = this->Entries.begin(); entry != this->Entries.end(); entry++) {
+        // cout << "Before Entry ready: " << (*entry).Ready << " empty: " << (*entry).Empty << endl;
+        if ((*entry).Empty && (*entry).Ready)
+            (*entry).Ready = false;
+        // cout << "After Entry ready: " << (*entry).Ready << " empty: " << (*entry).Empty << endl;
+    }
+    this->show(cout);
+}
+
+template <typename EntryType>
 bool ReservationStation<EntryType>::isEmpty() {
     for (auto entry = this->Entries.begin(); entry != this->Entries.end(); entry++) {
         if (!(*entry).Empty || (*entry).Ready)

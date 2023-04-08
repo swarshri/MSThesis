@@ -76,9 +76,9 @@ void Core::connect(DRAMW<32, 64> * sdmem, map<char, DRAMW<32, 32>*> ocmem, DRAMW
 }
 
 bool Core::allStagesHalted() {
-    return this->FU->isHalted() && this->DU->isHalted() && //this->SU->isHalted() && 
+    return this->FU->isHalted() && this->DU->isHalted() && this->SU->isHalted() && 
            this->RUA->isHalted() && this->RUC->isHalted() && this->RUG->isHalted() && this->RUT->isHalted() &&
-        //    this->CUA->isHalted() && this->CUC->isHalted() && this->CUG->isHalted() && this->CUT->isHalted() &&
+           this->CUA->isHalted() && this->CUC->isHalted() && this->CUG->isHalted() && this->CUT->isHalted() &&
            this->LUA->isHalted() && this->LUC->isHalted() && this->LUG->isHalted() && this->LUT->isHalted();
 }
 

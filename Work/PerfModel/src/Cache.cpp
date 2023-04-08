@@ -62,6 +62,7 @@ pair<bool, bitset<32>> Cache::read(bitset<32> address) {
     }
 
     // if miss, send false and 0 out.
+    cout << "Cache miss!!! for address: " << address << endl;
     return pair<bool, bitset<32>>(false, bitset<32>(0));
 }
 

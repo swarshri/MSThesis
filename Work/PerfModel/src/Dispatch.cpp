@@ -15,17 +15,17 @@ DispatchStage::DispatchStage(SysConfig* config, string iodir) {
 #else
     this->op_file_path = iodir + "OP/DispatchStage.out";
 #endif
-    cout << "Output File: " << this->op_file_path << endl;
+    // cout << "Output File: " << this->op_file_path << endl;
 
     ofstream output;
     output.open(this->op_file_path, ios_base::trunc);
     if (output.is_open()) {
         output.clear();
         output.close();
-        cout << "DispatchStage Output file opened." << endl;
+        // cout << "DispatchStage Output file opened." << endl;
     }
-    else
-        cout << "Unable to open file for DispatchStage Output." << this->op_file_path << endl;
+    // else
+        // cout << "Unable to open file for DispatchStage Output." << this->op_file_path << endl;
 }
 
 void DispatchStage::print() {
@@ -42,8 +42,8 @@ void DispatchStage::print() {
 
         output.close();
     }
-    else
-        cout << "Unable to open file for FetchStage Output." << this->op_file_path << endl;
+    // else
+        // cout << "Unable to open file for FetchStage Output." << this->op_file_path << endl;
 }
 
 bool DispatchStage::isHalted() {
@@ -58,23 +58,26 @@ void DispatchStage::dispatchSequential(int count) {
     // count is not enabled - only single dispatch is implemented.
     // Implements one-entry-at-a-time scheme - REALLY?! find a better name for your own sake!
     pair<int, SRSEntry> nre = this->coreFU->getNextReadyEntry();
-    cout << "Dispatch Scheme: Single Sequential " << this->cycle_count << endl;
+    // cout << "Dispatch Scheme: Single Sequential " << this->cycle_count << endl;
     if (nre.first != -1) {
         cout << "Seed Address: " << nre.second.SeedAddress << endl;
-        cout << "Seed: " << nre.second.Seed << endl;
-        cout << "BP: " << nre.second.BasePointer << endl;
+        // cout << "Seed: " << nre.second.Seed << endl;
+        // cout << "BP: " << nre.second.BasePointer << endl;
         bitset<3> base = bitset<3>((nre.second.Seed.to_ulong() >> nre.second.BasePointer.to_ulong()) & 7);
-        cout << "Base: " << base << endl;
+        // cout << "Base: " << base << endl;
         if (base == bitset<3>(7) || nre.second.StoreFlag) {
             StoreQueueEntry newStoreQueueEntry;
             newStoreQueueEntry.StoreAddress = nre.second.SeedAddress;
             newStoreQueueEntry.StoreVal = bitset<64>((nre.second.LowPointer.to_ulong() << 32) + nre.second.HighPointer.to_ulong());
             this->StoreQueue->push(newStoreQueueEntry);
             cout << "DS: Queued into Store Queue." << endl;
-            this->print();
+            this->StoreQueue->show(cout);
+            // this->print();
             // Reset SRS Entry status to Empty.
             this->coreFU->scheduleToSetEmptyState(nre.first);
-            cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
+            cout << "Setting SRS entry at " << nre.first << " to empty state." << endl;
+            // this->coreFU->print();
+            // cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
         }
         //if base queue has space, schedule it and update the SRS entry state.
         else if (!this->DispatchQueues[base.to_ulong()]->isFull()) {
@@ -87,8 +90,8 @@ void DispatchStage::dispatchSequential(int count) {
             this->DispatchQueues[base.to_ulong()]->push(dispatchNewEntry);
 
             this->coreFU->setInProgress(nre.first);
-            cout << "DS: Queued into Dispatch <" << base << "> Queue." << endl;
-            this->DispatchQueues[base.to_ulong()]->show(cout);
+            // cout << "DS: Queued into Dispatch <" << base << "> Queue." << endl;
+            // this->DispatchQueues[base.to_ulong()]->show(cout);
             //this->print();
         }
         else {
@@ -122,6 +125,7 @@ void DispatchStage::step() {
             default:
                 break;
         }
+        // cout << "this->coreFU->emptySRS(): " << this->coreFU->emptySRS() << endl;
         if (this->coreFU->isHalted() && this->coreFU->emptySRS())
             this->halted = true;
 
@@ -129,34 +133,31 @@ void DispatchStage::step() {
     }
     else
         cout << "DS: Halted" << endl;
-    
-    if (this->cycle_count >= 3000)
-        this->halted = true;
 }
 
 pair<bool, DispatchQueueEntry> DispatchStage::popNextDispatch(int base) {
-    cout << "Pop next dispatch for base: " << base << " is Queue empty? " << this->DispatchQueues[base]->isEmpty() << endl;
+    // cout << "Pop next dispatch for base: " << base << " is Queue empty? " << this->DispatchQueues[base]->isEmpty() << endl;
     if (!this->DispatchQueues[base]->isEmpty())
         return pair<bool, DispatchQueueEntry>(true, this->DispatchQueues[base]->pop());
     return pair<bool, DispatchQueueEntry>(false, *(new DispatchQueueEntry));
 }
 
 pair<bool, StoreQueueEntry> DispatchStage::popNextStore() {
-    cout << "Pop next dispatch for store: is Queue empty? " << this->StoreQueue->isEmpty() << endl;
+    // cout << "Pop next dispatch for store: is Queue empty? " << this->StoreQueue->isEmpty() << endl;
     if (!this->StoreQueue->isEmpty())
         return pair<bool, StoreQueueEntry>(true, this->StoreQueue->pop());
     return pair<bool, StoreQueueEntry>(false, *(new StoreQueueEntry));
 }
 
 pair<bool, DispatchQueueEntry> DispatchStage::getNextDispatch(int base) {
-    cout << "Pop next dispatch for base: " << base << " is Queue empty? " << this->DispatchQueues[base]->isEmpty() << endl;
+    // cout << "Pop next dispatch for base: " << base << " is Queue empty? " << this->DispatchQueues[base]->isEmpty() << endl;
     if (!this->DispatchQueues[base]->isEmpty())
         return pair<bool, DispatchQueueEntry>(true, this->DispatchQueues[base]->next());
     return pair<bool, DispatchQueueEntry>(false, *(new DispatchQueueEntry));
 }
 
 pair<bool, StoreQueueEntry> DispatchStage::getNextStore() {
-    cout << "Pop next dispatch for store: is Queue empty? " << this->StoreQueue->isEmpty() << endl;
+    // cout << "Pop next dispatch for store: is Queue empty? " << this->StoreQueue->isEmpty() << endl;
     if (!this->StoreQueue->isEmpty())
         return pair<bool, StoreQueueEntry>(true, this->StoreQueue->next());
     return pair<bool, StoreQueueEntry>(false, *(new StoreQueueEntry));

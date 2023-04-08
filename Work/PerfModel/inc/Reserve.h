@@ -10,6 +10,20 @@
 #ifndef RES_H
 #define RES_H
 
+struct LQEntry {
+    bitset<32> OccMemoryAddress;
+    bool LowOrHigh; // false is low, true is high - DUH!
+    bitset<6> ResStatIndex;
+    bitset<6> BasePointer;
+
+    friend std::ostream& operator <<(std::ostream& os, LQEntry const& e) {
+        return os << e.LowOrHigh << "\t"
+                  << e.OccMemoryAddress << "\t"
+                  << e.ResStatIndex << "\t"
+                  << e.BasePointer;
+    }
+};
+
 struct LRSEntry:RSEntry {
     bitset<32> OccMemoryAddress;
     bool LowOrHigh; // false is low, true is high - DUH!
@@ -63,11 +77,8 @@ class ReserveStage {
         void scheduleToSetCRSEToEmptyState(int);
         void fillInCRS(int, bool, bitset<32>);
         void scheduleToFillInCRS(int, bool, bitset<32>);
-        pair<int, LRSEntry> getNextLoadEntry();
-        void setLRSEToEmptyState(int);
-        void scheduleToSetLRSEToEmptyState(int);
-        void setLRSEToScheduledState(int);
-        void scheduleToSetLRSEToScheduledState(int);
+        pair<bool, LQEntry> getNextLoadEntry();
+        pair<bool, LQEntry> popNextLoadEntry();
         void scheduleWriteIntoCache(IncomingCacheStruct);
 
         void print();
@@ -81,8 +92,7 @@ class ReserveStage {
         DispatchStage * coreDU;
         pair<bool, DispatchQueueEntry> pendingToBeReserved;
 
-        Queue<bitset<6>> * LRSIdxQ;
-        ReservationStation<LRSEntry> * LRS; // LoadReservationStation - acts very similar to Queue. Using RS instead because, we want to enqueue atmost two entries in each cycle.
+        Queue<LQEntry> * LQ;
         ComputeReservationStation * CRS; // ComputeReservationStation
         Cache * LocalCache;
         bool hasCache;
@@ -92,9 +102,6 @@ class ReserveStage {
         pair<bool, vector<int>> pendingEmptyCRSIdcs;
 
         pair<bool, vector<tuple<int, bool, bitset<32>>>> pendingCRSEntries;
-
-        pair<bool, vector<int>> pendingEmptyLRSIdcs;
-        pair<bool, vector<int>> pendingScheduledLRSIdcs;
 
         pair<bool, IncomingCacheStruct> pendingCacheInput;
 };

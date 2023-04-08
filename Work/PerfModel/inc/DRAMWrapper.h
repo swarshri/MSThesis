@@ -1,3 +1,4 @@
+#include <iostream>
 #include <vector>
 #include <string>
 #include <bitset>
@@ -27,9 +28,8 @@ struct PMAEntry { //:RSEntry { // PMA stands for Pending Memory Access.
         return os << e.AccessAddress << "\t"
                   << e.RequestCoreClock << "\t"
                   << e.DoneCoreClock << "\t"
-                  << e.Data << "\t"
                   << e.RequestID << "\t"
-                  << e.BurstMode << endl; // "\t\t"
+                  << e.BurstMode; // "\t\t"
                   //<< static_cast<const RSEntry&>(e);
     }
 };
@@ -53,7 +53,7 @@ class DRAMW {
 
         void step();
 
-        bool isFree();
+        bool isFree(bool);
 
         int getChannelWidth();
 

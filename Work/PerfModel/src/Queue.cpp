@@ -57,6 +57,11 @@ unsigned int Queue<DataType>::getCount() {
 }
 
 template <typename DataType>
+unsigned int Queue<DataType>::getEmptyCount() {
+    return this->size - this->count;
+}
+
+template <typename DataType>
 void Queue<DataType>::resize(int newsize) {
     if (newsize > this->size) {
         this->size = newsize;

@@ -38,9 +38,10 @@ class ReadAlignment(object):
         # print("self._fmi.length:", self._fmi.length)
         low = 0; high = self._fmi.length
         m = query.length
+        # print ("Query:", query.qstr)
         for i in range(m-1, -1, -1):
             char = query.char_from_idx(i)
-            # print("iteration:", it_count, "char:", char, "low:", low, "high:", high)
+            # print("iteration:", it_count, "char:", char, "self._fmi.count(char):",  self._fmi.count(char), "self._fmi.occ(char, low):", self._fmi.occ(char, low), "self._fmi.occ(char, high):", self._fmi.occ(char, high))
             low = self._fmi.count(char) + self._fmi.occ(char, low)
             high = self._fmi.count(char) + self._fmi.occ(char, high)
             # print("iteration:", it_count, "char:", char, "low:", low, "high:", high)
