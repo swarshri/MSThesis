@@ -40,7 +40,7 @@ struct CacheStruct {
 
 class Cache {
     public:
-        Cache(char, SysConfig *);
+        Cache(string, SysConfig *);
 
         pair<bool, bitset<32>> read(bitset<32>);
         bool write(IncomingCacheStruct);

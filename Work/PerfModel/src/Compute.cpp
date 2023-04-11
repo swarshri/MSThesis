@@ -1,6 +1,6 @@
 #include<Compute.h>
 
-ComputeStage::ComputeStage(SysConfig * config, char base, string iodir, bitset<32> countVal) {
+ComputeStage::ComputeStage(SysConfig * config, string base, string iodir, bitset<32> countVal) {
     this->base = base;
     this->halted = false;
     this->cycle_count = 0;

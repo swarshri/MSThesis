@@ -1,6 +1,6 @@
 #include <Cache.h>
 
-Cache::Cache(char base, SysConfig* config) {
+Cache::Cache(string base, SysConfig* config) {
     this->name = "Cache";
     this->ways = config->parameters["Associativity"];
     this->size = config->parameters["Size"] * pow(2, 10);

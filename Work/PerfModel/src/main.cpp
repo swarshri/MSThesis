@@ -13,6 +13,7 @@
 #include<Config.h>
 #include<DRAMWrapper.h>
 #include<Core.h>
+#include<PerfRecorder.h>
 
 using namespace std;
 
@@ -61,7 +62,9 @@ int main(int argc, char * argv[]) {
     cout << "confName: " << confName << endl;
     DRAMW<32, 64> * SiMEM = new DRAMW<32, 64>("SiMEM_"+confName, ioDir, config->children["SIMemory"], config->children["Core"], false);
 
-    Core * CORE = new Core("00", ioDir, config->children["Core"]);
+    PerformanceRecorder * perf = new PerformanceRecorder(ioDir, confName, config->children["PerformanceRecorder"]);
+
+    Core * CORE = new Core("00", ioDir, config->children["Core"], perf);
     CORE->connect(SdMEM, OcMEMs, SiMEM);
 
 #ifdef _WIN32
@@ -96,7 +99,9 @@ int main(int argc, char * argv[]) {
         OcMEMs['G']->step();
         OcMEMs['T']->step();
         SiMEM->step();
-    }
 
+        perf->step();
+    }
+    perf->dump();
     SiMEM->output();
 }

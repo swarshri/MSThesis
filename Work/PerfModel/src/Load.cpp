@@ -1,11 +1,16 @@
 #include <Load.h>
 
-LoadStage::LoadStage(SysConfig * config, char base, string iodir) {
+LoadStage::LoadStage(SysConfig * config, string base, string iodir, PerformanceRecorder * perf) {
     this->base = base;
     this->halted = false;
     this->cycle_count = 0;
 
     this->LQEntryInProgress.clear();
+
+    this->perf = perf;
+    // string name = "RS_" + this->base;
+    // vector<string> metrics{name + "_LowCacheHit", name + "_HighCacheHit", name + "_LowCacheLoadRequestSent", name + "_HighCacheLoadRequestSent"};
+    // this->perf->addMetrics(metrics);
 }
 
 void LoadStage::connectRU(ReserveStage * ru) {

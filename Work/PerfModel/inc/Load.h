@@ -4,10 +4,11 @@
 #include <Reserve.h>
 #include <DRAMWrapper.h>
 #include <Cache.h>
+#include <PerfRecorder.h>
 
 class LoadStage {
     public:
-        LoadStage(SysConfig *, char, string);
+        LoadStage(SysConfig *, string, string, PerformanceRecorder *);
 
         void connectRU(ReserveStage *);
         void connectDRAM(DRAMW<32, 32> *);
@@ -16,12 +17,13 @@ class LoadStage {
         bool isHalted();
     
     private:
-        char base;
+        string base;
         int cycle_count;
         bool halted;
 
         ReserveStage * coreRU;
         DRAMW<32, 32> * OCCMEM;
+        PerformanceRecorder * perf;
 
         vector<LQEntry> LQEntryInProgress;
 };

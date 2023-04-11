@@ -25,7 +25,7 @@ void SysConfig::add_child(string cName) {
 
     if (pos < cName.size()) {
         string pName = "Pipeline";
-        char basename = *cName.substr(pos + 8, 1).c_str();
+        string basename = cName.substr(pos + 8, 1);
         int pVal = (int) this->BaseMap[basename];
         this->children[cName]->add_parameter(pName, to_string(pVal));
     }

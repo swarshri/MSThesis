@@ -24,7 +24,7 @@ class SysConfig {
         map<string, int> parameters;
         map<string, string> str_parameters;
         map<string, SysConfig *> children;
-        map<char, BaseConfig> BaseMap = {{'A', PL_A}, {'C', PL_C}, {'G', PL_G}, {'T', PL_T}};
+        map<string, BaseConfig> BaseMap = {{"A", PL_A}, {"C", PL_C}, {"G", PL_G}, {"T", PL_T}};
 
         SysConfig(string);
         void add_parameter(string, string);

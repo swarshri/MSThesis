@@ -6,6 +6,7 @@
 #include <Dispatch.h>
 #include <ReservationStation.h>
 #include <Cache.h>
+#include <PerfRecorder.h>
 
 #ifndef RES_H
 #define RES_H
@@ -65,7 +66,7 @@ class ComputeReservationStation: public ReservationStation<CRSEntry> {
 
 class ReserveStage {
     public:
-        ReserveStage(SysConfig *, char, string);
+        ReserveStage(SysConfig *, string, string, PerformanceRecorder *);
 
         void connect(DispatchStage *);
         void step();
@@ -86,8 +87,9 @@ class ReserveStage {
     private:
         int cycle_count;
         bool halted;
-        char base;
+        string base;
         int base_num;
+        string name;
 
         DispatchStage * coreDU;
         pair<bool, DispatchQueueEntry> pendingToBeReserved;
@@ -104,6 +106,8 @@ class ReserveStage {
         pair<bool, vector<tuple<int, bool, bitset<32>>>> pendingCRSEntries;
 
         pair<bool, IncomingCacheStruct> pendingCacheInput;
+
+        PerformanceRecorder * perf;
 };
 
 #endif

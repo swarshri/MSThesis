@@ -22,7 +22,7 @@ void ComputeReservationStation::fillHighOccVal(int idx, bitset<32> data) {
         this->setReadyState(idx);
 }
 
-ReserveStage::ReserveStage(SysConfig * config, char base, string iodir) {
+ReserveStage::ReserveStage(SysConfig * config, string base, string iodir, PerformanceRecorder * perf) {
     this->base = base;
     this->base_num = config->BaseMap[base];
 
@@ -62,7 +62,18 @@ ReserveStage::ReserveStage(SysConfig * config, char base, string iodir) {
         // cout << "ReserveStage Output file opened." << endl;
     }
     // else
-        // cout << "Unable to open file for ReserveStage Output." << this->op_file_path << endl;
+        // cout << "Unable to open file for ReserveStage Output." << this->op_file_path << endl;   
+    
+    this->perf = perf;
+    this->name = "RS_" + this->base;
+    cout << "RS: name: " << this->name << endl;
+    vector<string> metrics{this->name + "_LowOccCacheHit", 
+                           this->name + "_HighOccCacheHit"};
+                        //    this->name + "_NumberOfLoadRequestsQueued",
+                        //    this->name + "_AllocatedCRSEntryNumber",
+                        //    this->name + "_LowOccLoadRequestQueued",
+                        //    this->name + "_HighOccLoadRequestQueued"};
+    this->perf->addMetrics(metrics);
 }
 
 void ReserveStage::connect(DispatchStage * du) {
@@ -103,6 +114,9 @@ void ReserveStage::step() {
         this->pendingCacheInput.first = false;
     }
 
+    string perf_lowocccachehit = to_string(false);
+    string perf_highocccachehit = to_string(false);
+
     if (!this->halted) {
         pair<bool, DispatchQueueEntry> currentDispatch;
         if (this->pendingToBeReserved.first) {
@@ -136,13 +150,15 @@ void ReserveStage::step() {
                 newCRSEntry->LowOccReady = false;
                 newCRSEntry->LowOcc = bitset<32>(0);
             }
+            perf_lowocccachehit = to_string(cacheHitLowData.first);
 
             if (cacheHitHighData.first)
                 newCRSEntry->HighOcc = cacheHitHighData.second;
             else {
                 newCRSEntry->HighOccReady = false;
                 newCRSEntry->HighOcc = bitset<32>(0);
-            }
+            }            
+            perf_highocccachehit = to_string(cacheHitHighData.first);
 
             newCRSEntry->SRSWBIndex = currentDispatch.second.SRSWBIndex;
             int nextCRSIdx = this->CRS->nextFreeEntry();
@@ -163,16 +179,25 @@ void ReserveStage::step() {
                     newLoadRequest.ResStatIndex = nextCRSIdx;
                     newLoadRequests.push_back(newLoadRequest);
                 }
+
+                // this->perf->record(this->cycle_count, this->name + "_LowOccLoadRequestQueued", "NoLoadRequest");
+                // this->perf->record(this->cycle_count, this->name + "_HighOccLoadRequestQueued", "NoLoadRequest");
                 if (this->LQ->getEmptyCount() >= newLoadRequests.size()) {
                     for (auto nlr = newLoadRequests.begin(); nlr != newLoadRequests.end(); nlr++) {
                         this->LQ->push(*nlr);
                         // // cout << "RS: Pushed address: " << nlr->OccMemoryAddress << " into Load Queue." << endl;
                         // // cout << "RS: Low or High: " << nlr->LowOrHigh << endl;
+                        if (!nlr->LowOrHigh)
+                            this->perf->record(this->cycle_count, this->name + "_LowOccLoadRequestQueued", nlr->OccMemoryAddress.to_string());
+                        else
+                            this->perf->record(this->cycle_count, this->name + "_HighOccLoadRequestQueued", nlr->OccMemoryAddress.to_string());
                     }
                     // // cout << "RS: Updated Load Reservation Station with " << newLoadRequests.size() << " new Load Requests." << endl;
+                    // this->perf->record(this->cycle_count, this->name + "_NumberOfLoadRequestsQueued", to_string(newLoadRequests.size()));
 
                     this->CRS->fill(bitset<6>(nextCRSIdx), *newCRSEntry);
                     // // cout << "RS: Added into Compute Reservation Station at index: " << nextCRSIdx << endl;
+                    // this->perf->record(this->cycle_count, this->name + "_AllocatedCRSEntryNumber", to_string(nextCRSIdx));
                     if (newLoadRequests.size() > 0)
                         this->CRS->setScheduledState(nextCRSIdx);
                     else
@@ -196,11 +221,16 @@ void ReserveStage::step() {
         }
         else if (this->coreDU->isHalted() && !this->pendingToBeReserved.first)
             this->halted = true;
-
-        this->cycle_count++;
     }
     else
         cout << "RS: Halted" << endl;
+    
+    cout << "RS: recording low cache hit: " << perf_lowocccachehit << endl;
+    this->perf->record(this->cycle_count, this->name + "_LowOccCacheHit", perf_lowocccachehit);
+    cout << "RS: recording high cache hit: " << perf_highocccachehit << endl;
+    this->perf->record(this->cycle_count, this->name + "_HighOccCacheHit", perf_highocccachehit);
+
+    this->cycle_count++;
 }
 
 void ReserveStage::print() {

@@ -1,53 +1,30 @@
 #include <iostream>
+#include <map>
+#include <queue>
+
+#include <Config.h>
 
 using namespace std;
 
 #ifndef PERF_REC_H
 #define PERF_REC_H
 
-struct UnitPerfMetrics {
-    bool active; // not halted.
-};
-
-struct FetchUnitPM:UnitPerfMetrics {
-
-};
-
-struct DispatchUnitPM:UnitPerfMetrics {
-
-};
-
-struct ReserveUnitPM:UnitPerfMetrics {
-
-};
-
-struct LoadUnitPM:UnitPerfMetrics {
-
-};
-
-struct ComputeUnitPM:UnitPerfMetrics {
-
-};
-
-struct PerfMetrics {
-    int numCycles;
-    FetchUnitPM fetchpm;
-    DispatchUnitPM dispatchpm;
-    ReserveUnitPM reservepm;
-    LoadUnitPM loadpm;
-    ComputeUnitPM computepm;
-};
-
 class PerformanceRecorder {
     public:
-        PerformanceRecorder(string);
+        PerformanceRecorder(string, string, SysConfig*);
 
-        void write();
+        void addMetrics(vector<string>);
+        void record(uint64_t, string, string);
+        void step();
+        void dump();
 
     private:
         string opFilePath;
+        uint64_t clkcount;
+        uint16_t writeCycle;
+        uint16_t pendingRecordCount;
 
-        PerfMetrics Metrics;
+        map<string, queue<string>> data;
 };
 
 #endif

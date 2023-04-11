@@ -12,11 +12,12 @@
 #include<Compute.h>
 #include<Load.h>
 #include<Store.h>
+#include<PerfRecorder.h>
 
 class Core {
     public:
         bool halted = false;
-        Core(string, string, SysConfig *);
+        Core(string, string, SysConfig *, PerformanceRecorder *);
 
         void connect(DRAMW<32, 64> *, map<char, DRAMW<32, 32>*>, DRAMW<32, 64> *);
         void step();
@@ -48,4 +49,6 @@ class Core {
         StoreStage * SU;
 
         bool allStagesHalted();
+
+        uint16_t cyclecnt;
 };

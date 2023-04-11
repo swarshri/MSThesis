@@ -14,7 +14,7 @@ CXX = g++
 CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -I $(INC) -I $(EXT) -I $(FMT_LIB) -I $(INI_LIB) -L $(DRAMSIM3)
 
 LIBS = dramsim3
-OBJS = $(OBJ)/main.o $(OBJ)/cache.o $(OBJ)/compute.o $(OBJ)/config.o $(OBJ)/core.o $(OBJ)/dram.o $(OBJ)/dispatch.o $(OBJ)/fetch.o $(OBJ)/load.o $(OBJ)/queue.o $(OBJ)/rs.o $(OBJ)/reserve.o $(OBJ)/store.o $(DRAMSIM3)/libdramsim3.so
+OBJS = $(OBJ)/main.o $(OBJ)/cache.o $(OBJ)/compute.o $(OBJ)/config.o $(OBJ)/core.o $(OBJ)/dram.o $(OBJ)/dispatch.o $(OBJ)/fetch.o $(OBJ)/load.o $(OBJ)/perfrec.o $(OBJ)/queue.o $(OBJ)/rs.o $(OBJ)/reserve.o $(OBJ)/store.o $(DRAMSIM3)/libdramsim3.so
 
 .PHONY: all clean
 
@@ -52,6 +52,9 @@ $(OBJ)/fetch.o:
 
 $(OBJ)/load.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Load.cpp -o $(OBJ)/load.o
+
+$(OBJ)/perfrec.o:
+	$(CXX) $(CPPFLAGS) -c $(SRC)/PerfRecorder.cpp -o $(OBJ)/perfrec.o
 
 $(OBJ)/queue.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Queue.cpp -o $(OBJ)/queue.o

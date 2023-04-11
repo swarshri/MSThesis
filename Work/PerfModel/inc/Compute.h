@@ -9,14 +9,14 @@
 
 class ComputeStage {
     public:
-        ComputeStage(SysConfig *, char, string, bitset<32>);
+        ComputeStage(SysConfig *, string, string, bitset<32>);
 
         void connect(ReserveStage *, FetchStage *);
         bool isHalted();
         void step();
 
     private:
-        char base;
+        string base;
         int cycle_count;
         bool halted;
 
