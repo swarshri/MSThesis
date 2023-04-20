@@ -1,3 +1,9 @@
 [submodule "Work/PerfModel/ext/DRAMsim3"]
 	path = Work/PerfModel/ext/DRAMsim3
 	url = https://github.com/umd-memsys/DRAMsim3.git
+[submodule "Work/External/BWA"]
+	path = Work/External/BWA
+	url = https://github.com/lh3/bwa.git
+[submodule "Work/External/BWA-MEM2"]
+	path = Work/External/BWA-MEM2
+	url = https://github.com/bwa-mem2/bwa-mem2.git
