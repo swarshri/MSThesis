@@ -2,6 +2,7 @@ import os
 import shutil
 import argparse
 import time
+import random
 
 class Query(object):
     count = -1
@@ -109,6 +110,9 @@ class FMI(object):
             bwt_matrix.append(r_str)
             
         bwt_matrix = sorted(bwt_matrix)
+        # print("BWT Matrix:")
+        # for sr in bwt_matrix:
+        #     print(sr)
         self._suffix_array = [self._length-1-x.find('$') for x in bwt_matrix]
         self._bwt = ''.join([x[-1] for x in bwt_matrix])
         # print("BWT:", (self._bwt))
@@ -119,9 +123,8 @@ class FMI(object):
         #print("Count:", self._count)
         
     def _get_occurrences(self):
-        for i in range(self._length+1):
-            for char in base_chars[1:]:
-                self._occ[char].append(self._bwt[:i].count(char))
+        for char in base_chars[1:]:
+            self._occ[char] = [self._bwt[:i].count(char) for i in range(self._length+1)]
                 
         for char, occ_list in self._occ.items():
             to_print = [bin(val).replace('0b', '') for val in occ_list]
@@ -196,11 +199,16 @@ class FastFilesParser(object):
         with open(self._fa_file_path, "r") as fasta:
             reference_name = fasta.readline().split('>')[1].strip()
             reference_genome = ''.join(fasta.readlines()).replace('\n', '').upper()
-            self._ref_genome_seq = reference_genome
+            reference_genome_comp = self.get_genome_complement(reference_genome)
+            reference_genome_pair = reference_genome + reference_genome_comp
+            # print("ref:", reference_genome)
+            # print("ref_pair:", reference_genome + ' ' + reference_genome_comp) # TAACCCTAACGTTAGGGTTA for TAACCCTAAC
+            self._ref_genome_seq = reference_genome_pair
+            # print ("referencegenome:", self._ref_genome_seq)
 
         start_time = time.time()        
         if self._ref_genome_seq != "":
-            self._ref_fmi = FMI(reference_name, reference_genome)
+            self._ref_fmi = FMI(reference_name, self._ref_genome_seq)
 
         time_elapsed = time.time() - start_time
         print("Time taken to get FMI for the given reference genome is:", time_elapsed, "seconds.")
@@ -213,6 +221,20 @@ class FastFilesParser(object):
         for read in self._fastq_reads:
             self._seeds.extend([read[i:i+20] for i in range(0, len(read), 20) if 'N' not in read[i:i+20]])
         print("Seeds:", len(self._seeds))
+        
+        # for read in self._fastq_reads:
+        #     if 'N' not in read:
+        #         randi = [random.randint(0, len(read)) for i in range(200)]
+        #         self._seeds.extend([read[i:i+20] for i in randi])
+        # print("Seeds:", len(self._seeds))
+
+    def get_genome_complement(self, ref_genome):
+        complement = {'A': 'T',
+                      'C': 'G',
+                      'G': 'C',
+                      'T': 'A',
+                      'N': 'N'}
+        return ''.join([complement[base] for base in ref_genome[::-1]])
 
     def backwardSearch(self):
         readAligner = ReadAlignment(self._ref_fmi)
