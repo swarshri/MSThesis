@@ -115,16 +115,18 @@ class FMI(object):
         #     print(sr)
         self._suffix_array = [self._length-1-x.find('$') for x in bwt_matrix]
         self._bwt = ''.join([x[-1] for x in bwt_matrix])
+        print("SA:", [self._suffix_array[i] for i in range(0, len(self._suffix_array), int(self._length/10))])
         # print("BWT:", (self._bwt))
         
     def _render_count(self, r_str):
         alpha_count = [r_str.count(x) for x in base_chars]
         self._count = {x: sum(alpha_count[:base_chars.index(x)]) for x in base_chars[1:]}
-        #print("Count:", self._count)
+        print("Count:", self._count)
         
     def _get_occurrences(self):
         for char in base_chars[1:]:
             self._occ[char] = [self._bwt[:i].count(char) for i in range(self._length+1)]
+            print("Occ[", char, "]:", [self._occ[char][i] for i in range(0, len(self._occ[char]), int(self._length/10))])
                 
         for char, occ_list in self._occ.items():
             to_print = [bin(val).replace('0b', '') for val in occ_list]
@@ -181,11 +183,8 @@ class FMI(object):
 
 class FastFilesParser(object):
     def __init__(self, dirpath, fastafile, fastqfile):
-        self._fa_file_name = fastafile
-        self._fq_file_name = fastqfile
-        self._dir_path = dirpath
-        self._fa_file_path = os.path.join(dirpath, fastafile)
-        self._fq_file_path = os.path.join(dirpath, fastqfile)
+        self._fa_file_path = fastafile
+        self._fq_file_path = fastqfile
         self._op_dir_path = os.path.join(dirpath, "mem")
 
         self._ref_name = ""
@@ -206,7 +205,12 @@ class FastFilesParser(object):
             self._ref_genome_seq = reference_genome_pair
             # print ("referencegenome:", self._ref_genome_seq)
 
-        start_time = time.time()        
+        fa_pair_file_path = self._fa_file_path.replace(".fasta", ".pair")
+        with open(fa_pair_file_path, "w") as fastap:
+            wrlns = [self._ref_genome_seq[i:i+70] + "\n" for i in range(0, len(self._ref_genome_seq), 70)]
+            fastap.writelines(wrlns)
+
+        start_time = time.time()
         if self._ref_genome_seq != "":
             self._ref_fmi = FMI(reference_name, self._ref_genome_seq)
 
@@ -246,12 +250,12 @@ class FastFilesParser(object):
             line_op += lines[0]
             line_bop += lines[1]
         
-        fop_path = os.path.join(self._dir_path, "FuncOP.out")
+        fop_path = os.path.join(self._op_dir_path, "FuncOP.out")
         with open(fop_path, "w") as fop:
             line_op = "Seed \t\t\t\t Low\tHigh\tIndex Positions\n" + line_op
             fop.writelines(line_op)
         
-        fbop_path = os.path.join(self._dir_path, "ExpSiMEM.out")
+        fbop_path = os.path.join(self._op_dir_path, "ExpSiMEM.out")
         with open(fbop_path, "w") as fbop:
             fbop.writelines(line_bop)
 
@@ -331,39 +335,21 @@ class FastFilesParser(object):
 if __name__ == "__main__":
     #parse arguments for input file location
     parser = argparse.ArgumentParser(description='Mem Files generator')
-    parser.add_argument('--iodir', default="", type=str, help='Path to the folder containing the fastq and fasta input files, and to place the resulting .mem files.')
+    parser.add_argument('--fasta', default="", type=str, help='Path to the input fasta file.')
+    parser.add_argument('--fastq', default="", type=str, help='Path to the input fastq file.')
+    parser.add_argument('--opdir', default="", type=str, help='Path to place the resulting .mem files.')
     args = parser.parse_args()
 
-    iodir = os.path.abspath(args.iodir)
+    fasta_file = os.path.abspath(args.fasta)
+    fastq_file = os.path.abspath(args.fastq)
+    op_dir = os.path.abspath(args.opdir)
     print("="*40)
-    print("IO Directory:", iodir)
+    print("FASTA Path:", fasta_file)
+    print("FASTQ Path:", fastq_file)
+    print("OP Directory:", op_dir)
 
-    # The iodir should contain exactly one fasta file (Reference Genome file) and exactly one fastq file (Read Sequence file).
-    # The fastq file might create an intermediate fasts file that contain seeds to be queried.
-    # These seeds are derived from the reads in fastq files.
-
-    fasta_files = [file for file in os.listdir(iodir) if ".fasta" in file]
-    if len(fasta_files) == 0:
-        print("No Reference Genome (fasta) file found in the given IO directory.")
-        exit(-1)
-    elif len(fasta_files) > 1:
-        print("Multiple Reference Genome (fasta) files (" + str(len(fasta_files)) + ") found in the given IO directory:")
-        print(fasta_files)
-        exit(-1)
-
-    fastq_files = [file for file in os.listdir(iodir) if ".fastq" in file]
-    if len(fastq_files) == 0:
-        print("No Read Sequence (fastq) file found in the given IO directory.")
-        exit(-1)
-    elif len(fastq_files) > 1:
-        print("Multiple Read Sequence (fastq) files (" + str(len(fastq_files)) + ") found in the given IO directory:")
-        print(fastq_files)
-        exit(-1)
- 
-    fasta_file = fasta_files[0]
-    fastq_file = fastq_files[0]
     print("Parsing the Reference Genome (fasta) file:", fasta_file, "and the Read Sequence (fastq) file:", fastq_file)
-    ffParser = FastFilesParser(iodir, fasta_file, fastq_file)
+    ffParser = FastFilesParser(op_dir, fasta_file, fastq_file)
     ffParser.parse()
     ffParser.generateMemFiles()
 

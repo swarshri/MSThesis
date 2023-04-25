@@ -17,7 +17,7 @@ CXX := LD_LIBRARY_PATH=$(BWA) g++
 CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -I $(EXT) -L $(BWA)
 
 LIBS = bwa
-OBJS = ./fcv.o -lz -lm -lpthread $(BWA)/libbwa.so
+OBJS = ./fcv.o -lz -lm -lpthread $(EXT)/libbwa.so
 ELIBS =	-lm -lz -lpthread
 LOBJS = $(BWA)/utils.o $(BWA)/kthread.o $(BWA)/kstring.o $(BWA)/ksw.o $(BWA)/bwt.o $(BWA)/bntseq.o $(BWA)/bwa.o $(BWA)/bwamem.o $(BWA)/bwamem_pair.o \
 		$(BWA)/bwamem_extra.o $(BWA)/malloc_wrap.o $(BWA)/QSufSort.o $(BWA)/bwt_gen.o $(BWA)/rope.o $(BWA)/rle.o $(BWA)/is.o $(BWA)/bwtindex.o
@@ -39,7 +39,7 @@ tool: $(OBJS)
 ./fcv.o:
 	$(CXX) $(CPPFLAGS) -c ./FCVTool.cpp -o ./fcv.o
 
-$(BWA)/libbwa.so: $(LOBJS) $(AOBJS)
+$(EXT)/libbwa.so: $(LOBJS) $(AOBJS)
 	$(CC) -fPIC $(LOBJS) $(ELIBS) -shared -o $@
 
 $(BWA)/%.o: $(BWA)/%.c
@@ -47,7 +47,7 @@ $(BWA)/%.o: $(BWA)/%.c
 
 cleanE:
 	make clean -C $(BWA)
-	rm -r $(BWA)/libbwa.so
+	rm -r $(EXT)/libbwa.so
 
 cleanO:
 	rm -r *.o
@@ -64,4 +64,4 @@ cleanOR: cleanO cleanR
 
 cleanL: cleanO cleanR cleanD
 
-clean: cleanE cleanO cleanR cleanD
+clean: cleanE cleanO cleanR
