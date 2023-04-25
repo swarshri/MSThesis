@@ -126,7 +126,7 @@ class FMI(object):
     def _get_occurrences(self):
         for char in base_chars[1:]:
             self._occ[char] = [self._bwt[:i].count(char) for i in range(self._length+1)]
-            print("Occ[", char, "]:", [self._occ[char][i] for i in range(0, len(self._occ[char]), int(self._length/10))])
+            print("Occ[" + char + "]:", [self._occ[char][i] for i in range(0, len(self._occ[char]), int(self._length/10))])
                 
         for char, occ_list in self._occ.items():
             to_print = [bin(val).replace('0b', '') for val in occ_list]

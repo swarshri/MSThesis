@@ -1,50 +1,28 @@
 #include "FCVTool.h"
 
-Reference::Reference(char* path, bool bwtpath) {
-    if (!bwtpath) {
-        this->faPath = path;
-        // Copied from bwa_index() method from bwtindex.c in bwa tool source code.
-        int algo_type = BWTALGO_AUTO, block_size = 10000000;
-        bwa_idx_build(this->faPath, this->faPath, algo_type, block_size);
-        this->bwtPath = path;
-        strcat(this->bwtPath, ".bwt");
-        printf("BWT path: %s\n", this->bwtPath);
-    }
-    else {
-        this->faPath = "Invalid";
-        this->bwtPath = path;
-    }
-    // printf("restoring bwt.\n");
-    this->bwaBwt = bwt_restore_bwt(bwtPath);
-    // printf("restored bwt.\n");
-    this->seqLen = this->bwaBwt->seq_len + 1; // +1 for '$' added to the ref before BWT.
-    this->occLen = this->bwaBwt->seq_len + 2; // an extra column due to the added '$'.
+FMDI::FMDI(Reference * ref) {
+    this->ref = ref;
+    this->seqLen = this->ref->get_seqLen();
+    this->occLen = this->ref->get_occLen();
     this->Count = {{'A', 0}, {'C', 0}, {'G', 0}, {'T', 0}};
     this->Occ = {{'A', vector<bwtint_t>{}}, {'C', vector<bwtint_t>{}}, {'G', vector<bwtint_t>{}}, {'T', vector<bwtint_t>{}}};
     this->SA.resize(this->seqLen);
-    // printf("Resized vector variables\n");
+    this->construct_fmdi();
 }
 
-void Reference::construct_fmdi() {
-    // printf("in here1.");
-    for (int i = 0; i < 4; i++) {
-        // printf("In here2");
-        char base = this->int_base[i];
-        this->Count[base] = this->bwaBwt->L2[i] + 1; // +1 to account for '$'.
+void FMDI::construct_fmdi() {
+    for (char base: {'A', 'C', 'G', 'T'}) {
+        this->Count[base] = this->ref->getCount(base);
         this->Occ[base].resize(this->occLen);
-        this->Occ[base][0] = 0;
-        for (int j = 1; j < this->occLen; j++) {
-            this->Occ[base][j] = bwt_occ(this->bwaBwt, j-1, i);
-            // printf("In here3");
+        for (int j = 0; j < this->occLen; j++) {
+            this->Occ[base][j] = this->ref->getOcc(base, j);
         }
     }
-    this->SA[0] = this->bwaBwt->seq_len; // indicates the permutation that starts with '$'.
-    bwt_cal_sa(this->bwaBwt, 1); // this should be called before calling bwt_sa().
-    for (int i = 1; i < this->seqLen; i++)
-        this->SA[i] = bwt_sa(this->bwaBwt, i);
+    for (int i = 0; i < this->seqLen; i++)
+        this->SA[i] = this->ref->getSA(i);
 }
 
-vector<vector<uint64_t>> Reference::find_seed(string seed) {
+SeedResult FMDI::find_seed(string seed) {
     uint64_t low = 0;
     uint64_t high = this->seqLen;
     for (int i = seed.size() - 1; i >= 0; i--) {
@@ -55,19 +33,21 @@ vector<vector<uint64_t>> Reference::find_seed(string seed) {
             break;
     }
     // cout << "Seed: " << seed << " Low: " << low << " High: " << high << endl;
-    vector<uint64_t> sivals{low, high};
-
     vector<uint64_t> savals{};
     // get Suffix array values in the interval low to high (excluding the one at high)
     if (low < high) {
         for (int i = low; i < high; i++)
             savals.push_back(this->SA[i]);
     }
+    SeedResult ret_sr;
+    ret_sr.seed = seed;
+    ret_sr.si_values = {low, high};
+    ret_sr.sa_values = savals;
 
-    return vector<vector<uint64_t>>{sivals, savals};
+    return ret_sr;
 }
 
-void Reference::print_fmdi() {
+void FMDI::print_fmdi() {
     cout << endl;
     cout << "-----------------------------------------" << endl;
     cout << "this->seqLen: " << this->seqLen << endl;
@@ -101,71 +81,22 @@ void Reference::print_fmdi() {
     cout << endl << "-------------------------------------------------" << endl;
 }
 
-Reads::Reads(string fqpath) {
-    this->fqPath = fqpath;
-    this->maxSeedLen = 20; // seed length cannot exceed this at the moment because our seeds are fixed length of 64 bits and each base takes 3 bits.
+ExactMatchEngine::ExactMatchEngine(FMDI * idxed_ref) {
+    this->iref = idxed_ref;
+}
 
-    ifstream readf;
-    string line;
-    readf.open(this->fqPath);
-
-    if (readf.is_open()) {
-        cout << endl << "File opened: " << this->fqPath << endl;
-        bool readline = false;
-        while (getline(readf, line)) {
-            if (readline) {                
-                this->reads.push_back(line);
-                readline = false;
-            }
-            if (line[0] == '@') // If this line starts with '@' - next line contains the read
-                readline = true;
-        }
-        readf.close();
+void ExactMatchEngine::find_exact_matches(Reads * reads) {
+    uint64_t seedsCount = reads->get_seedsCount();
+    cout << "Finding exact matches - Seed Count: " << seedsCount << endl;
+    for (uint64_t i = 0; i < seedsCount; i++) {
+        string seed = reads->get_seed(i);
+        SeedResult em_result = this->iref->find_seed(seed);
+        this->seedresults.push_back(em_result);
     }
-    else cout<<"Unable to open input file for Reads: " << this->fqPath << endl;
 }
 
-void Reads::make_seeds(int seedLen) {
-    printf("\nReads----------------------\n");
-    for (auto read: this->reads) {
-        cout << read << endl;
-        for (int i = 0; i < read.size(); i += seedLen) {
-            // cout << "initial: " << i << " end: " << e << endl;
-            string seed = read.substr(i, seedLen);
-            // cout << "Seed: " << seed << endl;
-            if (seed.find('N') == string::npos)
-                this->seeds.push_back(seed);
-        }
-    }
-    // cout << "Seeds: " << endl;
-    // for (auto seed: this->seeds)
-    //     cout << seed << endl;
-}
-
-string Reads::get_seed(int idx) {
-    if (idx >= this->seeds.size()) {
-        cout << "Invalid seed index: " << idx << endl;
-        cout << "Seed vector size: " << this->seeds.size() << endl;
-    }
-    else
-        return this->seeds[idx];
-}
-
-uint64_t Reads::get_seedsCount() {
-    return this->seeds.size();
-}
-
-void Reads::save_result(string seed, vector<uint64_t> si, vector<uint64_t> sa) {
-    SeedResult sr;
-    sr.seed = seed;
-    sr.si_values = si;
-    sr.sa_values = sa;
-    this->seedresults.push_back(sr);
-    // cout << "Saved result: seed results size: " << this->seedresults.size() << endl;
-}
-
-void Reads::print_seedresults() {
-    cout << endl << "Seeds and results: " << this->seedresults.size() << endl;
+void ExactMatchEngine::print_seedresults() {
+    cout << endl << "Seeds and results - Count: " << this->seedresults.size() << endl;
     for (auto sr: this->seedresults) {
         cout << sr.seed << "\t\t";
         for (auto sival: sr.si_values)
@@ -221,44 +152,13 @@ int main(int argc, char * argv[]) {
     else
         ref = new Reference(bwt_path, true);
     
-    ref->construct_fmdi();
-    ref->print_fmdi();
+    FMDI * idxed_ref = new FMDI(ref);
+    idxed_ref->print_fmdi();
 
     Reads * reads = new Reads(fastq_path);
     reads->make_seeds(20);
 
-    // vector<vector<uint64_t>> seed_pos = ref->find_seed("CGTA");
-    // vector<uint64_t> seed_si = seed_pos[0];
-    // vector<uint64_t> seed_sa = seed_pos[1];
-    
-    // cout << "SI values: ";
-    // for (auto si: seed_si)
-    //     cout << si << " ";
-    // cout << endl;
-    
-    // cout << "SA values: ";
-    // for (auto sa: seed_sa)
-    //     cout << sa << " ";
-    // cout << endl;
-
-    // cout << "reads->get_seedsCount(): " << reads->get_seedsCount() << endl;
-    for (int i = 0; i < reads->get_seedsCount(); i++) {
-        string seed = reads->get_seed(i);
-        // cout << "New seed: " << seed << endl;
-        vector<vector<uint64_t>> result_pos = ref->find_seed(seed);        
-        vector<uint64_t> seed_si = result_pos[0];
-        vector<uint64_t> seed_sa = result_pos[1];
-        reads->save_result(seed, seed_si, seed_sa);
-    }
-
-    reads->print_seedresults();
-
-    // bwtint_t sab, sae;
-
-    // const ubyte_t read[] = {2,3};
-    // bwt_match_exact(bwt, 2, read, &sab, &sae);
-    // printf("sab: %ld; sae: %ld\n", sab, sae);
-
-    // printf("Ref seq: %s\n", bwt->bwt);
-    // SA[0] = 0
+    ExactMatchEngine * EMEngine = new ExactMatchEngine(idxed_ref);
+    EMEngine->find_exact_matches(reads);
+    EMEngine->print_seedresults();
 }
