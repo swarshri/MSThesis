@@ -10,6 +10,9 @@
 
 using namespace std;
 
+#ifndef DIP_H
+#define DIP_H
+
 class Reference {
     public:
         Reference(char*, bool);
@@ -50,3 +53,5 @@ class Reads {
         vector<string> seeds;
         int maxSeedLen;
 };
+
+#endif

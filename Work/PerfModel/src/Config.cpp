@@ -56,20 +56,20 @@ void ConfigParser::remove_whitespaces(string * strval) {
     }
 }
 
-SysConfig * ConfigParser::parse(string confDir) {
+SysConfig * ConfigParser::parse(string filePath) {
     ifstream config;
     string line;
     
-#ifdef _WIN32
-    string filepath = confDir + "\\Model.cfg";
-#else
-    string filepath = confDir + "Model.cfg";
-#endif
-    cout << "Parsing Config file: " << filepath << endl;
+// #ifdef _WIN32
+//     string filepath = confDir + "\\Model.cfg";
+// #else
+//     string filepath = confDir + "Model.cfg";
+// #endif
+    cout << "Parsing Config file: " << filePath << endl;
 
     SysConfig * Model = new SysConfig("Model");
     
-    config.open(filepath);
+    config.open(filePath);
 
     if (config.is_open()) {
         SysConfig * cfg = Model;
@@ -98,6 +98,6 @@ SysConfig * ConfigParser::parse(string confDir) {
         }
         config.close();
     }
-    else cout<<"Unable to open the config file at "<< filepath << endl;
+    else cout<<"Unable to open the config file at "<< filePath << endl;
     return Model;
 }

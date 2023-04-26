@@ -4,6 +4,7 @@
 #include <bitset>
 
 #include "../ext/DRAMsim3/src/memory_system.h"
+#include "../../Common/inc/DataInput.h"
 #include <Config.h>
 
 using namespace dramsim3;

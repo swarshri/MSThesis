@@ -56,8 +56,8 @@ int main(int argc, char * argv[]) {
     DRAMW<32, 32> * OccTMEM = new DRAMW<32, 32>("OccTMEM", ioDir, config->children["OccMemory"], config->children["Core"], true);
     OcMEMs['T'] = OccTMEM;
 
-    int pos2 = confDir.find_last_of('/');
-    int pos1 = confDir.substr(0, pos2).find_last_of('/');
+    int pos1 = confDir.find_last_of('/');
+    int pos2 = confDir.find_last_of('.');
     string confName = confDir.substr(pos1 + 1, pos2 - pos1 - 1);
     cout << "confName: " << confName << endl;
     DRAMW<32, 64> * SiMEM = new DRAMW<32, 64>("SiMEM_"+confName, ioDir, config->children["SIMemory"], config->children["Core"], false);
@@ -66,7 +66,7 @@ int main(int argc, char * argv[]) {
 
     Core * CORE = new Core("00", ioDir, config->children["Core"], perf);
     CORE->connect(SdMEM, OcMEMs, SiMEM);
-
+    
 #ifdef _WIN32
     string opDir = ioDir + "\\OP";
 #else
