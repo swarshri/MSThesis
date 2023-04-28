@@ -1,30 +1,35 @@
 SRC := ./src
 INC := ./inc
-EXT := ./ext
-DRAMSIM3 := ./ext/DRAMsim3
-DRAMSIM3_SRC := ./ext/DRAMsim3/src
-FMT_LIB := ./ext/DRAMsim3/ext/fmt/include
-INI_LIB := ./ext/DRAMsim3/ext/headers
+COM := ./../Common
+EXT := ./../External
+BWA := $(EXT)/BWA
+BWASRC := $(EXT)/BWA
+BWAMEM := $(EXT)/BWA-MEM2
+BWAMEMSRC := $(EXT)/BWA-MEM2/src
+DRAMSIM3 := $(EXT)/DRAMsim3
+DRAMSIM3_SRC := $(EXT)/DRAMsim3/src
+FMT_LIB := $(EXT)/DRAMsim3/ext/fmt/include
+INI_LIB := $(EXT)/DRAMsim3/ext/headers
 
 BIN := ./bin
-RLS := ./bin/release
-DBG := ./bin/debug
 OBJ := $(BIN)/obj
+
+CC := gcc
+CFLAGS := -g -Wall -Wno-unused-function -O2 -fPIC
+DFLAGS := -DHAVE_PTHREAD $(WRAP_MALLOC)
 CXX = g++
-CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -I $(INC) -I $(EXT) -I $(FMT_LIB) -I $(INI_LIB) -L $(DRAMSIM3)
+CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -I $(INC) -I $(EXT) -I $(FMT_LIB) -I $(INI_LIB) -L $(DRAMSIM3) -L $(EXT)
 
 LIBS = dramsim3
-OBJS = $(OBJ)/main.o $(OBJ)/cache.o $(OBJ)/compute.o $(OBJ)/config.o $(OBJ)/core.o $(OBJ)/dram.o $(OBJ)/dispatch.o $(OBJ)/fetch.o $(OBJ)/load.o $(OBJ)/perfrec.o $(OBJ)/queue.o $(OBJ)/rs.o $(OBJ)/reserve.o $(OBJ)/store.o $(DRAMSIM3)/libdramsim3.so
+OBJS = $(OBJ)/main.o $(OBJ)/cache.o $(OBJ)/compute.o $(OBJ)/config.o $(OBJ)/core.o $(OBJ)/dram.o $(OBJ)/dispatch.o $(OBJ)/fetch.o $(OBJ)/load.o \
+	   $(OBJ)/perfrec.o $(OBJ)/queue.o $(OBJ)/rs.o $(OBJ)/reserve.o $(OBJ)/store.o $(COM)/dip.o $(EXT)/libbwa.so $(DRAMSIM3)/libdramsim3.so
 
 .PHONY: all clean
 
-all: clean config
-
-dbug: $(OBJS)
-	$(CXX) $(CPPFLAGS) -o $(DBG)/model $(OBJS)
+all: clean model
 
 model: $(OBJS)
-	$(CXX) $(CPPFLAGS) -o $(RLS)/model $(OBJS)
+	$(CXX) $(CPPFLAGS) -o ./model $(OBJS)
 
 $(OBJ)/main.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/main.cpp -o $(OBJ)/main.o
@@ -68,10 +73,14 @@ $(OBJ)/reserve.o:
 $(OBJ)/store.o:
 	$(CXX) $(CPPFLAGS) -c $(SRC)/Store.cpp -o $(OBJ)/store.o
 
+$(COM)/dip.o:
+	make -C $(COM)
+
 $(DRAMSIM3)/libdramsim3.so:
 	make -C $(DRAMSIM3)
 
 cleanE:
+	make clean -C $(COM)
 	make clean -C $(DRAMSIM3)
 
 cleanO:
@@ -79,17 +88,10 @@ cleanO:
 	mkdir $(OBJ)
 
 cleanR:
-	rm -r $(RLS)
-	mkdir $(RLS)
-
-cleanD:
-	rm -r $(DBG)
-	mkdir $(DBG)
+	rm -f ./model
 
 cleanOD: cleanO cleanD
 
 cleanOR: cleanO cleanR
 
-cleanL: cleanO cleanR cleanD
-
-clean: cleanE cleanO cleanR cleanD
+clean: cleanE cleanO cleanR

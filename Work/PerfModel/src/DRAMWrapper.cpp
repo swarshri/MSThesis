@@ -16,13 +16,6 @@ DRAMW<alen, dlen>::DRAMW(string name, string ioDir, SysConfig * config, SysConfi
     this->dramsim3configfile = config->str_parameters["DramSim3ConfigFile"];
     cout << "DRAMWrapper " << this->id << " - dramsim3configfile: " << this->dramsim3configfile << endl;
 
-    this->MEM.resize(this->memsize);
-    int i = 0;
-    while(i < this->memsize)
-        this->MEM[i++] = bitset<dlen>(0);
-
-    this->input();
-
     this->lastReadData.resize(this->channelwidth);
     this->nextWriteData.resize(this->channelwidth);
 
@@ -61,7 +54,18 @@ void DRAMW<alen, dlen>::printStats() {
 }
 
 template <int alen, int dlen>
+void DRAMW<alen, dlen>::allocate() { 
+    this->MEM.resize(this->memsize);
+    int i = 0;
+    while(i < this->memsize)
+        this->MEM[i++] = bitset<dlen>(0);
+}
+    
+template <int alen, int dlen>
 void DRAMW<alen, dlen>::input() {
+    if (this->MEM.size() == 0)
+        this->allocate();
+        
     ifstream mem;
     string line;
 
@@ -204,6 +208,8 @@ void DRAMW<alen, dlen>::WriteCompleteHandler(uint64_t address) {
             if (write->BurstMode)
                 bl = this->MemSystem->GetBurstLength();
             cout << this->id << " - Burst Length: " << bl << endl;
+            cout << this->id << " - this->MEM.size(): " << this->MEM.size() << endl;
+            cout << this->id << " - write->Data.size(): " << write->Data.size() << endl;
             for (int i = 0; i < bl; i++)
                 this->MEM[address + i] = write->Data[i];
             write->DoneCoreClock = this->clk;
@@ -264,6 +270,108 @@ bool DRAMW<alen, dlen>::isFree(bool write) {
 template <int alen, int dlen>
 int DRAMW<alen, dlen>::getChannelWidth() {
     return this->MemSystem->GetBurstLength();
+}
+
+template<int alen, int dlen>
+SeedMemory<alen, dlen>::SeedMemory(string name, string ioDir, SysConfig * config, SysConfig * coreConfig)
+    :DRAMW<alen, dlen>(name, ioDir, config, coreConfig, true) {
+
+    this->MemSystem = new MemorySystem(this->dramsim3configfile, "",
+                                       bind(&SeedMemory::ReadCompleteHandler, this, std::placeholders::_1),
+                                       bind(&SeedMemory::WriteCompleteHandler, this, std::placeholders::_1));    
+}
+
+template<int alen, int dlen>
+void SeedMemory<alen, dlen>::ReadCompleteHandler(uint64_t address) {
+    cout << this->id << " - In seed memory ReadCompleteHandler." << endl;
+    
+    for (int i = 0; i < this->pendingReads.size(); i++) {
+        auto read = this->pendingReads[i];
+        if (address == read->AccessAddress && read->DoneCoreClock == -1 && read->RequestID != -1) {
+            // This is the read request entry in the list of pending reads that has returned.
+            read->DoneCoreClock = this->clk;
+            read->Data.clear(); // this is what should be returned to core (Read back by core in this case)
+            int bl = 1;
+            if (read->BurstMode)
+                bl = this->MemSystem->GetBurstLength();
+            cout << this->id << " - Burst Length: " << bl << endl;
+            for (int i = 0; i < bl; i++) {                
+                bitset<dlen> seed = this->READS->get_seed_bitset(address + i);
+                cout << this->id << " - Seed at address: " << address + i << ": " << seed << endl;
+                read->Data.push_back(seed); // this is what should be returned to core (Read back by core in this case)
+            }
+            // TODO - This needs to be changed to return one word of data every DRAM cycle till we reach burst length.
+            cout << this->id << " - Finished read scheduled in clock cycle: " << read->RequestCoreClock << " at address: " << read->AccessAddress;
+            cout << " in clock cycle: " << read->DoneCoreClock << endl;
+            cout << " pending reads count: " << this->pendingReads.size() << endl;
+            break;
+        }
+    }
+}
+
+template<int alen, int dlen>
+void SeedMemory<alen, dlen>::WriteCompleteHandler(uint64_t address) {
+    cout << this->id << " - In seed memory WriteCompleteHandler." << endl;
+    cout << this->id << "Invalid operation." << endl;
+}
+
+template<int alen, int dlen>
+void SeedMemory<alen, dlen>::input(Reads * reads) {
+    cout << this->id << " - In seed memory input function." << endl;
+    this->READS = reads;
+    this->READS->make_seeds(20);
+}
+
+template<int alen, int dlen>
+OccMemory<alen, dlen>::OccMemory(string base, string ioDir, SysConfig * config, SysConfig * coreConfig)
+    :DRAMW<alen, dlen>("Occ"+base+"MEM", ioDir, config, coreConfig, true) {
+
+    this->base = base;
+    cout << this->id << " - OM: this->base value: " << this->base << endl;
+    this->MemSystem = new MemorySystem(this->dramsim3configfile, "",
+                                       bind(&OccMemory::ReadCompleteHandler, this, std::placeholders::_1),
+                                       bind(&OccMemory::WriteCompleteHandler, this, std::placeholders::_1));    
+}
+
+template<int alen, int dlen>
+void OccMemory<alen, dlen>::ReadCompleteHandler(uint64_t address) {
+    cout << this->id << " - In occ memory ReadCompleteHandler." << endl;    
+
+    for (int i = 0; i < this->pendingReads.size(); i++) {
+        auto read = this->pendingReads[i];
+        if (address == read->AccessAddress && read->DoneCoreClock == -1 && read->RequestID != -1) {
+            // This is the read request entry in the list of pending reads that has returned.
+            read->DoneCoreClock = this->clk;
+            read->Data.clear(); // this is what should be returned to core (Read back by core in this case)
+            int bl = 1;
+            if (read->BurstMode)
+                bl = this->MemSystem->GetBurstLength();
+            cout << this->id << " - Burst Length: " << bl << endl;
+            for (int i = 0; i < bl; i++) {
+                uint64_t occ_int = this->REF->getOcc(this->base[0], address);
+                bitset<dlen> occ = bitset<dlen>(occ_int);
+                cout << this->id << " - Returned Occ Value at address: " << address << ": " << occ << endl;
+                read->Data.push_back(occ); // this is what should be returned to core (Read back by core in this case)
+            }
+            // TODO - This needs to be changed to return one word of data every DRAM cycle till we reach burst length.
+            cout << this->id << " - Finished read scheduled in clock cycle: " << read->RequestCoreClock << " at address: " << read->AccessAddress;
+            cout << " in clock cycle: " << read->DoneCoreClock << endl;
+            cout << " pending reads count: " << this->pendingReads.size() << endl;
+            break;
+        }
+    }
+}
+
+template<int alen, int dlen>
+void OccMemory<alen, dlen>::WriteCompleteHandler(uint64_t address) {
+    cout << this->id << " - In occ memory WriteCompleteHandler." << endl;
+    cout << this->id << "Invalid operation." << endl;
+}
+
+template<int alen, int dlen>
+void OccMemory<alen, dlen>::input(Reference * ref) {
+    cout << this->id << " - In occ memory input function." << endl;
+    this->REF = ref;
 }
 
 #endif

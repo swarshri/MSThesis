@@ -161,7 +161,7 @@ void FetchStage::step() {
                 if (data.count() == 64) {
                     this->halted = true;
                     this->SRS->flushScheduledEntries();
-                    // cout << "Found Halt Seed at seed pointer: " << pmae.AccessAddress << " Emptied scheduled entries in SRS." << endl;
+                    cout << "Found Halt Seed at seed pointer: " << pmae.AccessAddress << " Emptied scheduled entries in SRS." << endl;
                     break;
                 }
                 else {

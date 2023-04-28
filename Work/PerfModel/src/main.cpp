@@ -15,6 +15,8 @@
 #include<Core.h>
 #include<PerfRecorder.h>
 
+#include "../../Common/inc/DataInput.h"
+
 using namespace std;
 
 template<int alen, int dlen>
@@ -23,63 +25,78 @@ void createMem(string name, string ioDir, string configName, SysConfig* config, 
 }
 
 int main(int argc, char * argv[]) {
-    string confDir = "";
-    string ioDir = "";
-    if (argc != 3) {
+    string confFilePath = "";
+    string refPath = "";
+    string readPath = "";
+    string opDir = "";
+
+    if (argc != 5) {
         cout << "Invalid number of arguments." << endl;
-        cout << "Expected path containing the config file and the path containing the input files in order." << endl;
+        cout << "Expected path containing the config file, the reference and read file paths, and the dir4ectory path for the output in order." << endl;
         cout << "Machine stopped." << endl;
         return -1;
     }
     else {
-        confDir = argv[1];
-        ioDir = argv[2];
-        cout << "Config Directory: " << confDir << endl;
-        cout << "IO Directory: " << ioDir << endl;
+        confFilePath = argv[1];
+        refPath = argv[2];
+        readPath = argv[3];
+        opDir = argv[4];
+        cout << "Config File Path: " << confFilePath << endl;
+        cout << "Reference File Path: " << refPath << endl;
+        cout << "Read File Path: " << readPath << endl;
+        cout << "OP Directory: " << opDir << endl;
     }
 
-    SysConfig * config = ConfigParser().parse(confDir);
+    SysConfig * config = ConfigParser().parse(confFilePath);
+    cout << "Config file parsed" << endl;
+    Reference * RefObj;
+    // if (refPath.find_last_of(".bwt") == refPath.size() - 4)
+    //     RefObj = new Reference(refPath, true);
+    // else
+    RefObj = new Reference(refPath, false);
+    Reads * ReadsObj = new Reads(readPath);
 
-    DRAMW<32, 64> * SdMEM = new DRAMW<32, 64>("SdMEM", ioDir, config->children["SeedMemory"], config->children["Core"], true);
+    SeedMemory<32, 64> * SdMEM = new SeedMemory<32, 64>("SdMEM", opDir, config->children["SeedMemory"], config->children["Core"]);
+    SdMEM->input(ReadsObj);
 
-    map<char, DRAMW<32, 32>*> OcMEMs;
+    map<char, OccMemory<32, 32>*> OcMEMs;
+    OcMEMs['A'] = new OccMemory<32, 32>("A", opDir, config->children["OccMemory"], config->children["Core"]);
+    OcMEMs['C'] = new OccMemory<32, 32>("C", opDir, config->children["OccMemory"], config->children["Core"]);
+    OcMEMs['G'] = new OccMemory<32, 32>("G", opDir, config->children["OccMemory"], config->children["Core"]);
+    OcMEMs['T'] = new OccMemory<32, 32>("T", opDir, config->children["OccMemory"], config->children["Core"]);
 
-    DRAMW<32, 32> * OccAMEM = new DRAMW<32, 32>("OccAMEM", ioDir, config->children["OccMemory"], config->children["Core"], true);
-    OcMEMs['A'] = OccAMEM;
+    for (auto ocm: OcMEMs)
+        ocm.second->input(RefObj);
 
-    DRAMW<32, 32> * OccCMEM = new DRAMW<32, 32>("OccCMEM", ioDir, config->children["OccMemory"], config->children["Core"], true);
-    OcMEMs['C'] = OccCMEM;
-
-    DRAMW<32, 32> * OccGMEM = new DRAMW<32, 32>("OccGMEM", ioDir, config->children["OccMemory"], config->children["Core"], true);
-    OcMEMs['G'] = OccGMEM;
-
-    DRAMW<32, 32> * OccTMEM = new DRAMW<32, 32>("OccTMEM", ioDir, config->children["OccMemory"], config->children["Core"], true);
-    OcMEMs['T'] = OccTMEM;
-
-    int pos1 = confDir.find_last_of('/');
-    int pos2 = confDir.find_last_of('.');
-    string confName = confDir.substr(pos1 + 1, pos2 - pos1 - 1);
+    int pos1 = confFilePath.find_last_of('/');
+    int pos2 = confFilePath.find_last_of('.');
+    string confName = confFilePath.substr(pos1 + 1, pos2 - pos1 - 1);
     cout << "confName: " << confName << endl;
-    DRAMW<32, 64> * SiMEM = new DRAMW<32, 64>("SiMEM_"+confName, ioDir, config->children["SIMemory"], config->children["Core"], false);
+    DRAMW<32, 64> * SiMEM = new DRAMW<32, 64>("SiMEM_"+confName, opDir, config->children["SIMemory"], config->children["Core"], false);
+    SiMEM->allocate();
 
-    PerformanceRecorder * perf = new PerformanceRecorder(ioDir, confName, config->children["PerformanceRecorder"]);
+    // int pauseip;
+    // cout << "Pause for input: ";
+    // cin >> pauseip;
 
-    Core * CORE = new Core("00", ioDir, config->children["Core"], perf);
+    PerformanceRecorder * perf = new PerformanceRecorder(opDir, confName, config->children["PerformanceRecorder"]);
+
+    Core * CORE = new Core("00", opDir, config->children["Core"], perf);
     CORE->connect(SdMEM, OcMEMs, SiMEM);
     
-#ifdef _WIN32
-    string opDir = ioDir + "\\OP";
-#else
-    string opDir = ioDir + "OP";
-#endif
+// #ifdef _WIN32
+//     string opDir = opDir + "\\OP";
+// #else
+//     string opDir = opDir + "OP";
+// #endif
 
-    struct stat info;
-    if (stat(opDir.c_str(), &info) != 0) {
-        cout << opDir << " doesn't exist." << endl;
-        mkdir(opDir.c_str(), S_IWUSR);
-    }
-    else
-        cout << opDir << " exists." << endl;
+//     struct stat info;
+//     if (stat(opDir.c_str(), &info) != 0) {
+//         cout << opDir << " doesn't exist." << endl;
+//         mkdir(opDir.c_str(), S_IWUSR);
+//     }
+//     else
+//         cout << opDir << " exists." << endl;
         
     int cycle_count = 0;
 
@@ -101,6 +118,9 @@ int main(int argc, char * argv[]) {
         SiMEM->step();
 
         perf->step();
+
+        if (cycle_count == 1000)
+            CORE->halted = true;
     }
     perf->dump();
     SiMEM->output();

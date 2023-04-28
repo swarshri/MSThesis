@@ -8,13 +8,13 @@ BWAMEMSRC := ./../External/BWA-MEM2/src
 CFLAGS := -g -Wall -Wno-unused-function -O2 -fPIC
 DFLAGS := -DHAVE_PTHREAD $(WRAP_MALLOC)
 CXX := g++
-CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -L $(BWA)
+CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -L $(EXT)
 
 OBJS = ./fcv.o $(COM)/dip.o $(EXT)/libbwa.so
 
 .PHONY: all clean
 
-all: clean config
+all: clean tool
 
 tool: $(OBJS)
 	$(CXX) $(CPPFLAGS) -o ./fcvtool $(OBJS)
@@ -23,22 +23,17 @@ tool: $(OBJS)
 	$(CXX) $(CPPFLAGS) -c ./FCVTool.cpp -o ./fcv.o
 
 $(COM)/dip.o:
-	make dip.o -C $(COM)
-
-$(BWA)/%.o: $(BWA)/%.c
-	$(CC) -c $(CFLAGS) $(DFLAGS) $< -o $@
+	make -C $(COM)
 
 cleanC:
 	make clean -C $(COM)
 
 cleanO:
-	rm -r *.o
+	rm -f *.o
 
 cleanR:
-	rm -r fcvtool
+	rm -f fcvtool
 
 cleanOR: cleanO cleanR
-
-cleanL: cleanO cleanR cleanD
 
 clean: cleanC cleanO cleanR

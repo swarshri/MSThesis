@@ -9,8 +9,8 @@ BWAMEMSRC := ./../External/BWA-MEM2/src
 CC  := gcc
 CFLAGS := -g -Wall -Wno-unused-function -O2 -fPIC
 DFLAGS := -DHAVE_PTHREAD $(WRAP_MALLOC)
-CXX := LD_LIBRARY_PATH=$(BWA) g++
-CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -I $(INC) $(EXT) -L $(BWA)
+CXX := LD_LIBRARY_PATH=$(EXT) g++
+CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -I $(INC) -I $(EXT) -L $(EXT)
 
 LIBS = bwa
 OBJS = $(EXT)/libbwa.so
@@ -24,7 +24,7 @@ AOBJS =	$(BWA)/bwashm.o $(BWA)/bwase.o $(BWA)/bwaseqio.o $(BWA)/bwtgap.o $(BWA)/
 
 .PHONY: all clean
 
-all: clean config
+all: clean dip.o
 
 dip.o: $(OBJS)
 	$(CXX) $(CPPFLAGS) -c $(SRC)/DataInput.cpp -o ./dip.o
@@ -37,9 +37,9 @@ $(BWA)/%.o: $(BWA)/%.c
 
 cleanE:
 	make clean -C $(BWA)
-	rm -r $(EXT)/libbwa.so
+	rm -f $(EXT)/libbwa.so
 	
 cleanO:
-	rm -r ./*.o
+	rm -f ./*.o
 
 clean: cleanE cleanO

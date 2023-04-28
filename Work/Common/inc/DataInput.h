@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include <bitset>
 #include <vector>
 #include <map>
 
@@ -15,7 +16,7 @@ using namespace std;
 
 class Reference {
     public:
-        Reference(char*, bool);
+        Reference(string, bool);
         bwt_t * getBWT();
         uint64_t get_seqLen();
         uint64_t get_occLen();
@@ -44,7 +45,8 @@ class Reads {
         Reads(string);
         void make_seeds(int);
         void print();
-        string get_seed(int);
+        string get_seed(uint64_t);
+        bitset<64> get_seed_bitset(uint64_t);
         uint64_t get_seedsCount();
 
     private:

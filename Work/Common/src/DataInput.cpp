@@ -1,19 +1,24 @@
 #include <DataInput.h>
 
-Reference::Reference(char* path, bool bwtpath) {
+Reference::Reference(string path, bool bwtpath) {
     if (!bwtpath) {
         // Make .bwt file before restoring it.
-        this->faPath = path;
+        this->faPath = (char*)malloc(sizeof(char) * (path.size() + 1));
+        strcpy(this->faPath, path.c_str());
+        cout << "DIP: this->fapath: " << this->faPath << endl;
         int algo_type = BWTALGO_AUTO, block_size = 10000000; // Copied from bwa_index() method from bwtindex.c in bwa tool source code.
         bwa_idx_build(this->faPath, this->faPath, algo_type, block_size);
-        this->bwtPath = path;
+        
+        this->bwtPath = (char*)malloc(sizeof(char) * (path.size() + 5));
+        strcpy(this->bwtPath, path.c_str());
         strcat(this->bwtPath, ".bwt");
         printf("BWT path: %s\n", this->bwtPath);
     }
     else {
         // .bwt file already exists.
         this->faPath = "Invalid";
-        this->bwtPath = path;
+        this->bwtPath = (char*)malloc(sizeof(char) * (path.size() + 1));
+        strcpy(this->bwtPath, path.c_str());
     }
     this->bwaBwt = bwt_restore_bwt(bwtPath);
     bwt_cal_sa(this->bwaBwt, 1); // this should be called before calling bwt_sa().
@@ -126,12 +131,13 @@ void Reads::make_seeds(int seedLen) {
                 this->seeds.push_back(seed);
         }
     }
+    this->seeds.push_back("EOS");
     // cout << "Seeds: " << this->seeds.size() << endl;
     // for (auto seed: this->seeds)
     //     cout << seed << endl;
 }
 
-string Reads::get_seed(int idx) {
+string Reads::get_seed(uint64_t idx) {
     if (idx >= this->seeds.size()) {
         cout << "Invalid seed index: " << idx << endl;
         cout << "Seed vector size: " << this->seeds.size() << endl;
@@ -139,6 +145,33 @@ string Reads::get_seed(int idx) {
     }
     else
         return this->seeds[idx];
+}
+
+bitset<64> Reads::get_seed_bitset(uint64_t idx) {
+    string seed = this->get_seed(idx);
+    if (seed == "Invalid") {
+        cout << "Invalid seed access." << endl;
+        return bitset<64>(0xFFFFFFFFFFFFFFFF); // say end of seeds.
+    }
+
+    if (seed == "EOS")
+        return bitset<64>(0xFFFFFFFFFFFFFFFF);
+
+    map<char, string> base_bitstr_map = {{'A', "000"},
+                                         {'C', "001"},
+                                         {'G', "010"},
+                                         {'T', "011"}};
+    string seedbits = "111";
+    for (char b: seed)
+        seedbits += base_bitstr_map[b];
+    
+    cout << "idx: " << idx << " seed: " << seed << " seedbits: " << seedbits << endl;
+
+    if (seedbits.size() > 64) {
+        cout << "Seed bits more than 64. Exiting" << endl;
+        exit(-1);
+    }
+    return bitset<64>(seedbits);
 }
 
 uint64_t Reads::get_seedsCount() {

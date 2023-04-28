@@ -65,7 +65,7 @@ Core::Core(string id, string ioDir, SysConfig * config, PerformanceRecorder * pe
     this->cyclecnt = 0; 
 }
 
-void Core::connect(DRAMW<32, 64> * sdmem, map<char, DRAMW<32, 32>*> ocmem, DRAMW<32, 64> * simem) {
+void Core::connect(SeedMemory<32, 64> * sdmem, map<char, OccMemory<32, 32>*> ocmem, DRAMW<32, 64> * simem) {
     this->FU->connectDRAM(sdmem);
 
     this->LUA->connectDRAM(ocmem['A']);

@@ -3,7 +3,7 @@
 #include <string>
 #include <bitset>
 
-#include "../ext/DRAMsim3/src/memory_system.h"
+#include "../../External/DRAMsim3/src/memory_system.h"
 #include "../../Common/inc/DataInput.h"
 #include <Config.h>
 
@@ -43,6 +43,7 @@ class DRAMW {
         bool writeDone = false;
 
         DRAMW(string, string, SysConfig *, SysConfig *, bool);
+        void allocate();
         void input();
         void output();
 
@@ -62,8 +63,10 @@ class DRAMW {
 
         void printStats();
 
-    private:
+    protected:
         vector<bitset<dlen>> MEM;
+        Reference * refptr;
+        Reads * readptr;
 
         int addressibility; // Maybe use this to verify that the chosen DRAM config matches this requirement.
         int channelwidth; // Same as above.
@@ -98,6 +101,31 @@ class DRAMW {
         // is a structure with pre-configured number of elements.
         // That is not how we want the pending memory accesses to be.
         // And using that here will require more changes to the ReservationStation class.
+};
+
+template<int alen, int dlen>
+class SeedMemory: public DRAMW<alen, dlen> {
+    public:
+        SeedMemory(string, string, SysConfig *, SysConfig *);
+        void input(Reads *);
+        void ReadCompleteHandler(uint64_t);
+        void WriteCompleteHandler(uint64_t);
+
+    private:
+        Reads * READS;
+};
+
+template<int alen, int dlen>
+class OccMemory: public DRAMW<alen, dlen> {
+    public:
+        OccMemory(string, string, SysConfig *, SysConfig *);
+        void input(Reference *);
+        void ReadCompleteHandler(uint64_t);
+        void WriteCompleteHandler(uint64_t);
+
+    private:
+        string base;
+        Reference * REF;
 };
 
 #include <../src/DRAMWrapper.cpp>

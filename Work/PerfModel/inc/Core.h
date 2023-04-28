@@ -19,13 +19,11 @@ class Core {
         bool halted = false;
         Core(string, string, SysConfig *, PerformanceRecorder *);
 
-        void connect(DRAMW<32, 64> *, map<char, DRAMW<32, 32>*>, DRAMW<32, 64> *);
+        void connect(SeedMemory<32, 64> *, map<char, OccMemory<32, 32>*>, DRAMW<32, 64> *);
         void step();
         
     private:
         string id;
-
-        DRAMW<32, 32> * OCMEM;
 
         FetchStage * FU;
         DispatchStage * DU;
