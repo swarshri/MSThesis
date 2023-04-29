@@ -1,30 +1,34 @@
 #include<Core.h>
 
-Core::Core(string id, string ioDir, SysConfig * config, PerformanceRecorder * perf) {
+Core::Core(string id, string ioDir, SysConfig * config, PerformanceRecorder * perf, Reference * ref) {
     this->id = id;
 
-    ifstream mem;
-    string line;
+//     ifstream mem;
+//     string line;
     
-#ifdef _WIN32
-    string filename = "\\mem\\CoreReg.mem";
-#else
-    string filename = "mem/CoreReg.mem";
-#endif
+// #ifdef _WIN32
+//     string filename = "\\mem\\CoreReg.mem";
+// #else
+//     string filename = "mem/CoreReg.mem";
+// #endif
     
-    mem.open(ioDir + filename);
+//     mem.open(ioDir + filename);
 
-    vector<bitset<32>> coremem;
-    if (mem.is_open()) {
-        while (getline(mem, line)) {
-            line = line.substr(0, line.find(' '));
-            coremem.push_back(bitset<32>(line));
-        }
-        mem.close();
-    }
-    else cout<<"Unable to open input file for Core " << this->id << ": " << ioDir + filename << endl;
+//     vector<bitset<32>> coremem;
+//     if (mem.is_open()) {
+//         while (getline(mem, line)) {
+//             line = line.substr(0, line.find(' '));
+//             coremem.push_back(bitset<32>(line));
+//         }
+//         mem.close();
+//     }
+//     else cout<<"Unable to open input file for Core " << this->id << ": " << ioDir + filename << endl;
 
-    bitset<32> referenceCountVal = coremem[0];
+    bitset<32> referenceCountVal = bitset<32>(ref->get_seqLen());
+    vector<bitset<32>> counts;
+    for (int i = 0; i < 4; i++)
+        counts.push_back(bitset<32>(ref->getCount(i)));
+
     this->FU = new FetchStage(config->children["FetchStage"], ioDir, referenceCountVal);
 
     this->DU = new DispatchStage(config->children["DispatchStage"], ioDir);
@@ -32,28 +36,28 @@ Core::Core(string id, string ioDir, SysConfig * config, PerformanceRecorder * pe
 
     this->RUA = new ReserveStage(config->children["ReserveStage"], "A", ioDir, perf);
     this->RUA->connect(this->DU);
-    this->CUA = new ComputeStage(config->children["ComputeStage"], "A", ioDir, coremem[1]);
+    this->CUA = new ComputeStage(config->children["ComputeStage"], "A", ioDir, counts[0]);
     this->CUA->connect(this->RUA, this->FU);
     this->LUA = new LoadStage(config->children["LoadStage"], "A", ioDir, perf);
     this->LUA->connectRU(this->RUA);
 
     this->RUC = new ReserveStage(config->children["ReserveStage"], "C", ioDir, perf);
     this->RUC->connect(this->DU);
-    this->CUC = new ComputeStage(config->children["ComputeStage"], "C", ioDir, coremem[2]);
+    this->CUC = new ComputeStage(config->children["ComputeStage"], "C", ioDir, counts[1]);
     this->CUC->connect(this->RUC, this->FU);
     this->LUC = new LoadStage(config->children["LoadStage"], "C", ioDir, perf);
     this->LUC->connectRU(this->RUC);
 
     this->RUG = new ReserveStage(config->children["ReserveStage"], "G", ioDir, perf);
     this->RUG->connect(this->DU);
-    this->CUG = new ComputeStage(config->children["ComputeStage"], "G", ioDir, coremem[3]);
+    this->CUG = new ComputeStage(config->children["ComputeStage"], "G", ioDir, counts[2]);
     this->CUG->connect(this->RUG, this->FU);
     this->LUG = new LoadStage(config->children["LoadStage"], "G", ioDir, perf);
     this->LUG->connectRU(this->RUG);
 
     this->RUT = new ReserveStage(config->children["ReserveStage"], "T", ioDir, perf);
     this->RUT->connect(this->DU);
-    this->CUT = new ComputeStage(config->children["ComputeStage"], "T", ioDir, coremem[4]);
+    this->CUT = new ComputeStage(config->children["ComputeStage"], "T", ioDir, counts[3]);
     this->CUT->connect(this->RUT, this->FU);
     this->LUT = new LoadStage(config->children["LoadStage"], "T", ioDir, perf);
     this->LUT->connectRU(this->RUT);

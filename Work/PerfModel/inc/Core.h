@@ -13,11 +13,12 @@
 #include<Load.h>
 #include<Store.h>
 #include<PerfRecorder.h>
+#include"../../Common/inc/DataInput.h"
 
 class Core {
     public:
         bool halted = false;
-        Core(string, string, SysConfig *, PerformanceRecorder *);
+        Core(string, string, SysConfig *, PerformanceRecorder *, Reference *);
 
         void connect(SeedMemory<32, 64> *, map<char, OccMemory<32, 32>*>, DRAMW<32, 64> *);
         void step();

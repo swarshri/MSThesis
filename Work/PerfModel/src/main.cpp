@@ -81,7 +81,7 @@ int main(int argc, char * argv[]) {
 
     PerformanceRecorder * perf = new PerformanceRecorder(opDir, confName, config->children["PerformanceRecorder"]);
 
-    Core * CORE = new Core("00", opDir, config->children["Core"], perf);
+    Core * CORE = new Core("00", opDir, config->children["Core"], perf, RefObj);
     CORE->connect(SdMEM, OcMEMs, SiMEM);
     
 // #ifdef _WIN32
