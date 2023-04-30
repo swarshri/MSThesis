@@ -80,7 +80,7 @@ void DRAMW<alen, dlen>::input() {
     mem.open(ipFilePath);
 
     if (mem.is_open()) {
-        cout << "File opened: " << ipFilePath << endl;
+        cout << this->id << " - File opened: " << ipFilePath << endl;
         int i=0;
         while (getline(mem, line)) {
             this->MEM[i] = bitset<dlen>(line);
@@ -88,7 +88,7 @@ void DRAMW<alen, dlen>::input() {
         }
         mem.close();
     }
-    else cout<<"Unable to open input file for " << this->id << ": " << ipFilePath << endl;
+    else cout << this->id << " - Unable to open input file: " << ipFilePath << endl;
 }
 
 template <int alen, int dlen>
@@ -96,20 +96,20 @@ void DRAMW<alen, dlen>::output() {
     ofstream mem;
 
 #ifdef _WIN32
-    string filename = "\\mem\\" + this->id;
+    string filename = "\\" + this->id;
 #else
-    string filename = "mem/" + this->id;
+    string filename = "/" + this->id;
 #endif
     filename = filename + ".mem";
 
     string opFilePath = this->dataIODir + filename;
 	mem.open(opFilePath, std::ios_base::out);
 	if (mem.is_open()) {
-        cout << "File opened: " << opFilePath << endl;
+        cout << this->id << " - File opened: " << opFilePath << endl;
 		for (bitset<dlen> data: this->MEM)
-			mem << data <<endl;
+			mem << data << endl;
 	}
-	else cout<<"Unable to open input file for " << this->id << ": " << opFilePath << endl;
+	else cout << this->id << " - Unable to open output file: " << opFilePath << endl;
 	mem.close();
 }
 

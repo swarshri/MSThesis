@@ -27,16 +27,12 @@ void createMem(string name, string ioDir, string configName, SysConfig* config, 
 int main(int argc, char * argv[]) {
     string confFilePath = "";
     string refPath = "";
+    string bwtPath = "";
+    string saPath = "";
     string readPath = "";
     string opDir = "";
 
-    if (argc != 5) {
-        cout << "Invalid number of arguments." << endl;
-        cout << "Expected path containing the config file, the reference and read file paths, and the dir4ectory path for the output in order." << endl;
-        cout << "Machine stopped." << endl;
-        return -1;
-    }
-    else {
+    if (argc == 5) {
         confFilePath = argv[1];
         refPath = argv[2];
         readPath = argv[3];
@@ -46,14 +42,34 @@ int main(int argc, char * argv[]) {
         cout << "Read File Path: " << readPath << endl;
         cout << "OP Directory: " << opDir << endl;
     }
+    else if (argc == 6) {
+        confFilePath = argv[1];
+        bwtPath = argv[2];
+        saPath = argv[3];
+        readPath = argv[4];
+        opDir = argv[5];
+        cout << "Config File Path: " << confFilePath << endl;
+        cout << "BWT File Path: " << bwtPath << endl;
+        cout << "SA File Path: " << saPath << endl;
+        cout << "Read File Path: " << readPath << endl;
+        cout << "OP Directory: " << opDir << endl;
+    }
+    else {
+        cout << "Invalid number of arguments." << endl;
+        cout << "Expected path containing the config file, the reference (bwt and sa) and read file paths, and the directory path for the output in order." << endl;
+        cout << "Machine stopped." << endl;
+        return -1;
+    }
 
     SysConfig * config = ConfigParser().parse(confFilePath);
     cout << "Config file parsed" << endl;
-    Reference * RefObj;
-    // if (refPath.find_last_of(".bwt") == refPath.size() - 4)
-    //     RefObj = new Reference(refPath, true);
-    // else
-    RefObj = new Reference(refPath, false);
+    
+    Reference * RefObj;    
+    if (refPath != "")
+        RefObj = new Reference(refPath);
+    else if (bwtPath != "" and saPath != "")
+        RefObj = new Reference(bwtPath, saPath);
+    
     Reads * ReadsObj = new Reads(readPath);
 
     SeedMemory<32, 64> * SdMEM = new SeedMemory<32, 64>("SdMEM", opDir, config->children["SeedMemory"], config->children["Core"]);
