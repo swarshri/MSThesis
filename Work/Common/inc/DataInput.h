@@ -5,18 +5,23 @@
 #include <bitset>
 #include <vector>
 #include <map>
+#include <chrono>
 
 #include "../../External/BWA/bwa.h"
 #include "../../External/BWA/bwt.h"
 
 using namespace std;
+using namespace chrono;
 
 #ifndef DIP_H
 #define DIP_H
 
 class Reference {
     public:
-        Reference(string, bool);
+        Reference(string);
+        Reference(string, string);
+        Reference(vector<string>, bool);
+        void restore_bwt_sa();
         bwt_t * getBWT();
         uint64_t get_seqLen();
         uint64_t get_occLen();
@@ -33,6 +38,7 @@ class Reference {
         map<int, char> base_int = {{'A', 0}, {'C', 1}, {'G', 2}, {'T', 3}};
         char * faPath;
         char * bwtPath;
+        char * saPath;
         string ref = "";
         string bwt = "";
         bwt_t * bwaBwt;

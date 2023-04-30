@@ -1,8 +1,45 @@
 #include <DataInput.h>
 
-Reference::Reference(string path, bool bwtpath) {
+Reference::Reference(string fapath) {
+    string path = fapath;
+    this->faPath = (char*)malloc(sizeof(char) * (path.size() + 1));
+    strcpy(this->faPath, path.c_str());
+    cout << "DIP: this->fapath: " << this->faPath << endl;
+    int algo_type = BWTALGO_AUTO, block_size = 10000000; // Copied from bwa_index() method from bwtindex.c in bwa tool source code.
+    bwa_idx_build(this->faPath, this->faPath, algo_type, block_size);
+    
+    this->bwtPath = (char*)malloc(sizeof(char) * (path.size() + 5));
+    strcpy(this->bwtPath, path.c_str());
+    strcat(this->bwtPath, ".bwt");
+    printf("BWT file path: %s\n", this->bwtPath);
+
+    this->saPath = (char*)malloc(sizeof(char) * (path.size() + 4));
+    strcpy(this->saPath, path.c_str());
+    strcat(this->saPath, ".sa");
+    printf("SA file path: %s\n", this->saPath);
+    this->restore_bwt_sa();
+}
+
+Reference::Reference(string bwtpath, string sapath) {
+    // .bwt file already exists.
+    this->faPath = "Invalid";
+
+    // expects two paths in the input argument.
+    // first path is BWT file path.
+    this->bwtPath = (char*)malloc(sizeof(char) * (bwtpath.size() + 1));
+    strcpy(this->bwtPath, bwtpath.c_str());
+
+    // second path is SA file path.
+    this->saPath = (char*)malloc(sizeof(char) * (sapath.size() + 1));
+    strcpy(this->saPath, sapath.c_str());
+    this->restore_bwt_sa();
+}
+
+Reference::Reference(vector<string> paths, bool bwtpath) {
     if (!bwtpath) {
         // Make .bwt file before restoring it.
+        // The first argument just has a single fasta file path.
+        string path = paths[0];
         this->faPath = (char*)malloc(sizeof(char) * (path.size() + 1));
         strcpy(this->faPath, path.c_str());
         cout << "DIP: this->fapath: " << this->faPath << endl;
@@ -12,16 +49,42 @@ Reference::Reference(string path, bool bwtpath) {
         this->bwtPath = (char*)malloc(sizeof(char) * (path.size() + 5));
         strcpy(this->bwtPath, path.c_str());
         strcat(this->bwtPath, ".bwt");
-        printf("BWT path: %s\n", this->bwtPath);
+        printf("BWT file path: %s\n", this->bwtPath);
+
+        this->saPath = (char*)malloc(sizeof(char) * (path.size() + 4));
+        strcpy(this->saPath, path.c_str());
+        strcat(this->saPath, ".sa");
+        printf("SA file path: %s\n", this->saPath);
     }
     else {
         // .bwt file already exists.
         this->faPath = "Invalid";
+        // expects two paths in the input argument.
+        // first path is BWT file path.
+        string path = paths[0];
         this->bwtPath = (char*)malloc(sizeof(char) * (path.size() + 1));
         strcpy(this->bwtPath, path.c_str());
+
+        // second path is SA file path.
+        path = paths[1];
+        this->saPath = (char*)malloc(sizeof(char) * (path.size() + 1));
+        strcpy(this->saPath, path.c_str());
     }
-    this->bwaBwt = bwt_restore_bwt(bwtPath);
-    bwt_cal_sa(this->bwaBwt, 1); // this should be called before calling bwt_sa().
+    this->restore_bwt_sa();
+}
+
+void Reference::restore_bwt_sa() {
+    // cout << "DIP: Restoring BWT." << endl;
+    // auto start = high_resolution_clock::now();
+    this->bwaBwt = bwt_restore_bwt(this->bwtPath);
+    // auto time_elapsed = duration_cast<seconds>(high_resolution_clock::now() - start);
+    cout << "DIP: Done restoring BWT." << endl; // - Time taken: " << time_elapsed.count() << " seconds." << endl;
+    // cout << "DIP: Calculating SA." << endl;
+    auto start = high_resolution_clock::now();
+    // bwt_cal_sa(this->bwaBwt, 1); // this should be called before calling bwt_sa().
+    bwt_restore_sa(this->saPath, this->bwaBwt);
+    auto time_elapsed = duration_cast<seconds>(high_resolution_clock::now() - start);
+    cout << "DIP: Done calculating SA." << endl; // - Time taken: " << time_elapsed.count() << " seconds." << endl;
     this->seqLen = this->bwaBwt->seq_len + 1; // +1 for '$' added to the ref before BWT.
     this->occLen = this->bwaBwt->seq_len + 2; // an extra column due to the added '$'.
 }
@@ -121,6 +184,7 @@ Reads::Reads(string fqpath) {
 void Reads::make_seeds(int seedLen) {
     // printf("\nReads----------------------\n");
     cout << "Making seeds of maximum length: " << seedLen << endl;
+    uint64_t seedwithnoise = 0;
     for (auto read: this->reads) {
         // cout << read << endl;
         for (int i = 0; i < read.size(); i += seedLen) {
@@ -129,12 +193,15 @@ void Reads::make_seeds(int seedLen) {
             // cout << "Seed: " << seed << endl;
             if (seed.find('N') == string::npos)
                 this->seeds.push_back(seed);
+            else
+                seedwithnoise++;
         }
     }
     this->seeds.push_back("EOS");
     // cout << "Seeds: " << this->seeds.size() << endl;
     // for (auto seed: this->seeds)
     //     cout << seed << endl;
+    cout << "Seeds with Noise: " << seedwithnoise << endl;
 }
 
 string Reads::get_seed(uint64_t idx) {

@@ -1,16 +1,25 @@
 #include "FCVTool.h"
 
 FMDI::FMDI(Reference * ref) {
+    cout << "In FMDI Constructor." << endl;
     this->ref = ref;
     this->seqLen = this->ref->get_seqLen();
     this->occLen = this->ref->get_occLen();
     this->Count = {{'A', 0}, {'C', 0}, {'G', 0}, {'T', 0}};
-    this->Occ = {{'A', vector<bwtint_t>{}}, {'C', vector<bwtint_t>{}}, {'G', vector<bwtint_t>{}}, {'T', vector<bwtint_t>{}}};
-    this->SA.resize(this->seqLen);
-    this->construct_fmdi();
+    this->full_fmdi_available = false;
+    this->get_counts();
+    cout << "Done constructing FMDI." << endl;
+    // this->construct_fmdi();
+}
+
+void FMDI::get_counts() {
+    for (char base: {'A', 'C', 'G', 'T'})
+        this->Count[base] = this->ref->getCount(base);
 }
 
 void FMDI::construct_fmdi() {
+    this->Occ = {{'A', vector<bwtint_t>{}}, {'C', vector<bwtint_t>{}}, {'G', vector<bwtint_t>{}}, {'T', vector<bwtint_t>{}}};
+    this->SA.resize(this->seqLen);
     for (char base: {'A', 'C', 'G', 'T'}) {
         this->Count[base] = this->ref->getCount(base);
         this->Occ[base].resize(this->occLen);
@@ -20,6 +29,7 @@ void FMDI::construct_fmdi() {
     }
     for (int i = 0; i < this->seqLen; i++)
         this->SA[i] = this->ref->getSA(i);
+    this->full_fmdi_available = true;
 }
 
 SeedResult FMDI::find_seed(string seed) {
@@ -27,22 +37,43 @@ SeedResult FMDI::find_seed(string seed) {
     uint64_t high = this->seqLen;
     for (int i = seed.size() - 1; i >= 0; i--) {
         char base = seed[i];
-        low = this->Count[base] + this->Occ[base][low];
-        high = this->Count[base] + this->Occ[base][high];
+        uint64_t occ_low, occ_high;
+        if (this->full_fmdi_available) {
+            occ_low = this->Occ[base][low];
+            occ_high = this->Occ[base][high];
+        }
+        else {
+            occ_low = this->ref->getOcc(base, low);
+            occ_high = this->ref->getOcc(base, high);
+        }
+        low = this->Count[base] + occ_low;
+        high = this->Count[base] + occ_high;
         if (low >= high)
             break;
     }
     // cout << "Seed: " << seed << " Low: " << low << " High: " << high << endl;
     vector<uint64_t> savals{};
     // get Suffix array values in the interval low to high (excluding the one at high)
-    if (low < high) {
-        for (int i = low; i < high; i++)
-            savals.push_back(this->SA[i]);
-    }
+    // if (low < high) {
+    //     for (int i = low; i < high; i++) {
+    //         uint64_t saval;
+    //         if (this->full_fmdi_available)
+    //             saval = this->SA[i];
+    //         else
+    //             saval = this->ref->getSA(i);
+    //         savals.push_back(saval);
+    //         if (saval == 10000) {
+    //             cout << "Found 10000. Can RIP lol." << endl;
+    //             break;
+    //         }
+    //     }
+    // }
     SeedResult ret_sr;
     ret_sr.seed = seed;
     ret_sr.si_values = {low, high};
     ret_sr.sa_values = savals;
+    if (low < high) ret_sr.present = true;
+    else ret_sr.present = false;
 
     return ret_sr;
 }
@@ -58,26 +89,28 @@ void FMDI::print_fmdi() {
         cout << " " << cnt.second;
         // printf("this->Count[%c]: %ld\n", cnt.first, cnt.second);
     cout << endl;
-    int inc;
-    if (this->seqLen < 500)
-        inc = 1;
-    else if (this->seqLen < 10000)
-        inc = this->seqLen/10;
-    else
-        inc = this->seqLen/100;
-    cout << "Occ Values at inc: " << inc;
-    for (auto occ: this->Occ) {
-        // printf("Base: %c---------------\n", occ.first);
-        cout << endl << "Base - " << occ.first << ":";
-        for (int j = 0; j < this->occLen; j+=inc)
-            cout << " " << occ.second[j];
-            // printf("Occ[%d]: %ld\n", j, occ.second[j]);
+    if (this->full_fmdi_available) {
+        int inc;
+        if (this->seqLen < 500)
+            inc = 1;
+        else if (this->seqLen < 10000)
+            inc = this->seqLen/10;
+        else
+            inc = this->seqLen/100;
+        cout << "Occ Values at inc: " << inc;
+        for (auto occ: this->Occ) {
+            // printf("Base: %c---------------\n", occ.first);
+            cout << endl << "Base - " << occ.first << ":";
+            for (int j = 0; j < this->occLen; j+=inc)
+                cout << " " << occ.second[j];
+                // printf("Occ[%d]: %ld\n", j, occ.second[j]);
+        }
+        cout << endl;
+        cout << "SA Values: ";
+        for (int i = 0; i < this->SA.size(); i+=inc)
+            cout << " " << this->SA[i];
+            // printf("SA[%d]: %d\n", i, this->SA[i]);
     }
-    cout << endl;
-    cout << "SA Values: ";
-    for (int i = 0; i < this->SA.size(); i+=inc)
-        cout << " " << this->SA[i];
-        // printf("SA[%d]: %d\n", i, this->SA[i]);
     cout << endl << "-------------------------------------------------" << endl;
 }
 
@@ -90,8 +123,10 @@ void ExactMatchEngine::find_exact_matches(Reads * reads) {
     cout << "Finding exact matches - Seed Count: " << seedsCount << endl;
     for (uint64_t i = 0; i < seedsCount; i++) {
         string seed = reads->get_seed(i);
-        SeedResult em_result = this->iref->find_seed(seed);
-        this->seedresults.push_back(em_result);
+        if (seed != "EOS") {
+            SeedResult em_result = this->iref->find_seed(seed);
+            this->seedresults.push_back(em_result);
+        }
     }
 }
 
@@ -101,23 +136,24 @@ void ExactMatchEngine::print_seedresults() {
         cout << sr.seed << "\t\t";
         for (auto sival: sr.si_values)
             cout << " " << sival; 
-        cout << "\t\t";
-        for (auto saval: sr.sa_values)
-            cout << " " << saval;
+        cout << "\t\t" << sr.present;
+        // for (auto saval: sr.sa_values)
+        //     cout << " " << saval;
+        // cout << *min_element(sr.sa_values.begin(), sr.sa_values.end());
         cout << endl;
     }
 }
 
 int main(int argc, char * argv[]) {    
     char* fasta_path = "";
-    int fasta_arg = 0;
     char* bwt_path = "";
-    int bwt_arg = 1;
+    char* sa_path = "";
     char* fastq_path = "";
 
-    if (argc != 5) {
+    cout << "Received " << argc << " arguments." << endl;
+    if (argc != 5 and argc != 7) {
         cout << "Invalid number of arguments." << endl;
-        cout << "Expected path for the input fasta and fastq files." << endl;
+        cout << "Expected path for the input fasta (or bwt, sa pair) and fastq files." << endl;
         cout << "Machine stopped." << endl;
         return -1;
     }
@@ -127,12 +163,15 @@ int main(int argc, char * argv[]) {
             cout << argv[i] << endl;
             if (strcmp(argv[i], "--ref") == 0) {
                 fasta_path = argv[++i];
-                fasta_arg = i;
-                cout << "Found reference file: " << fasta_path << fasta_arg << endl;
+                cout << "Found reference file: " << fasta_path << endl;
             }
             else if (strcmp(argv[i], "--bwt") == 0) {
                 bwt_path = argv[++i];
                 cout << "Found BWT file: " << bwt_path << endl;
+            }
+            else if (strcmp(argv[i], "--sa") == 0) {
+                sa_path = argv[++i];
+                cout << "Found SA file: " << sa_path << endl;
             }
             else if (strcmp(argv[i], "--reads") == 0) {
                 fastq_path = argv[++i];
@@ -143,14 +182,15 @@ int main(int argc, char * argv[]) {
         // TODO: Check file path extensions to make sure they are fasta and fastq files.
         cout << "FASTA Reference file: " << fasta_path << endl;
         cout << "BWTIndexed file path: " << bwt_path << endl;
+        cout << "Suffix Array file path: " << sa_path << endl;
         cout << "FASTQ Read file path: " << fastq_path << endl;
     }
 
     Reference * ref;
     if (bwt_path == "")
-        ref = new Reference(fasta_path, false);
+        ref = new Reference(fasta_path);
     else
-        ref = new Reference(bwt_path, true);
+        ref = new Reference(bwt_path, sa_path);
     
     FMDI * idxed_ref = new FMDI(ref);
     idxed_ref->print_fmdi();
