@@ -19,11 +19,6 @@
 
 using namespace std;
 
-template<int alen, int dlen>
-void createMem(string name, string ioDir, string configName, SysConfig* config, DRAMW<alen, dlen>* retObj) {
-    retObj = new DRAMW<alen, dlen>(name, ioDir, config->children[configName], config->children["Core"], true);
-}
-
 int main(int argc, char * argv[]) {
     string confFilePath = "";
     string refPath = "";
