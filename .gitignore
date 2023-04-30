@@ -1,3 +1,5 @@
-Work/*.o
+*.o
+*.a
+*.so
 Work/PerfModel/model
-Work/Tool/FCV/fcvtool
+Work/Tools/FCV/fcvtool
