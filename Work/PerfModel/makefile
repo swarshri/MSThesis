@@ -84,13 +84,10 @@ cleanE:
 	make clean -C $(DRAMSIM3)
 
 cleanO:
-	rm -r $(OBJ)
-	mkdir $(OBJ)
+	rm -f $(OBJ)/*.o
 
 cleanR:
 	rm -f ./model
-
-cleanOD: cleanO cleanD
 
 cleanOR: cleanO cleanR
 
