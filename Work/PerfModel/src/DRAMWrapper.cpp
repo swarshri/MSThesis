@@ -134,7 +134,7 @@ bool DRAMW<dtype>::readRequest(uint64_t address, int requestid, bool burstmode) 
             this->pendingReads.push_back(newma);
             // TODO - think if you want to have a single list of pending reads and writes.
             // I don't think that will make any difference at least at present for this design.
-            cout << this->id << " - Scheduled Read in cycle: " << this->clk << " from address: " << address << endl;
+            // cout << this->id << " - Scheduled Read in cycle: " << this->clk << " from address: " << address << endl;
         }
         return success;
     }
@@ -158,8 +158,8 @@ bool DRAMW<dtype>::writeRequest(uint64_t address, vector<dtype> data, bool burst
             this->pendingWrites.push_back(newma);
             // TODO - think if you want to have a single list of pending reads and writes.
             // I don't think that will make any difference at least at present for this design.
-            cout << this->id << " - Scheduled Write into address: " << address << " in cycle: " << this->clk << endl;
-            cout << this->id << " - Pending writes size: " << this->pendingWrites.size() << endl;
+            // cout << this->id << " - Scheduled Write into address: " << address << " in cycle: " << this->clk << endl;
+            // cout << this->id << " - Pending writes size: " << this->pendingWrites.size() << endl;
         }
         return success;
     }
@@ -168,7 +168,7 @@ bool DRAMW<dtype>::writeRequest(uint64_t address, vector<dtype> data, bool burst
 
 template<class dtype>
 void DRAMW<dtype>::ReadCompleteHandler(uint64_t address) {
-    cout << this->id << " - Called ReadCompleteHandler on address: " << address << endl;
+    // cout << this->id << " - Called ReadCompleteHandler on address: " << address << endl;
     for (int i = 0; i < this->pendingReads.size(); i++) {
         auto read = this->pendingReads[i];
         if (address == read->AccessAddress && read->DoneCoreClock == -1 && read->RequestID != -1) {
@@ -178,13 +178,13 @@ void DRAMW<dtype>::ReadCompleteHandler(uint64_t address) {
             int bl = 1;
             if (read->BurstMode)
                 bl = this->MemSystem->GetBurstLength();
-            cout << this->id << " - Burst Length: " << bl << endl;
+            // cout << this->id << " - Burst Length: " << bl << endl;
             for (int i = 0; i < bl; i++)
                 read->Data.push_back(this->MEM[address + i]); // this is what should be returned to core (Read back by core in this case)
             // TODO - This needs to be changed to return one word of data every DRAM cycle till we reach burst length.
-            cout << this->id << " - Finished read scheduled in clock cycle: " << read->RequestCoreClock << " at address: " << read->AccessAddress;
-            cout << " in clock cycle: " << read->DoneCoreClock << endl;
-            cout << " pending reads count: " << this->pendingReads.size() << endl;
+            // cout << this->id << " - Finished read scheduled in clock cycle: " << read->RequestCoreClock << " at address: " << read->AccessAddress;
+            // cout << " in clock cycle: " << read->DoneCoreClock << endl;
+            // cout << " pending reads count: " << this->pendingReads.size() << endl;
             break;
         }
     }
@@ -192,27 +192,27 @@ void DRAMW<dtype>::ReadCompleteHandler(uint64_t address) {
 
 template<class dtype>
 void DRAMW<dtype>::WriteCompleteHandler(uint64_t address) {
-    cout << this->id << " - Calling WriteCompleteHandler on address: " << address << endl;
-    cout << this->id << " - Pending writes size: " << this->pendingWrites.size() << endl;
+    // cout << this->id << " - Calling WriteCompleteHandler on address: " << address << endl;
+    // cout << this->id << " - Pending writes size: " << this->pendingWrites.size() << endl;
     for (int i = 0; i < this->pendingWrites.size(); i++) {
         auto write = this->pendingWrites[i];
-        cout << "Write accessaddress: " << write->AccessAddress << endl;
-        cout << "Write DoneCoreClock: " << write->DoneCoreClock << endl;
+        // cout << "Write accessaddress: " << write->AccessAddress << endl;
+        // cout << "Write DoneCoreClock: " << write->DoneCoreClock << endl;
         if (address == write->AccessAddress && write->DoneCoreClock == -1) {
             int bl = 1;
             if (write->BurstMode)
                 bl = this->MemSystem->GetBurstLength();
-            cout << this->id << " - Burst Length: " << bl << endl;
-            cout << this->id << " - this->MEM.size(): " << this->MEM.size() << endl;
-            cout << this->id << " - write->Data.size(): " << write->Data.size() << endl;
+            // cout << this->id << " - Burst Length: " << bl << endl;
+            // cout << this->id << " - this->MEM.size(): " << this->MEM.size() << endl;
+            // cout << this->id << " - write->Data.size(): " << write->Data.size() << endl;
             for (int i = 0; i < bl; i++)
                 this->MEM[address + i] = write->Data[i];
             write->DoneCoreClock = this->clk;
-            cout << this->id << " - Finished write scheduled in clock cycle: " << write->RequestCoreClock << " at address: " << write->AccessAddress;
-            cout << " in clock cycle: " << write->DoneCoreClock << endl;
+            // cout << this->id << " - Finished write scheduled in clock cycle: " << write->RequestCoreClock << " at address: " << write->AccessAddress;
+            // cout << " in clock cycle: " << write->DoneCoreClock << endl;
             this->pendingWrites.erase(this->pendingWrites.begin() + i); 
             // This is done here because there is no writeback required for writes. This is done in the nextWriteBack() function for reads.
-            cout << " pending writes count: " << this->pendingWrites.size() << endl;
+            // cout << " pending writes count: " << this->pendingWrites.size() << endl;
             break;
         }
     }
@@ -235,7 +235,7 @@ void DRAMW<dtype>::step() {
 
 template<class dtype>
 pair<bool, vector<PMAEntry<dtype>>> DRAMW<dtype>::getNextWriteBack() {
-    cout << this->id << " - Getting nextWriteBack this->pendingReads.size():" << this->pendingReads.size() << endl;
+    // cout << this->id << " - Getting nextWriteBack this->pendingReads.size():" << this->pendingReads.size() << endl;
     vector<PMAEntry<dtype>> returnVec;
     for (int i = 0; i < this->pendingReads.size(); i++) {
         auto entry = this->pendingReads[i];
@@ -243,7 +243,7 @@ pair<bool, vector<PMAEntry<dtype>>> DRAMW<dtype>::getNextWriteBack() {
         if (entry->DoneCoreClock != -1 && entry->RequestID != -1) {
             returnVec.push_back(*entry);
             this->pendingReads.erase(this->pendingReads.begin() + i);
-            cout << this->id << " - After removing an entry this->pendingReads.size():" << this->pendingReads.size() << endl;
+            // cout << this->id << " - After removing an entry this->pendingReads.size():" << this->pendingReads.size() << endl;
             break;
         }
     }
@@ -255,7 +255,7 @@ pair<bool, vector<PMAEntry<dtype>>> DRAMW<dtype>::getNextWriteBack() {
 
 template<class dtype>
 bool DRAMW<dtype>::isFree(bool write) {
-    cout << this->id << " - isFree() pendingWrites size: " << this->pendingWrites.size() << endl;
+    // cout << this->id << " - isFree() pendingWrites size: " << this->pendingWrites.size() << endl;
     if (write)
         return this->pendingWrites.size() == 0;
     else

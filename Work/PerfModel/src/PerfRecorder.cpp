@@ -59,8 +59,8 @@ void PerformanceRecorder::step() {
             kv->second.pop();
             // cout << "PR: kv second size after popping: " << kv->second.size() << endl;
         }
-        cout << "PR: opline title: " << opline_title << endl;
-        cout << "PR: opline: " << opline << endl;
+        // cout << "PR: opline title: " << opline_title << endl;
+        // cout << "PR: opline: " << opline << endl;
         opline_title += "\n";
         csvop << opline_title;
         opline += "\n";
@@ -77,16 +77,16 @@ void PerformanceRecorder::step() {
                 kv->second.pop();
                 // cout << "PR: kv second size after popping: " << kv->second.size() << endl;
             }
-            cout << "PR: opline: " << opline << endl;
+            // cout << "PR: opline: " << opline << endl;
             opline += "\n";
             csvop << opline;
         }
     }
     // Incrementing for next step cycle.
     this->clkcount++;
-    cout << "PR: Incremented clock cycle count: " << this->clkcount << endl;
+    // cout << "PR: Incremented clock cycle count: " << this->clkcount << endl;
     this->data["ClockCount"].push(to_string(this->clkcount));
-    cout << "PR: Pushed back clock cycle count: " << to_string(this->clkcount) << endl;
+    // cout << "PR: Pushed back clock cycle count: " << to_string(this->clkcount) << endl;
 }
 
 void PerformanceRecorder::dump() {

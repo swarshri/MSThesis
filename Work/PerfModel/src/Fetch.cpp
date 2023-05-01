@@ -36,7 +36,7 @@ FetchStage::FetchStage(SysConfig * config, string iodir, uint64_t refCount) {
 
     // this->FillIdxQueue = new Queue<bitset<6>>(config->children["FillIdxQ"]);
     this->SRS = new SeedReservationStation("SeedRS", config->children["SeedReservationStation"]);
-    this->SRS->show(cout);
+    // this->SRS->show(cout);
     // cout << "FetchUnit: Created FillIdxQueue and SRS." << endl;
 
     // Clear performance metrics
@@ -129,7 +129,7 @@ void FetchStage::connectDRAM(SeedMemory * sdmem) {
 }
 
 void FetchStage::step() {
-    cout << "----------------------- Fetch Stage step function --------------------------" << endl;
+    // cout << "----------------------- Fetch Stage step function --------------------------" << endl;
     if (!this->halted) {
         int nextFreeEntry = this->SRS->nextFreeEntry();
         if (nextFreeEntry != -1 && this->SDMEM->willAcceptRequest(this->SeedPointer, false)) {
@@ -157,7 +157,7 @@ void FetchStage::step() {
                     // cout << "More than 1 word returned for request access. Taking only the first data as burst mode is disabled." << endl;
 
                 auto data = pmae.Data[0];
-                cout << "FS: Unpacked data from SDMEM: " << data << " at address: " << pmae.AccessAddress << endl;
+                // cout << "FS: Unpacked data from SDMEM: " << data << " at address: " << pmae.AccessAddress << endl;
                 if (data == "000000000000000000EOS") {
                     this->halted = true;
                     this->SRS->flushScheduledEntries();
@@ -175,11 +175,11 @@ void FetchStage::step() {
                     newSRSEntry.Ready = true;
                     newSRSEntry.Empty = false;
                     this->SRS->fill(pmae.RequestID, newSRSEntry);
-                    cout << "FS: SRS filled. " << endl;
-                    this->SRS->show(cout);
+                    // cout << "FS: SRS filled. " << endl;
+                    // this->SRS->show(cout);
                 }
             }
-            this->print();
+            // this->print();
         }
         this->cycle_count++;
     }
@@ -208,7 +208,7 @@ void FetchStage::step() {
     if (this->pendingEmpty) {
         for (int idx: this->pendingEmptyIdcs) {
             this->setEmptyState(idx);
-            cout << "FS: Setting Empty State in FS SRS at index: " << idx << endl;
+            // cout << "FS: Setting Empty State in FS SRS at index: " << idx << endl;
         }
         this->pendingEmptyIdcs.clear();
         this->pendingEmpty = false;

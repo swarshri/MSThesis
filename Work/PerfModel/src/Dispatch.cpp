@@ -61,26 +61,26 @@ void DispatchStage::dispatchSequential(int count) {
     pair<int, SRSEntry> nre = this->coreFU->getNextReadyEntry();
     // cout << "Dispatch Scheme: Single Sequential " << this->cycle_count << endl;
     if (nre.first != -1) {
-        cout << "Seed Address: " << nre.second.SeedAddress << endl;
+        // cout << "Seed Address: " << nre.second.SeedAddress << endl;
         // cout << "Seed: " << nre.second.Seed << endl;
         // cout << "BP: " << nre.second.BasePointer << endl;
         unsigned int idx = nre.second.Seed.size() - 1 - nre.second.BasePointer;
         char base = nre.second.Seed[idx];
-        cout << "Idx: " << idx << " Base: " << base << endl;
+        // cout << "Idx: " << idx << " Base: " << base << endl;
         if (base == 'E' || nre.second.StoreFlag) {
             StoreQueueEntry newStoreQueueEntry;
             newStoreQueueEntry.StoreAddress = nre.second.SeedAddress;
             newStoreQueueEntry.StoreValLow = nre.second.LowPointer;
             newStoreQueueEntry.StoreValHigh = nre.second.HighPointer;
             this->StoreQueue->push(newStoreQueueEntry);
-            cout << "DS: Queued into Store Queue." << endl;
-            this->StoreQueue->show(cout);
+            // cout << "DS: Queued into Store Queue." << endl;
+            // this->StoreQueue->show(cout);
             // this->print();
             // Reset SRS Entry status to Empty.
             this->coreFU->scheduleToSetEmptyState(nre.first);
-            cout << "Setting SRS entry at " << nre.first << " to empty state." << endl;
+            // cout << "Setting SRS entry at " << nre.first << " to empty state." << endl;
             this->coreFU->print();
-            cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
+            // cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
         }
         //if base queue has space, schedule it and update the SRS entry state.
         else if (!this->DispatchQueues[base]->isFull()) {
@@ -93,9 +93,9 @@ void DispatchStage::dispatchSequential(int count) {
             this->DispatchQueues[base]->push(dispatchNewEntry);
 
             this->coreFU->setInProgress(nre.first);
-            cout << "DS: Queued into Dispatch <" << base << "> Queue." << endl;
-            this->DispatchQueues[base]->show(cout);
-            this->print();
+            // cout << "DS: Queued into Dispatch <" << base << "> Queue." << endl;
+            // this->DispatchQueues[base]->show(cout);
+            // this->print();
         }
         else {
             // Right now, nothing - wait until the queue has vacancy. This could mean that the entire pipeline will
@@ -115,7 +115,7 @@ void DispatchStage::dispatchSequential(int count) {
 }
 
 void DispatchStage::step() {
-    cout << "----------------------- Dispatch Stage step function --------------------------" << endl;
+    // cout << "----------------------- Dispatch Stage step function --------------------------" << endl;
     if (!this->halted) {
         switch (this->dispatchScheme) {
             case SEQ1PE:

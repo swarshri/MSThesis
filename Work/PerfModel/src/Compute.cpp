@@ -18,7 +18,7 @@ bool ComputeStage::isHalted() {
 }
 
 void ComputeStage::step() {
-    cout << "----------------------- Compute " << this->base << " Stage step function --------------------------" << endl;
+    // cout << "----------------------- Compute " << this->base << " Stage step function --------------------------" << endl;
     if (!this->halted) {
         this->coreRU->print();
         pair<int, CRSEntry> nce = this->coreRU->getNextComputeEntry();
@@ -30,7 +30,7 @@ void ComputeStage::step() {
             // cout << "CS: Write Back scheduled into FS SRS at Index: " << nce.second.SRSWBIndex << " LowResult: " << lowResult << endl;
             // cout << "CS: Write Back scheduled into FS SRS at Index: " << nce.second.SRSWBIndex << " HighResult: " << highResult << endl;
             this->coreRU->scheduleToSetCRSEToEmptyState(nce.first);
-            cout << "CS: Scheduling to set Empty State in RS CRS at Index: " << nce.first << endl;
+            // cout << "CS: Scheduling to set Empty State in RS CRS at Index: " << nce.first << endl;
         }
         else if (this->coreRU->isHalted())
             this->halted = true;

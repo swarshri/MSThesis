@@ -22,7 +22,7 @@ void LoadStage::connectDRAM(OccMemory * occmem) {
 }
 
 void LoadStage::step() {
-    cout << "----------------------- Load Stage " << this->base << " step function --------------------------" << endl;
+    // cout << "----------------------- Load Stage " << this->base << " step function --------------------------" << endl;
     if (!this->halted) {
         // Get all finished reads from OCCMEM and write into CRS
         pair<bool, vector<PMAEntry<>>> nwb = this->OCCMEM->getNextWriteBack();
@@ -37,7 +37,7 @@ void LoadStage::step() {
                     // cout << "inprogentry: " << inprogentry << endl;
                     if (inprogentry.OccMemoryAddress == wbentry.AccessAddress && inprogentry.ResStatIndex == wbentry.RequestID) {
                         this->coreRU->scheduleToFillInCRS(inprogentry.ResStatIndex, inprogentry.LowOrHigh, wbentry.Data[0]);
-                        // cout << "LS: Scheduled to fill in Compute RS at index: " << inprogentry.ResStatIndex.to_ulong() << endl;
+                        // cout << "LS: Scheduled to fill in Compute RS at index: " << inprogentry.ResStatIndex << " for address: " << inprogentry.OccMemoryAddress << endl;
                         // cout << "LS: Scheduled at Low/High: " << inprogentry.LowOrHigh << " with data: " << wbentry.Data[0] << endl;
 
                         // Also try to keep a copy of this in the Local Cache.

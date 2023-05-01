@@ -48,32 +48,33 @@ pair<bool, uint64_t> Cache::read(uint64_t address) {
     unsigned int index = (address >> this->offsetbits) & (0xFFFFFFFF >> (32- this->indexbits));
     unsigned int tag = (address >> (this->offsetbits + this->indexbits));
 
-    cout << "Read Index: " << index << " Tag: " << tag  << " Offset: " << offset << endl;
+    // cout << "Read Index: " << index << " Tag: " << tag  << " Offset: " << offset << endl;
     // get all ways in the set = Array[index].
     // run through all the ways in the set and compare tag and check validity - valid should always be 1 because, the
     // data never gets written, the blocks only get replaced by other more useful blocks after being loaded from memory.
     for (unsigned int i = 0; i < this->ways; i++) {
         auto way = &this->Array[index][i];
+        // cout << "Way: " << i << " Validity: " << way->valid << " Tag: " << way->tag << endl;
         if (way->valid && way->tag == tag) { // if hit, send the data out.
-            cout << "Cache hit!!! for address: " << address << endl;
-            cout << "Hit cache data: " << way->data[offset] << endl;
+            // cout << "Cache hit!!! for address: " << address << endl;
+            // cout << "Hit cache data: " << way->data[offset] << endl;
             return pair<bool, uint64_t>(true, way->data[offset]);
         }
     }
 
     // if miss, send false and 0 out.
-    cout << "Cache miss!!! for address: " << address << endl;
+    // cout << "Cache miss!!! for address: " << address << endl;
     return pair<bool, uint64_t>(false, 0);
 }
 
 bool Cache::write(IncomingCacheStruct incoming) {
-    cout << this->name << ": Writing incoming cache entry: " << incoming << endl;
+    // cout << this->name << ": Writing incoming cache entry: " << incoming << endl;
     // extract tag, index, and offset from the address.
     uint64_t address = incoming.address;
     // unsigned int offset = address.to_ulong() & (0xFFFFFFFF >> (32- this->offsetbits)); // - unused
     unsigned int index = (address >> this->offsetbits) & (0xFFFFFFFF >> (32- this->indexbits));
     unsigned int tag = (address >> (this->offsetbits + this->indexbits)) & (0xFFFFFFFF >> (32 - this->tagbits));
-    cout << this->name << ": Incoming cache entry index: " << index << " tag: " << tag << endl;
+    // cout << this->name << ": Incoming cache entry index: " << index << " tag: " << tag << endl;
 
     // run through all the ways in the set = Array[index] and compare tag.
     // if there is a tag match, the data is already present in the cache.
@@ -84,39 +85,39 @@ bool Cache::write(IncomingCacheStruct incoming) {
     unsigned int highestBasePointer = 0;
     int wayWithHighestBasePointer = -1;
     int count = 0;
-    cout << this->name << " this->Array.size(): " << this->Array.size() << endl;
-    cout << "this->ways: " << this->ways << endl;
+    // cout << this->name << " this->Array.size(): " << this->Array.size() << endl;
+    // cout << "this->ways: " << this->ways << endl;
     for (unsigned int i = 0; i < this->ways; i++) {
     // for (auto way = this->Array[index].begin(); way != this->Array[index].end(); way++) {
         auto way = &this->Array[index][i];
-        cout << "In for loop 1 - count: " << count << " way->valid: " << way->valid << endl;
+        // cout << "In for loop 1 - count: " << count << " way->valid: " << way->valid << endl;
         if (way->valid) {
-            cout << "In if (way->valid) case. " << way->valid << endl;
+            // cout << "In if (way->valid) case. " << way->valid << endl;
             if (way->tag == tag) {
                 way->accessCount++;
                 if (incoming.basePointer < way->lowestBasePointer)
                     way->lowestBasePointer = incoming.basePointer;
-                cout << this->name << ": Cache entry already present in index: " << index << " way: " << count << endl;
-                cout << this->name << ": Cache entry: " << *way << endl;
+                // cout << this->name << ": Cache entry already present in index: " << index << " way: " << count << endl;
+                // cout << this->name << ": Cache entry: " << *way << endl;
                 return true; // data is already in cache. Cache hit on write.
             }
             else if (way->lowestBasePointer > highestBasePointer) {                
-                cout << "In else if (way->lowestBasePointer > highestBasePointer) case. " << way->lowestBasePointer << endl;
+                // cout << "In else if (way->lowestBasePointer > highestBasePointer) case. " << way->lowestBasePointer << endl;
                 wayWithHighestBasePointer = count;
                 highestBasePointer = way->lowestBasePointer;
             }
         }
         else if (!way->valid && firstEmptyWay == -1) {
-            cout << "In else if (!way->valid) case." << way->valid << endl;
+            // cout << "In else if (!way->valid) case." << way->valid << endl;
             firstEmptyWay = count;
             break;
         }
         count++;
     }
 
-    cout << this->name << ": firstEmptyWay: " << firstEmptyWay << endl;
-    cout << this->name << ": wayWithHighestBasePointer: " << wayWithHighestBasePointer << endl;
-    cout << this->name << ": highestBasePointer: " << highestBasePointer << endl;
+    // cout << this->name << ": firstEmptyWay: " << firstEmptyWay << endl;
+    // cout << this->name << ": wayWithHighestBasePointer: " << wayWithHighestBasePointer << endl;
+    // cout << this->name << ": highestBasePointer: " << highestBasePointer << endl;
 
     int chosenWay = -1;
     // if none of the tags match, look for an empty way in the set with valid = false.
@@ -131,7 +132,7 @@ bool Cache::write(IncomingCacheStruct incoming) {
         chosenWay = wayWithHighestBasePointer;
         
     if (chosenWay != -1) {
-        cout << this->name << ": Entry before: " << this->Array[index][chosenWay] << endl;
+        // cout << this->name << ": Entry before: " << this->Array[index][chosenWay] << endl;
         this->Array[index][chosenWay].tag = tag;
         this->Array[index][chosenWay].lowestBasePointer = incoming.basePointer;
         this->Array[index][chosenWay].accessCount = 0;
@@ -140,8 +141,8 @@ bool Cache::write(IncomingCacheStruct incoming) {
         else
             cout << "Cache: " << this->name << " - ERROR: incoming block size mismatch with the intended block size." << endl;
         this->Array[index][chosenWay].valid = true;
-        cout << this->name << ": Written in index: " << index << " way: " << chosenWay << endl;
-        cout << this->name << ": Written entry: " << this->Array[index][chosenWay] << endl;
+        // cout << this->name << ": Written in index: " << index << " way: " << chosenWay << endl;
+        // cout << this->name << ": Written entry: " << this->Array[index][chosenWay] << endl;
         return true;
     }
     

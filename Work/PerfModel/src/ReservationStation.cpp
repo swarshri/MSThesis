@@ -53,8 +53,8 @@ template <typename EntryType>
 void ReservationStation<EntryType>::setReadyState(int idx) {
     this->Entries[idx].Empty = false;
     this->Entries[idx].Ready = true;
-    cout << "RS: Ready state set at idx: " << idx << endl;
-    cout << this->Entries[idx] << endl;
+    // cout << "RS: Ready state set at idx: " << idx << endl;
+    // cout << this->Entries[idx] << endl;
 }
 
 template <typename EntryType>
@@ -71,7 +71,7 @@ void ReservationStation<EntryType>::flushScheduledEntries() {
             (*entry).Ready = false;
         // cout << "After Entry ready: " << (*entry).Ready << " empty: " << (*entry).Empty << endl;
     }
-    this->show(cout);
+    // this->show(cout);
 }
 
 template <typename EntryType>

@@ -18,7 +18,7 @@ bool StoreStage::isHalted() {
 }
 
 void StoreStage::step() {
-    cout << "----------------------- Store Stage step function --------------------------" << endl;
+    // cout << "----------------------- Store Stage step function --------------------------" << endl;
     if (!this->halted) {
         // TODO: use the new dramsim3
         pair<bool, StoreQueueEntry> nse = this->coreDU->getNextStore();

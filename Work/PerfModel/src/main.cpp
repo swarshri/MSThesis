@@ -130,8 +130,8 @@ int main(int argc, char * argv[]) {
 
         perf->step();
 
-        if (cycle_count == 1000)
-            CORE->halted = true;
+        // if (cycle_count == 1000)
+        //     CORE->halted = true;
     }
     perf->dump();
     SiMEM->output();

@@ -66,7 +66,7 @@ ReserveStage::ReserveStage(SysConfig * config, string base, string iodir, Perfor
     
     this->perf = perf;
     this->name = "RS_" + this->base;
-    cout << "RS: name: " << this->name << endl;
+    // cout << "RS: name: " << this->name << endl;
     vector<string> metrics{this->name + "_LowOccCacheHit", 
                            this->name + "_HighOccCacheHit"};
                         //    this->name + "_NumberOfLoadRequestsQueued",
@@ -81,11 +81,11 @@ void ReserveStage::connect(DispatchStage * du) {
 }
 
 void ReserveStage::step() {
-    cout << "----------------------- Reserve " << this->base << " Stage step function --------------------------" << endl;
+    // cout << "----------------------- Reserve " << this->base << " Stage step function --------------------------" << endl;
     if (this->pendingEmptyCRSIdcs.first) {
         for (int idx: this->pendingEmptyCRSIdcs.second) {
             this->setCRSEToEmptyState(idx);
-            cout << "RS: Setting CRS to Empty state at index: " << idx << endl;
+            // cout << "RS: Setting CRS to Empty state at index: " << idx << endl;
         }
         this->pendingEmptyCRSIdcs.second.clear();
         this->pendingEmptyCRSIdcs.first = false;
@@ -97,7 +97,7 @@ void ReserveStage::step() {
             bool lorh = get<1>(entry);
             uint64_t value = get<2>(entry);
             this->fillInCRS(idx, lorh, value);
-            cout << "RS: Filling in CRS data at index: " << idx << " with data: " << lorh << " " << value << endl;
+            // cout << "RS: Filling in CRS data at index: " << idx << " with data: " << lorh << " " << value << endl;
         }
         this->print();
         this->pendingCRSEntries.second.clear();
@@ -105,12 +105,12 @@ void ReserveStage::step() {
     }
 
     if (this->hasCache && this->pendingCacheInput.first) {
-        cout << "RS: Pending Cache input: " << this->pendingCacheInput.second << endl;
+        // cout << "RS: Pending Cache input: " << this->pendingCacheInput.second << endl;
         bool written = this->LocalCache->write(this->pendingCacheInput.second);
-        if (written)
-            cout << "RS: Written into Local Cache." << endl;
-        else
-            cout << "RS: Not stored in Local Cache." << endl;
+        // if (written)
+        //     cout << "RS: Written into Local Cache." << endl;
+        // else
+        //     cout << "RS: Not stored in Local Cache." << endl;
         this->pendingCacheInput.first = false;
     }
 
@@ -121,11 +121,11 @@ void ReserveStage::step() {
         pair<bool, DispatchQueueEntry> currentDispatch;
         if (this->pendingToBeReserved.first) {
             currentDispatch = this->pendingToBeReserved;
-            cout << "RS: Using dispatch from the pending to be reserved due to resource constraints." << endl;
+            // cout << "RS: Using dispatch from the pending to be reserved due to resource constraints." << endl;
         }
         else {
             currentDispatch = this->coreDU->popNextDispatch(this->base[0]);
-            cout << "RS: Getting new dispatch. currentDispatch.first: " << currentDispatch.first << endl;
+            // cout << "RS: Getting new dispatch. currentDispatch.first: " << currentDispatch.first << endl;
         }
 
         if (currentDispatch.first) {
@@ -185,18 +185,18 @@ void ReserveStage::step() {
                 if (this->LQ->getEmptyCount() >= newLoadRequests.size()) {
                     for (auto nlr = newLoadRequests.begin(); nlr != newLoadRequests.end(); nlr++) {
                         this->LQ->push(*nlr);
-                        // // cout << "RS: Pushed address: " << nlr->OccMemoryAddress << " into Load Queue." << endl;
-                        // // cout << "RS: Low or High: " << nlr->LowOrHigh << endl;
-                        if (!nlr->LowOrHigh)
-                            this->perf->record(this->cycle_count, this->name + "_LowOccLoadRequestQueued", to_string(nlr->OccMemoryAddress));
-                        else
-                            this->perf->record(this->cycle_count, this->name + "_HighOccLoadRequestQueued", to_string(nlr->OccMemoryAddress));
+                        // cout << "RS: Pushed address: " << nlr->OccMemoryAddress << " into Load Queue." << endl;
+                        // cout << "RS: Low or High: " << nlr->LowOrHigh << endl;
+                        // if (!nlr->LowOrHigh)
+                        //     this->perf->record(this->cycle_count, this->name + "_LowOccLoadRequestQueued", to_string(nlr->OccMemoryAddress));
+                        // else
+                        //     this->perf->record(this->cycle_count, this->name + "_HighOccLoadRequestQueued", to_string(nlr->OccMemoryAddress));
                     }
-                    // // cout << "RS: Updated Load Reservation Station with " << newLoadRequests.size() << " new Load Requests." << endl;
+                    // cout << "RS: Updated Load Reservation Station with " << newLoadRequests.size() << " new Load Requests." << endl;
                     // this->perf->record(this->cycle_count, this->name + "_NumberOfLoadRequestsQueued", to_string(newLoadRequests.size()));
 
                     this->CRS->fill(bitset<6>(nextCRSIdx), *newCRSEntry);
-                    // // cout << "RS: Added into Compute Reservation Station at index: " << nextCRSIdx << endl;
+                    // cout << "RS: Added into Compute Reservation Station at index: " << nextCRSIdx << endl;
                     // this->perf->record(this->cycle_count, this->name + "_AllocatedCRSEntryNumber", to_string(nextCRSIdx));
                     if (newLoadRequests.size() > 0)
                         this->CRS->setScheduledState(nextCRSIdx);
@@ -225,9 +225,9 @@ void ReserveStage::step() {
     else
         cout << "RS: Halted" << endl;
     
-    cout << "RS: recording low cache hit: " << perf_lowocccachehit << endl;
+    // cout << "RS: recording low cache hit: " << perf_lowocccachehit << endl;
     this->perf->record(this->cycle_count, this->name + "_LowOccCacheHit", perf_lowocccachehit);
-    cout << "RS: recording high cache hit: " << perf_highocccachehit << endl;
+    // cout << "RS: recording high cache hit: " << perf_highocccachehit << endl;
     this->perf->record(this->cycle_count, this->name + "_HighOccCacheHit", perf_highocccachehit);
 
     this->cycle_count++;
