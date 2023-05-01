@@ -19,11 +19,6 @@
 
 using namespace std;
 
-template<int alen, int dlen>
-void createMem(string name, string ioDir, string configName, SysConfig* config, DRAMW<alen, dlen>* retObj) {
-    retObj = new DRAMW<alen, dlen>(name, ioDir, config->children[configName], config->children["Core"], true);
-}
-
 int main(int argc, char * argv[]) {
     string confFilePath = "";
     string refPath = "";
@@ -55,7 +50,7 @@ int main(int argc, char * argv[]) {
         cout << "OP Directory: " << opDir << endl;
     }
     else {
-        cout << "Invalid number of arguments." << endl;
+        cout << "Invalid number of arguments: " << argc << endl;
         cout << "Expected path containing the config file, the reference (bwt and sa) and read file paths, and the directory path for the output in order." << endl;
         cout << "Machine stopped." << endl;
         return -1;
@@ -72,14 +67,14 @@ int main(int argc, char * argv[]) {
     
     Reads * ReadsObj = new Reads(readPath);
 
-    SeedMemory<32, 64> * SdMEM = new SeedMemory<32, 64>("SdMEM", opDir, config->children["SeedMemory"], config->children["Core"]);
+    SeedMemory * SdMEM = new SeedMemory("SdMEM", opDir, config->children["SeedMemory"], config->children["Core"]);
     SdMEM->input(ReadsObj);
 
-    map<char, OccMemory<32, 32>*> OcMEMs;
-    OcMEMs['A'] = new OccMemory<32, 32>("A", opDir, config->children["OccMemory"], config->children["Core"]);
-    OcMEMs['C'] = new OccMemory<32, 32>("C", opDir, config->children["OccMemory"], config->children["Core"]);
-    OcMEMs['G'] = new OccMemory<32, 32>("G", opDir, config->children["OccMemory"], config->children["Core"]);
-    OcMEMs['T'] = new OccMemory<32, 32>("T", opDir, config->children["OccMemory"], config->children["Core"]);
+    map<char, OccMemory*> OcMEMs;
+    OcMEMs['A'] = new OccMemory("A", opDir, config->children["OccMemory"], config->children["Core"]);
+    OcMEMs['C'] = new OccMemory("C", opDir, config->children["OccMemory"], config->children["Core"]);
+    OcMEMs['G'] = new OccMemory("G", opDir, config->children["OccMemory"], config->children["Core"]);
+    OcMEMs['T'] = new OccMemory("T", opDir, config->children["OccMemory"], config->children["Core"]);
 
     for (auto ocm: OcMEMs)
         ocm.second->input(RefObj);
@@ -88,8 +83,8 @@ int main(int argc, char * argv[]) {
     int pos2 = confFilePath.find_last_of('.');
     string confName = confFilePath.substr(pos1 + 1, pos2 - pos1 - 1);
     cout << "confName: " << confName << endl;
-    DRAMW<32, 64> * SiMEM = new DRAMW<32, 64>("SiMEM_"+confName, opDir, config->children["SIMemory"], config->children["Core"], false);
-    SiMEM->allocate();
+    SiMemory * SiMEM = new SiMemory("SiMEM_"+confName, opDir, config->children["SIMemory"], config->children["Core"]);
+    // SiMEM->allocate();
 
     // int pauseip;
     // cout << "Pause for input: ";

@@ -14,20 +14,20 @@ Core::Core(string id, string ioDir, SysConfig * config, PerformanceRecorder * pe
     
 //     mem.open(ioDir + filename);
 
-//     vector<bitset<32>> coremem;
+//     vector<uint64_t> coremem;
 //     if (mem.is_open()) {
 //         while (getline(mem, line)) {
 //             line = line.substr(0, line.find(' '));
-//             coremem.push_back(bitset<32>(line));
+//             coremem.push_back(uint64_t(line));
 //         }
 //         mem.close();
 //     }
 //     else cout<<"Unable to open input file for Core " << this->id << ": " << ioDir + filename << endl;
 
-    bitset<32> referenceCountVal = bitset<32>(ref->get_seqLen());
-    vector<bitset<32>> counts;
+    uint64_t referenceCountVal = ref->get_seqLen();
+    vector<uint64_t> counts;
     for (int i = 0; i < 4; i++)
-        counts.push_back(bitset<32>(ref->getCount(i)));
+        counts.push_back(ref->getCount(i));
 
     this->FU = new FetchStage(config->children["FetchStage"], ioDir, referenceCountVal);
 
@@ -69,7 +69,7 @@ Core::Core(string id, string ioDir, SysConfig * config, PerformanceRecorder * pe
     this->cyclecnt = 0; 
 }
 
-void Core::connect(SeedMemory<32, 64> * sdmem, map<char, OccMemory<32, 32>*> ocmem, DRAMW<32, 64> * simem) {
+void Core::connect(SeedMemory * sdmem, map<char, OccMemory*> ocmem, SiMemory * simem) {
     this->FU->connectDRAM(sdmem);
 
     this->LUA->connectDRAM(ocmem['A']);

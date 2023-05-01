@@ -1,6 +1,6 @@
 #include<Compute.h>
 
-ComputeStage::ComputeStage(SysConfig * config, string base, string iodir, bitset<32> countVal) {
+ComputeStage::ComputeStage(SysConfig * config, string base, string iodir, uint64_t countVal) {
     this->base = base;
     this->halted = false;
     this->cycle_count = 0;
@@ -20,16 +20,17 @@ bool ComputeStage::isHalted() {
 void ComputeStage::step() {
     cout << "----------------------- Compute " << this->base << " Stage step function --------------------------" << endl;
     if (!this->halted) {
+        this->coreRU->print();
         pair<int, CRSEntry> nce = this->coreRU->getNextComputeEntry();
         if (nce.first != -1) {
             // cout << "Count reg value: " << this->CountReg << endl;
-            bitset<32> lowResult = bitset<32>(this->CountReg.to_ulong() + nce.second.LowOcc.to_ulong());
-            bitset<32> highResult = bitset<32>(this->CountReg.to_ulong() + nce.second.HighOcc.to_ulong());
-            this->coreFU->writeBack(nce.second.SRSWBIndex.to_ulong(), lowResult, highResult);
+            uint64_t lowResult = this->CountReg + nce.second.LowOcc;
+            uint64_t highResult = this->CountReg + nce.second.HighOcc;
+            this->coreFU->writeBack(nce.second.SRSWBIndex, lowResult, highResult);
             // cout << "CS: Write Back scheduled into FS SRS at Index: " << nce.second.SRSWBIndex << " LowResult: " << lowResult << endl;
             // cout << "CS: Write Back scheduled into FS SRS at Index: " << nce.second.SRSWBIndex << " HighResult: " << highResult << endl;
             this->coreRU->scheduleToSetCRSEToEmptyState(nce.first);
-            // cout << "CS: Scheduling to set Empty State in RS CRS at Index: " << nce.first << endl;
+            cout << "CS: Scheduling to set Empty State in RS CRS at Index: " << nce.first << endl;
         }
         else if (this->coreRU->isHalted())
             this->halted = true;

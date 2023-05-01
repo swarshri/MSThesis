@@ -13,7 +13,7 @@ using namespace std;
 #ifndef DRAMW_H
 #define DRAMW_H
 
-template <int dlen>
+template<class dtype = uint64_t>
 struct PMAEntry { //:RSEntry { // PMA stands for Pending Memory Access.
     // this is not really a ReservationStation entry.
     // But it is convenient to model it this way.
@@ -21,7 +21,7 @@ struct PMAEntry { //:RSEntry { // PMA stands for Pending Memory Access.
     uint64_t AccessAddress;
     int64_t RequestCoreClock;
     int64_t DoneCoreClock;
-    vector<bitset<dlen>> Data;
+    vector<dtype> Data;
     int32_t RequestID; // This is unused for Write Requests. // For read requests use this to determine if the writeback has finished too.
     bool BurstMode;
 
@@ -35,10 +35,10 @@ struct PMAEntry { //:RSEntry { // PMA stands for Pending Memory Access.
     }
 };
 
-template<int alen, int dlen>
+template<class dtype = uint64_t>
 class DRAMW {
     public:
-        vector<bitset<dlen>> lastReadData;
+        vector<dtype> lastReadData;
         bool readDone = false;
         bool writeDone = false;
 
@@ -47,9 +47,9 @@ class DRAMW {
         void input();
         void output();
 
-        bool willAcceptRequest(bitset<alen>, bool);
-        bool readRequest(bitset<alen>, uint32_t = 0, bool = false);
-        bool writeRequest(bitset<alen>, vector<bitset<dlen>>, bool = false);
+        bool willAcceptRequest(uint64_t, bool);
+        bool readRequest(uint64_t, int = 0, bool = false);
+        bool writeRequest(uint64_t, vector<dtype>, bool = false);
         void ReadCompleteHandler(uint64_t);
         void WriteCompleteHandler(uint64_t);
 
@@ -59,12 +59,12 @@ class DRAMW {
 
         int getChannelWidth();
 
-        pair<bool, vector<PMAEntry<dlen>>> getNextWriteBack();
+        pair<bool, vector<PMAEntry<dtype>>> getNextWriteBack();
 
         void printStats();
 
     protected:
-        vector<bitset<dlen>> MEM;
+        vector<dtype> MEM;
         Reference * refptr;
         Reads * readptr;
 
@@ -77,12 +77,12 @@ class DRAMW {
         bool readonly;
         string dataIODir;
 
-        bitset<alen> nextReadAddress;
+        uint64_t nextReadAddress;
         int readWaitCycles;
         bool readPending;
 
-        bitset<alen> nextWriteAddress;
-        vector<bitset<dlen>> nextWriteData;
+        uint64_t nextWriteAddress;
+        vector<dtype> nextWriteData;
         int writeWaitCycles;
         bool writePending;
         
@@ -90,8 +90,8 @@ class DRAMW {
         uint16_t memSysClockTriggerConst, clkTriggerCount;
         int64_t clk;
 
-        vector<PMAEntry<dlen>*> pendingReads;
-        vector<PMAEntry<dlen>*> pendingWrites;
+        vector<PMAEntry<dtype>*> pendingReads;
+        vector<PMAEntry<dtype>*> pendingWrites;
         // Doesn't mean this requires a hardware Reservation Station structure.
         // Modeling it this way for convenience and reuse the behaviour.
         //ReservationStation<PMAEntry> pendingReads;
@@ -101,31 +101,6 @@ class DRAMW {
         // is a structure with pre-configured number of elements.
         // That is not how we want the pending memory accesses to be.
         // And using that here will require more changes to the ReservationStation class.
-};
-
-template<int alen, int dlen>
-class SeedMemory: public DRAMW<alen, dlen> {
-    public:
-        SeedMemory(string, string, SysConfig *, SysConfig *);
-        void input(Reads *);
-        void ReadCompleteHandler(uint64_t);
-        void WriteCompleteHandler(uint64_t);
-
-    private:
-        Reads * READS;
-};
-
-template<int alen, int dlen>
-class OccMemory: public DRAMW<alen, dlen> {
-    public:
-        OccMemory(string, string, SysConfig *, SysConfig *);
-        void input(Reference *);
-        void ReadCompleteHandler(uint64_t);
-        void WriteCompleteHandler(uint64_t);
-
-    private:
-        string base;
-        Reference * REF;
 };
 
 #include <../src/DRAMWrapper.cpp>

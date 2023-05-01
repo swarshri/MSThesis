@@ -9,7 +9,7 @@
 
 class ComputeStage {
     public:
-        ComputeStage(SysConfig *, string, string, bitset<32>);
+        ComputeStage(SysConfig *, string, string, uint64_t);
 
         void connect(ReserveStage *, FetchStage *);
         bool isHalted();
@@ -22,7 +22,7 @@ class ComputeStage {
 
         ReserveStage * coreRU;
         FetchStage * coreFU;
-        bitset<32> CountReg;
+        uint64_t CountReg;
 };
 
 #endif

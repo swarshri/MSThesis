@@ -8,14 +8,14 @@ ComputeReservationStation::ComputeReservationStation(string name, SysConfig * co
     }
 }
 
-void ComputeReservationStation::fillLowOccVal(int idx, bitset<32> data) {
+void ComputeReservationStation::fillLowOccVal(int idx, uint64_t data) {
     this->Entries[idx].LowOcc = data;
     this->Entries[idx].LowOccReady = true;
     if (this->Entries[idx].HighOccReady)
         this->setReadyState(idx);
 }
 
-void ComputeReservationStation::fillHighOccVal(int idx, bitset<32> data) {
+void ComputeReservationStation::fillHighOccVal(int idx, uint64_t data) {
     this->Entries[idx].HighOcc = data;
     this->Entries[idx].HighOccReady = true;
     if (this->Entries[idx].LowOccReady)
@@ -85,7 +85,7 @@ void ReserveStage::step() {
     if (this->pendingEmptyCRSIdcs.first) {
         for (int idx: this->pendingEmptyCRSIdcs.second) {
             this->setCRSEToEmptyState(idx);
-            // cout << "RS: Setting CRS to Empty state at index: " << idx << endl;
+            cout << "RS: Setting CRS to Empty state at index: " << idx << endl;
         }
         this->pendingEmptyCRSIdcs.second.clear();
         this->pendingEmptyCRSIdcs.first = false;
@@ -95,9 +95,9 @@ void ReserveStage::step() {
         for (auto entry: this->pendingCRSEntries.second) {
             int idx = get<0>(entry);
             bool lorh = get<1>(entry);
-            bitset<32> value = get<2>(entry);
+            uint64_t value = get<2>(entry);
             this->fillInCRS(idx, lorh, value);
-            // cout << "RS: Filling in CRS data at index: " << idx << " with data: " << lorh << " " << value << endl;
+            cout << "RS: Filling in CRS data at index: " << idx << " with data: " << lorh << " " << value << endl;
         }
         this->print();
         this->pendingCRSEntries.second.clear();
@@ -105,12 +105,12 @@ void ReserveStage::step() {
     }
 
     if (this->hasCache && this->pendingCacheInput.first) {
-        // cout << "RS: Pending Cache input: " << this->pendingCacheInput.second << endl;
+        cout << "RS: Pending Cache input: " << this->pendingCacheInput.second << endl;
         bool written = this->LocalCache->write(this->pendingCacheInput.second);
-        // if (written)
-            // cout << "RS: Written into Local Cache." << endl;
-        // else
-            // cout << "RS: Not stored in Local Cache." << endl;
+        if (written)
+            cout << "RS: Written into Local Cache." << endl;
+        else
+            cout << "RS: Not stored in Local Cache." << endl;
         this->pendingCacheInput.first = false;
     }
 
@@ -121,11 +121,11 @@ void ReserveStage::step() {
         pair<bool, DispatchQueueEntry> currentDispatch;
         if (this->pendingToBeReserved.first) {
             currentDispatch = this->pendingToBeReserved;
-            // cout << "RS: Using dispatch from the pending to be reserved due to resource constraints." << endl;
+            cout << "RS: Using dispatch from the pending to be reserved due to resource constraints." << endl;
         }
         else {
-            currentDispatch = this->coreDU->popNextDispatch(this->base_num);
-            // cout << "RS: Getting new dispatch. currentDispatch.first: " << currentDispatch.first << endl;
+            currentDispatch = this->coreDU->popNextDispatch(this->base[0]);
+            cout << "RS: Getting new dispatch. currentDispatch.first: " << currentDispatch.first << endl;
         }
 
         if (currentDispatch.first) {
@@ -133,22 +133,22 @@ void ReserveStage::step() {
             newCRSEntry->LowOccReady = true;
             newCRSEntry->HighOccReady = true;
 
-            pair<bool, bitset<32>> cacheHitLowData;
-            pair<bool, bitset<32>> cacheHitHighData;
+            pair<bool, uint64_t> cacheHitLowData;
+            pair<bool, uint64_t> cacheHitHighData;
             if (this->hasCache) {
                 cacheHitLowData = this->LocalCache->read(currentDispatch.second.LowPointer);
                 cacheHitHighData = this->LocalCache->read(currentDispatch.second.HighPointer);
             }
             else {
-                cacheHitLowData = pair<bool, bitset<32>>(false, bitset<32>(0));
-                cacheHitHighData = pair<bool, bitset<32>>(false, bitset<32>(0));
+                cacheHitLowData = pair<bool, uint64_t>(false, 0);
+                cacheHitHighData = pair<bool, uint64_t>(false, 0);
             }
 
             if (cacheHitLowData.first)
                 newCRSEntry->LowOcc = cacheHitLowData.second;
             else {
                 newCRSEntry->LowOccReady = false;
-                newCRSEntry->LowOcc = bitset<32>(0);
+                newCRSEntry->LowOcc = 0;
             }
             perf_lowocccachehit = to_string(cacheHitLowData.first);
 
@@ -156,7 +156,7 @@ void ReserveStage::step() {
                 newCRSEntry->HighOcc = cacheHitHighData.second;
             else {
                 newCRSEntry->HighOccReady = false;
-                newCRSEntry->HighOcc = bitset<32>(0);
+                newCRSEntry->HighOcc = 0;
             }            
             perf_highocccachehit = to_string(cacheHitHighData.first);
 
@@ -188,9 +188,9 @@ void ReserveStage::step() {
                         // // cout << "RS: Pushed address: " << nlr->OccMemoryAddress << " into Load Queue." << endl;
                         // // cout << "RS: Low or High: " << nlr->LowOrHigh << endl;
                         if (!nlr->LowOrHigh)
-                            this->perf->record(this->cycle_count, this->name + "_LowOccLoadRequestQueued", nlr->OccMemoryAddress.to_string());
+                            this->perf->record(this->cycle_count, this->name + "_LowOccLoadRequestQueued", to_string(nlr->OccMemoryAddress));
                         else
-                            this->perf->record(this->cycle_count, this->name + "_HighOccLoadRequestQueued", nlr->OccMemoryAddress.to_string());
+                            this->perf->record(this->cycle_count, this->name + "_HighOccLoadRequestQueued", to_string(nlr->OccMemoryAddress));
                     }
                     // // cout << "RS: Updated Load Reservation Station with " << newLoadRequests.size() << " new Load Requests." << endl;
                     // this->perf->record(this->cycle_count, this->name + "_NumberOfLoadRequestsQueued", to_string(newLoadRequests.size()));
@@ -267,15 +267,15 @@ void ReserveStage::scheduleToSetCRSEToEmptyState(int idx) {
     this->pendingEmptyCRSIdcs.first = true;
 }
 
-void ReserveStage::fillInCRS(int idx, bool high, bitset<32> dataVal) {
+void ReserveStage::fillInCRS(int idx, bool high, uint64_t dataVal) {
     if (high)
         this->CRS->fillHighOccVal(idx, dataVal);
     else
         this->CRS->fillLowOccVal(idx, dataVal);
 }
 
-void ReserveStage::scheduleToFillInCRS(int idx, bool high, bitset<32> dataVal) {
-    this->pendingCRSEntries.second.push_back(tuple<int, bool, bitset<32>>(idx, high, dataVal));
+void ReserveStage::scheduleToFillInCRS(int idx, bool high, uint64_t dataVal) {
+    this->pendingCRSEntries.second.push_back(tuple<int, bool, uint64_t>(idx, high, dataVal));
     this->pendingCRSEntries.first = true;
 }
 

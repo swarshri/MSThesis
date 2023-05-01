@@ -2,10 +2,11 @@
 
 DispatchStage::DispatchStage(SysConfig* config, string iodir) {
     this->dispatchScheme = config->parameters["DispatchScheme"];
-    map<int, string> baseQName = {{0, "DispatchAQ"}, {1, "DispatchCQ"}, {2, "DispatchGQ"}, {3, "DispatchTQ"}};
-    for (int i = 0; i < 4; i++) {
-        SysConfig * cfg = config->children[baseQName[i]];
-        this->DispatchQueues[i] = new Queue<DispatchQueueEntry>(cfg);
+    vector<string> disqs = {"DispatchAQ", "DispatchCQ", "DispatchGQ", "DispatchTQ"};
+    for (string cfg_name: disqs) {
+        char base = cfg_name[8];
+        SysConfig * cfg = config->children[cfg_name];
+        this->DispatchQueues[base] = new Queue<DispatchQueueEntry>(cfg);
     }
     this->StoreQueue = new Queue<StoreQueueEntry>(config->children["StoreQ"]);
     
@@ -63,12 +64,14 @@ void DispatchStage::dispatchSequential(int count) {
         cout << "Seed Address: " << nre.second.SeedAddress << endl;
         // cout << "Seed: " << nre.second.Seed << endl;
         // cout << "BP: " << nre.second.BasePointer << endl;
-        bitset<3> base = bitset<3>((nre.second.Seed.to_ulong() >> nre.second.BasePointer.to_ulong()) & 7);
-        // cout << "Base: " << base << endl;
-        if (base == bitset<3>(7) || nre.second.StoreFlag) {
+        unsigned int idx = nre.second.Seed.size() - 1 - nre.second.BasePointer;
+        char base = nre.second.Seed[idx];
+        cout << "Idx: " << idx << " Base: " << base << endl;
+        if (base == 'E' || nre.second.StoreFlag) {
             StoreQueueEntry newStoreQueueEntry;
             newStoreQueueEntry.StoreAddress = nre.second.SeedAddress;
-            newStoreQueueEntry.StoreVal = bitset<64>((nre.second.LowPointer.to_ulong() << 32) + nre.second.HighPointer.to_ulong());
+            newStoreQueueEntry.StoreValLow = nre.second.LowPointer;
+            newStoreQueueEntry.StoreValHigh = nre.second.HighPointer;
             this->StoreQueue->push(newStoreQueueEntry);
             cout << "DS: Queued into Store Queue." << endl;
             this->StoreQueue->show(cout);
@@ -76,23 +79,23 @@ void DispatchStage::dispatchSequential(int count) {
             // Reset SRS Entry status to Empty.
             this->coreFU->scheduleToSetEmptyState(nre.first);
             cout << "Setting SRS entry at " << nre.first << " to empty state." << endl;
-            // this->coreFU->print();
-            // cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
+            this->coreFU->print();
+            cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
         }
         //if base queue has space, schedule it and update the SRS entry state.
-        else if (!this->DispatchQueues[base.to_ulong()]->isFull()) {
+        else if (!this->DispatchQueues[base]->isFull()) {
             DispatchQueueEntry dispatchNewEntry;
-            dispatchNewEntry.base = bitset<2>(base.to_ulong() & 3);
+            dispatchNewEntry.base = base;
             dispatchNewEntry.LowPointer = nre.second.LowPointer;
             dispatchNewEntry.HighPointer = nre.second.HighPointer;
-            dispatchNewEntry.SRSWBIndex = bitset<6>(nre.first);
+            dispatchNewEntry.SRSWBIndex = nre.first;
             dispatchNewEntry.BasePointer = nre.second.BasePointer;
-            this->DispatchQueues[base.to_ulong()]->push(dispatchNewEntry);
+            this->DispatchQueues[base]->push(dispatchNewEntry);
 
             this->coreFU->setInProgress(nre.first);
-            // cout << "DS: Queued into Dispatch <" << base << "> Queue." << endl;
-            // this->DispatchQueues[base.to_ulong()]->show(cout);
-            //this->print();
+            cout << "DS: Queued into Dispatch <" << base << "> Queue." << endl;
+            this->DispatchQueues[base]->show(cout);
+            this->print();
         }
         else {
             // Right now, nothing - wait until the queue has vacancy. This could mean that the entire pipeline will
@@ -135,7 +138,7 @@ void DispatchStage::step() {
         cout << "DS: Halted" << endl;
 }
 
-pair<bool, DispatchQueueEntry> DispatchStage::popNextDispatch(int base) {
+pair<bool, DispatchQueueEntry> DispatchStage::popNextDispatch(char base) {
     // cout << "Pop next dispatch for base: " << base << " is Queue empty? " << this->DispatchQueues[base]->isEmpty() << endl;
     if (!this->DispatchQueues[base]->isEmpty())
         return pair<bool, DispatchQueueEntry>(true, this->DispatchQueues[base]->pop());
@@ -149,7 +152,7 @@ pair<bool, StoreQueueEntry> DispatchStage::popNextStore() {
     return pair<bool, StoreQueueEntry>(false, *(new StoreQueueEntry));
 }
 
-pair<bool, DispatchQueueEntry> DispatchStage::getNextDispatch(int base) {
+pair<bool, DispatchQueueEntry> DispatchStage::getNextDispatch(char base) {
     // cout << "Pop next dispatch for base: " << base << " is Queue empty? " << this->DispatchQueues[base]->isEmpty() << endl;
     if (!this->DispatchQueues[base]->isEmpty())
         return pair<bool, DispatchQueueEntry>(true, this->DispatchQueues[base]->next());

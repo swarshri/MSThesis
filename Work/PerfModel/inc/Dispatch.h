@@ -15,11 +15,11 @@ enum DispatchScheme {
 };
 
 struct DispatchQueueEntry {
-    bitset<2> base; // Seems unnecessary without the prefetcher. Will need more bits for prefetcher though.
-    bitset<32> LowPointer;
-    bitset<32> HighPointer;
-    bitset<6> SRSWBIndex;
-    bitset<6> BasePointer;
+    char base = '0'; // Seems unnecessary without the prefetcher. Will need more bits for prefetcher though.
+    uint64_t LowPointer;
+    uint64_t HighPointer;
+    int SRSWBIndex;
+    int BasePointer;
 
     friend std::ostream& operator <<(std::ostream& os, const DispatchQueueEntry& dqe) {
         os << dqe.base << "\t" << dqe.LowPointer << "\t" << dqe.HighPointer << "\t" << dqe.SRSWBIndex << "\t" << dqe.BasePointer;
@@ -28,11 +28,12 @@ struct DispatchQueueEntry {
 };
 
 struct StoreQueueEntry {
-    bitset<32> StoreAddress;
-    bitset<64> StoreVal;
+    uint64_t StoreAddress;
+    uint64_t StoreValLow;
+    uint64_t StoreValHigh;
 
     friend std::ostream& operator <<(std::ostream& os, const StoreQueueEntry& sqe) {
-        os << sqe.StoreAddress << "\t" << sqe.StoreVal;
+        os << sqe.StoreAddress << "\t" << sqe.StoreValLow << "\t" << sqe.StoreValHigh;
         return os;
     }
 };
@@ -49,9 +50,9 @@ class DispatchStage {
         void step();
 
         // API methods for getting from internal queues.
-        pair<bool, DispatchQueueEntry> popNextDispatch(int);
+        pair<bool, DispatchQueueEntry> popNextDispatch(char);
         pair<bool, StoreQueueEntry> popNextStore();
-        pair<bool, DispatchQueueEntry> getNextDispatch(int);
+        pair<bool, DispatchQueueEntry> getNextDispatch(char);
         pair<bool, StoreQueueEntry> getNextStore();
 
     private:
@@ -67,7 +68,7 @@ class DispatchStage {
         FetchStage * coreFU;
 
         // PRINT - Registers/Sequential logic that changes at clock trigger.
-        map<int, Queue<DispatchQueueEntry>*> DispatchQueues;
+        map<char, Queue<DispatchQueueEntry>*> DispatchQueues;
         Queue<StoreQueueEntry> * StoreQueue;
 
         // Dispatch Output file

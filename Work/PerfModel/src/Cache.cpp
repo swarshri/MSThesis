@@ -18,12 +18,12 @@ Cache::Cache(string base, SysConfig* config) {
         vector<CacheStruct> newSet;
         for (unsigned int j = 0; j < this->ways; j++) {
             CacheStruct newBlock;
-            newBlock.tag = bitset<32>(0);
-            newBlock.lowestBasePointer = bitset<6>(64); // Keeping it at the highest until the first write happens.
+            newBlock.tag = 0;
+            newBlock.lowestBasePointer = 21; // Keeping it at the highest until the first write happens.
             newBlock.accessCount = 0;
-            vector<bitset<32>> newData;
+            vector<uint64_t> newData;
             for (unsigned int k = 0; k < this->blocksize; k++)
-                newData.push_back(bitset<32>(0));
+                newData.push_back(0);
             newBlock.data = newData;
             newBlock.valid = false;
 
@@ -38,15 +38,15 @@ Cache::Cache(string base, SysConfig* config) {
     cout << "In Cache constructor: " << base << " finished construction: " << this->Array.size() << endl;
 }
 
-pair<bool, bitset<32>> Cache::read(bitset<32> address) {
+pair<bool, uint64_t> Cache::read(uint64_t address) {
     // extract tag, index, and offset from the address.
-    unsigned int offset;
+    uint64_t offset;
     if (this->offsetbits == 0)
         offset = 0;
     else
-        offset = address.to_ulong() & (0xFFFFFFFF >> (32 - this->offsetbits));
-    unsigned int index = (address.to_ulong() >> this->offsetbits) & (0xFFFFFFFF >> (32- this->indexbits));
-    unsigned int tag = (address.to_ulong() >> (this->offsetbits + this->indexbits));
+        offset = address & (0xFFFFFFFF >> (32 - this->offsetbits));
+    unsigned int index = (address >> this->offsetbits) & (0xFFFFFFFF >> (32- this->indexbits));
+    unsigned int tag = (address >> (this->offsetbits + this->indexbits));
 
     cout << "Read Index: " << index << " Tag: " << tag  << " Offset: " << offset << endl;
     // get all ways in the set = Array[index].
@@ -54,25 +54,25 @@ pair<bool, bitset<32>> Cache::read(bitset<32> address) {
     // data never gets written, the blocks only get replaced by other more useful blocks after being loaded from memory.
     for (unsigned int i = 0; i < this->ways; i++) {
         auto way = &this->Array[index][i];
-        if (way->valid && way->tag.to_ulong() == tag) { // if hit, send the data out.
+        if (way->valid && way->tag == tag) { // if hit, send the data out.
             cout << "Cache hit!!! for address: " << address << endl;
             cout << "Hit cache data: " << way->data[offset] << endl;
-            return pair<bool, bitset<32>>(true, way->data[offset]);
+            return pair<bool, uint64_t>(true, way->data[offset]);
         }
     }
 
     // if miss, send false and 0 out.
     cout << "Cache miss!!! for address: " << address << endl;
-    return pair<bool, bitset<32>>(false, bitset<32>(0));
+    return pair<bool, uint64_t>(false, 0);
 }
 
 bool Cache::write(IncomingCacheStruct incoming) {
     cout << this->name << ": Writing incoming cache entry: " << incoming << endl;
     // extract tag, index, and offset from the address.
-    bitset<32> address = incoming.address;
+    uint64_t address = incoming.address;
     // unsigned int offset = address.to_ulong() & (0xFFFFFFFF >> (32- this->offsetbits)); // - unused
-    unsigned int index = (address.to_ulong() >> this->offsetbits) & (0xFFFFFFFF >> (32- this->indexbits));
-    unsigned int tag = (address.to_ulong() >> (this->offsetbits + this->indexbits)) & (0xFFFFFFFF >> (32 - this->tagbits));
+    unsigned int index = (address >> this->offsetbits) & (0xFFFFFFFF >> (32- this->indexbits));
+    unsigned int tag = (address >> (this->offsetbits + this->indexbits)) & (0xFFFFFFFF >> (32 - this->tagbits));
     cout << this->name << ": Incoming cache entry index: " << index << " tag: " << tag << endl;
 
     // run through all the ways in the set = Array[index] and compare tag.
@@ -92,18 +92,18 @@ bool Cache::write(IncomingCacheStruct incoming) {
         cout << "In for loop 1 - count: " << count << " way->valid: " << way->valid << endl;
         if (way->valid) {
             cout << "In if (way->valid) case. " << way->valid << endl;
-            if (way->tag.to_ulong() == tag) {
+            if (way->tag == tag) {
                 way->accessCount++;
-                if (incoming.basePointer.to_ulong() < way->lowestBasePointer.to_ulong())
+                if (incoming.basePointer < way->lowestBasePointer)
                     way->lowestBasePointer = incoming.basePointer;
                 cout << this->name << ": Cache entry already present in index: " << index << " way: " << count << endl;
                 cout << this->name << ": Cache entry: " << *way << endl;
                 return true; // data is already in cache. Cache hit on write.
             }
-            else if (way->lowestBasePointer.to_ulong() > highestBasePointer) {                
+            else if (way->lowestBasePointer > highestBasePointer) {                
                 cout << "In else if (way->lowestBasePointer > highestBasePointer) case. " << way->lowestBasePointer << endl;
                 wayWithHighestBasePointer = count;
-                highestBasePointer = way->lowestBasePointer.to_ulong();
+                highestBasePointer = way->lowestBasePointer;
             }
         }
         else if (!way->valid && firstEmptyWay == -1) {
@@ -132,7 +132,7 @@ bool Cache::write(IncomingCacheStruct incoming) {
         
     if (chosenWay != -1) {
         cout << this->name << ": Entry before: " << this->Array[index][chosenWay] << endl;
-        this->Array[index][chosenWay].tag = bitset<32>(tag);
+        this->Array[index][chosenWay].tag = tag;
         this->Array[index][chosenWay].lowestBasePointer = incoming.basePointer;
         this->Array[index][chosenWay].accessCount = 0;
         if (incoming.data.size() == this->Array[index][chosenWay].data.size())

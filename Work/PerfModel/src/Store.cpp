@@ -9,7 +9,7 @@ void StoreStage::connectDU(DispatchStage * du)  {
     this->coreDU = du;
 }
 
-void StoreStage::connectDRAM(DRAMW<32, 64> * simem) {
+void StoreStage::connectDRAM(SiMemory * simem) {
     this->SIMEM = simem;
 }
 
@@ -27,8 +27,8 @@ void StoreStage::step() {
         // // cout << "SS: this->SIMEM->isFree(true): " << this->SIMEM->isFree(true) << endl;
         if (nse.first) {
             if (this->SIMEM->willAcceptRequest(nse.second.StoreAddress, true)) {
-                vector<bitset<64>> storeVals;
-                storeVals.push_back(nse.second.StoreVal);
+                vector<vector<uint64_t>> storeVals;
+                storeVals.push_back({nse.second.StoreValLow, nse.second.StoreValHigh});
                 bool writeReqSuccess = this->SIMEM->writeRequest(nse.second.StoreAddress, storeVals);
                 if (writeReqSuccess) {
                     // cout << "SS: Successfully sent Write request to address: " << nse.second.StoreAddress << endl;

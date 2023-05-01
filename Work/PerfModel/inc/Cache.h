@@ -11,9 +11,9 @@ using namespace std;
 #define CACHE_H
 
 struct IncomingCacheStruct {
-    bitset<32> address;
-    bitset<6> basePointer;
-    vector<bitset<32>> data;
+    uint64_t address;
+    int basePointer;
+    vector<uint64_t> data;
 
     friend std::ostream& operator <<(std::ostream& os, IncomingCacheStruct const& e) {
         return os << e.address << "\t"
@@ -23,10 +23,10 @@ struct IncomingCacheStruct {
 };
 
 struct CacheStruct {
-    bitset<32> tag; // all 32 will never be used. Using the max to not make this a template.
-    bitset<6> lowestBasePointer;
+    uint64_t tag; // all 32 will never be used. Using the max to not make this a template.
+    int lowestBasePointer;
     unsigned int accessCount; // keeps a count of how many times this has been accessed before.
-    vector<bitset<32>> data; // length = blocksize - usually 1 because there is no spatial locality with the current data layout in OccMemory.
+    vector<uint64_t> data; // length = blocksize - usually 1 because there is no spatial locality with the current data layout in OccMemory.
     bool valid;
 
     friend std::ostream& operator <<(std::ostream& os, CacheStruct const& e) {
@@ -42,7 +42,7 @@ class Cache {
     public:
         Cache(string, SysConfig *);
 
-        pair<bool, bitset<32>> read(bitset<32>);
+        pair<bool, uint64_t> read(uint64_t);
         bool write(IncomingCacheStruct);
     
     private:

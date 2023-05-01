@@ -201,7 +201,8 @@ void Reads::make_seeds(int seedLen) {
     // cout << "Seeds: " << this->seeds.size() << endl;
     // for (auto seed: this->seeds)
     //     cout << seed << endl;
-    cout << "Seeds with Noise: " << seedwithnoise << endl;
+    cout << "Seeds with Noise (not in the final set): " << seedwithnoise << endl;
+    cout << "Seeds Count: " << this->seeds.size() << endl;
 }
 
 string Reads::get_seed(uint64_t idx) {

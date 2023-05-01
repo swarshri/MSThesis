@@ -5,17 +5,18 @@
 #include<Config.h>
 #include<DRAMWrapper.h>
 #include<Queue.h>
+#include<Memory.h>
 #include<ReservationStation.h>
 
 #ifndef FETCH_H
 #define FETCH_H
 
 struct SRSEntry:RSEntry {
-    bitset<32> SeedAddress;
-    bitset<64> Seed;
-    bitset<32> LowPointer;
-    bitset<32> HighPointer;
-    bitset<6> BasePointer;
+    uint64_t SeedAddress;
+    string Seed;
+    uint64_t LowPointer;
+    uint64_t HighPointer;
+    int BasePointer;
     bool StoreFlag;
 
     friend std::ostream& operator <<(std::ostream& os, SRSEntry const& e) {
@@ -34,26 +35,26 @@ class SeedReservationStation: public ReservationStation<SRSEntry> {
         SeedReservationStation(string, SysConfig *);
         void setStoreFlag(int);
         void updateBasePointer(int);
-        void updateLowPointer(int, bitset<32>);
-        void updateHighPointer(int, bitset<32>);
+        void updateLowPointer(int, uint64_t);
+        void updateHighPointer(int, uint64_t);
 };
 
 class FetchStage {
     public:
         // Constructor
-        FetchStage(SysConfig *, string, bitset<32>);
+        FetchStage(SysConfig *, string, uint64_t);
 
         // Common for all Pipeline stages - called from core
         void print();
         bool isHalted();
         void connect(); // connect with other components within core
-        void connectDRAM(DRAMW<32, 64> *); // connect with off-chip components
+        void connectDRAM(SeedMemory *); // connect with off-chip components
         void step(); // clock trigger
         void step_old(); // clock trigger
 
         // API methods for getting and setting from internal registers.
         pair<int, SRSEntry> getNextReadyEntry();
-        void writeBack(int, bitset<32>, bitset<32>);
+        void writeBack(int, uint64_t, uint64_t);
         void scheduleToSetEmptyState(int);
         void setInProgress(int);
         void setEmptyState(int);
@@ -63,15 +64,15 @@ class FetchStage {
         
     private:
         // Constant for a reference genome - input from CoreReg.mem file.
-        bitset<32> RefCount;
+        uint64_t RefCount;
 
         // PRINT - Registers/Sequential logic that changes at clock trigger.
-        bitset<32> SeedPointer;
+        uint64_t SeedPointer;
         SeedReservationStation * SRS; // SeedReservationStation - intermediate between Fetch stage and the 
-        Queue<bitset<6>> * FillIdxQueue; // Helper structure to fill multiple SRS entries per cycle.
+        // Queue<bitset<6>> * FillIdxQueue; // Helper structure to fill multiple SRS entries per cycle.
 
         // External component - This one is off-chip DRAM that stores the seed queries.
-        DRAMW<32, 64> * SDMEM; // Initial state input from SdMEM.mem file.
+        SeedMemory * SDMEM; // Initial state input from SdMEM.mem file.
 
         // Performance measurement related
         int cycle_count;
@@ -80,7 +81,7 @@ class FetchStage {
         // Fetch Output file
         string op_file_path;
 
-        vector<pair<int, pair<bitset<32>, bitset<32>>>> pendingWriteBacks;
+        vector<pair<int, pair<uint64_t, uint64_t>>> pendingWriteBacks;
         bool pendingWB;
 
         vector<int> pendingEmptyIdcs;

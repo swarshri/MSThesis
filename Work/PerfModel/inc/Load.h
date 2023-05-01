@@ -11,7 +11,7 @@ class LoadStage {
         LoadStage(SysConfig *, string, string, PerformanceRecorder *);
 
         void connectRU(ReserveStage *);
-        void connectDRAM(DRAMW<32, 32> *);
+        void connectDRAM(OccMemory *);
         void step();
 
         bool isHalted();
@@ -22,7 +22,7 @@ class LoadStage {
         bool halted;
 
         ReserveStage * coreRU;
-        DRAMW<32, 32> * OCCMEM;
+        OccMemory * OCCMEM;
         PerformanceRecorder * perf;
 
         vector<LQEntry> LQEntryInProgress;

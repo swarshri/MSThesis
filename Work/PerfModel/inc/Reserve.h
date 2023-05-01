@@ -12,10 +12,10 @@
 #define RES_H
 
 struct LQEntry {
-    bitset<32> OccMemoryAddress;
+    uint64_t OccMemoryAddress;
     bool LowOrHigh; // false is low, true is high - DUH!
-    bitset<6> ResStatIndex;
-    bitset<6> BasePointer;
+    int ResStatIndex;
+    int BasePointer;
 
     friend std::ostream& operator <<(std::ostream& os, LQEntry const& e) {
         return os << e.LowOrHigh << "\t"
@@ -26,10 +26,10 @@ struct LQEntry {
 };
 
 struct LRSEntry:RSEntry {
-    bitset<32> OccMemoryAddress;
+    uint64_t OccMemoryAddress;
     bool LowOrHigh; // false is low, true is high - DUH!
-    bitset<6> ResStatIndex;
-    bitset<6> BasePointer;
+    int ResStatIndex;
+    int BasePointer;
     
     friend std::ostream& operator <<(std::ostream& os, LRSEntry const& e) {
         return os << e.LowOrHigh << "\t"
@@ -41,11 +41,11 @@ struct LRSEntry:RSEntry {
 };
 
 struct CRSEntry:RSEntry {
-    bitset<32> LowOcc;
+    uint64_t LowOcc;
     bool LowOccReady;
-    bitset<32> HighOcc;
+    uint64_t HighOcc;
     bool HighOccReady;
-    bitset<6> SRSWBIndex;
+    int SRSWBIndex;
 
     friend std::ostream& operator <<(std::ostream& os, CRSEntry const& e) {
         return os << e.LowOcc << "\t"
@@ -60,8 +60,8 @@ struct CRSEntry:RSEntry {
 class ComputeReservationStation: public ReservationStation<CRSEntry> {
     public:
         ComputeReservationStation(string, SysConfig *);
-        void fillLowOccVal(int, bitset<32>);
-        void fillHighOccVal(int, bitset<32>);
+        void fillLowOccVal(int, uint64_t);
+        void fillHighOccVal(int, uint64_t);
 };
 
 class ReserveStage {
@@ -76,8 +76,8 @@ class ReserveStage {
         pair<int, CRSEntry> getNextComputeEntry();
         void setCRSEToEmptyState(int);
         void scheduleToSetCRSEToEmptyState(int);
-        void fillInCRS(int, bool, bitset<32>);
-        void scheduleToFillInCRS(int, bool, bitset<32>);
+        void fillInCRS(int, bool, uint64_t);
+        void scheduleToFillInCRS(int, bool, uint64_t);
         pair<bool, LQEntry> getNextLoadEntry();
         pair<bool, LQEntry> popNextLoadEntry();
         void scheduleWriteIntoCache(IncomingCacheStruct);
@@ -103,7 +103,7 @@ class ReserveStage {
 
         pair<bool, vector<int>> pendingEmptyCRSIdcs;
 
-        pair<bool, vector<tuple<int, bool, bitset<32>>>> pendingCRSEntries;
+        pair<bool, vector<tuple<int, bool, uint64_t>>> pendingCRSEntries;
 
         pair<bool, IncomingCacheStruct> pendingCacheInput;
 

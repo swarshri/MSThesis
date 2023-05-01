@@ -5,11 +5,11 @@
 #include<bitset>
 
 #include<Config.h>
-#include<DRAMWrapper.h>
 #include<Fetch.h>
 #include<Dispatch.h>
 #include<Reserve.h>
 #include<Compute.h>
+#include<Memory.h>
 #include<Load.h>
 #include<Store.h>
 #include<PerfRecorder.h>
@@ -20,7 +20,7 @@ class Core {
         bool halted = false;
         Core(string, string, SysConfig *, PerformanceRecorder *, Reference *);
 
-        void connect(SeedMemory<32, 64> *, map<char, OccMemory<32, 32>*>, DRAMW<32, 64> *);
+        void connect(SeedMemory *, map<char, OccMemory*>, SiMemory *);
         void step();
         
     private:
@@ -49,5 +49,5 @@ class Core {
 
         bool allStagesHalted();
 
-        uint16_t cyclecnt;
+        int cyclecnt;
 };

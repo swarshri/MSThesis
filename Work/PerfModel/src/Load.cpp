@@ -17,7 +17,7 @@ void LoadStage::connectRU(ReserveStage * ru) {
     this->coreRU = ru;
 }
 
-void LoadStage::connectDRAM(DRAMW<32, 32> * occmem) {
+void LoadStage::connectDRAM(OccMemory * occmem) {
     this->OCCMEM = occmem;
 }
 
@@ -25,7 +25,7 @@ void LoadStage::step() {
     cout << "----------------------- Load Stage " << this->base << " step function --------------------------" << endl;
     if (!this->halted) {
         // Get all finished reads from OCCMEM and write into CRS
-        pair<bool, vector<PMAEntry<32>>> nwb = this->OCCMEM->getNextWriteBack();
+        pair<bool, vector<PMAEntry<>>> nwb = this->OCCMEM->getNextWriteBack();
         // cout << "next writeback acquired. nwb.first:" << nwb.first << endl;
         if (nwb.first) {
             // cout << "nwb.second.size(): " << nwb.second.size() << endl;
@@ -36,7 +36,7 @@ void LoadStage::step() {
                     auto inprogentry = this->LQEntryInProgress[i];
                     // cout << "inprogentry: " << inprogentry << endl;
                     if (inprogentry.OccMemoryAddress == wbentry.AccessAddress && inprogentry.ResStatIndex == wbentry.RequestID) {
-                        this->coreRU->scheduleToFillInCRS(inprogentry.ResStatIndex.to_ulong(), inprogentry.LowOrHigh, wbentry.Data[0]);
+                        this->coreRU->scheduleToFillInCRS(inprogentry.ResStatIndex, inprogentry.LowOrHigh, wbentry.Data[0]);
                         // cout << "LS: Scheduled to fill in Compute RS at index: " << inprogentry.ResStatIndex.to_ulong() << endl;
                         // cout << "LS: Scheduled at Low/High: " << inprogentry.LowOrHigh << " with data: " << wbentry.Data[0] << endl;
 
@@ -60,7 +60,7 @@ void LoadStage::step() {
         if (nle.first) {
             bool success = this->OCCMEM->willAcceptRequest(nle.second.OccMemoryAddress, false);
             if (success) {
-                this->OCCMEM->readRequest(nle.second.OccMemoryAddress, nle.second.ResStatIndex.to_ulong());
+                this->OCCMEM->readRequest(nle.second.OccMemoryAddress, nle.second.ResStatIndex);
                 this->coreRU->popNextLoadEntry();
                 // cout << "Successfully sent read request for LQ entry index: " << nle.first << endl;
                 // cout << "Read request sent for OccMEM address: " << nle.second.OccMemoryAddress << endl;

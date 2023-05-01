@@ -11,32 +11,32 @@ void SeedReservationStation::setStoreFlag(int idx) {
 }
 
 void SeedReservationStation::updateBasePointer(int idx) {
-    this->Entries[idx].BasePointer = bitset<6>(this->Entries[idx].BasePointer.to_ulong() + 3);
+    this->Entries[idx].BasePointer = this->Entries[idx].BasePointer + 1;
 }
 
-void SeedReservationStation::updateLowPointer(int idx, bitset<32> val) {
+void SeedReservationStation::updateLowPointer(int idx, uint64_t val) {
     this->Entries[idx].LowPointer = val;
 }
 
-void SeedReservationStation::updateHighPointer(int idx, bitset<32> val) {
+void SeedReservationStation::updateHighPointer(int idx, uint64_t val) {
     this->Entries[idx].HighPointer = val;
 }
 
 /*--------------
 FETCH STAGE
 ---------------*/
-FetchStage::FetchStage(SysConfig * config, string iodir, bitset<32> refCount) {
+FetchStage::FetchStage(SysConfig * config, string iodir, uint64_t refCount) {
     // Microarchitecture configuration
 
     // Reference genome inputs
     this->RefCount = refCount;
 
     // Set initial state of the registers.
-    this->SeedPointer = bitset<32>(0);
+    this->SeedPointer = 0;
 
-    this->FillIdxQueue = new Queue<bitset<6>>(config->children["FillIdxQ"]);
+    // this->FillIdxQueue = new Queue<bitset<6>>(config->children["FillIdxQ"]);
     this->SRS = new SeedReservationStation("SeedRS", config->children["SeedReservationStation"]);
-
+    this->SRS->show(cout);
     // cout << "FetchUnit: Created FillIdxQueue and SRS." << endl;
 
     // Clear performance metrics
@@ -70,8 +70,8 @@ pair<int, SRSEntry> FetchStage::getNextReadyEntry() {
     return this->SRS->nextReadyEntry();
 }
 
-void FetchStage::writeBack(int idx, bitset<32> lowVal, bitset<32> highVal) {
-    pair<int, pair<bitset<32>, bitset<32>>> newWB = pair<int, pair<bitset<32>, bitset<32>>>(idx, pair<bitset<32>, bitset<32>>(lowVal, highVal));
+void FetchStage::writeBack(int idx, uint64_t lowVal, uint64_t highVal) {
+    pair<int, pair<uint64_t, uint64_t>> newWB = pair<int, pair<uint64_t, uint64_t>>(idx, pair<uint64_t, uint64_t>(lowVal, highVal));
     this->pendingWriteBacks.push_back(newWB);
     this->pendingWB = true;
 }
@@ -124,7 +124,7 @@ bool FetchStage::isHalted() {
     return this->halted;
 }
 
-void FetchStage::connectDRAM(DRAMW<32, 64> * sdmem) {
+void FetchStage::connectDRAM(SeedMemory * sdmem) {
     this->SDMEM = sdmem;
 }
 
@@ -136,7 +136,7 @@ void FetchStage::step() {
             // cout << "FS: Sending read request for seed at: " << this->SeedPointer << "." << endl;
             this->SDMEM->readRequest(this->SeedPointer, nextFreeEntry);
             this->SRS->setScheduledState(nextFreeEntry);
-            this->SeedPointer = bitset<32>(this->SeedPointer.to_ulong() + 1); // seedpointer + 1 because we are not using the DRAMs in burst mode.
+            this->SeedPointer = this->SeedPointer + 1; // seedpointer + 1 because we are not using the DRAMs in burst mode.
             // cout << "FS: Updated seed pointer: " << this->SeedPointer << endl;
         }
         else {
@@ -147,7 +147,7 @@ void FetchStage::step() {
         }
         
         // cout << "Fetch stage not halted: Cycle count: " << this->cycle_count << endl;
-        pair<bool, vector<PMAEntry<64>>> nwbe = this->SDMEM->getNextWriteBack();
+        pair<bool, vector<PMAEntry<string>>> nwbe = this->SDMEM->getNextWriteBack();
         // TODO - this only returns 1 entry right now. We need to use the burst mode to use the bandwidth better.
         if (nwbe.first) {
             // cout << "nwbe count: " << nwbe.second.size() << endl;
@@ -157,8 +157,8 @@ void FetchStage::step() {
                     // cout << "More than 1 word returned for request access. Taking only the first data as burst mode is disabled." << endl;
 
                 auto data = pmae.Data[0];
-                // cout << "FS: Unpacked data from SDMEM: " << data << " at address: " << bitset<32>(pmae.AccessAddress) << endl;
-                if (data.count() == 64) {
+                cout << "FS: Unpacked data from SDMEM: " << data << " at address: " << pmae.AccessAddress << endl;
+                if (data == "000000000000000000EOS") {
                     this->halted = true;
                     this->SRS->flushScheduledEntries();
                     cout << "Found Halt Seed at seed pointer: " << pmae.AccessAddress << " Emptied scheduled entries in SRS." << endl;
@@ -166,18 +166,20 @@ void FetchStage::step() {
                 }
                 else {
                     SRSEntry newSRSEntry;
-                    newSRSEntry.SeedAddress = bitset<32>(pmae.AccessAddress);
+                    newSRSEntry.SeedAddress = pmae.AccessAddress;
                     newSRSEntry.Seed = data;
-                    newSRSEntry.LowPointer = bitset<32>(0);
+                    newSRSEntry.LowPointer = 0;
                     newSRSEntry.HighPointer = this->RefCount;
-                    newSRSEntry.BasePointer = bitset<6>(0);
+                    newSRSEntry.BasePointer = 0;
                     newSRSEntry.StoreFlag = false;
                     newSRSEntry.Ready = true;
                     newSRSEntry.Empty = false;
-                    this->SRS->fill(bitset<6>(pmae.RequestID), newSRSEntry);
+                    this->SRS->fill(pmae.RequestID, newSRSEntry);
+                    cout << "FS: SRS filled. " << endl;
+                    this->SRS->show(cout);
                 }
             }
-            // this->print();
+            this->print();
         }
         this->cycle_count++;
     }
@@ -187,8 +189,8 @@ void FetchStage::step() {
     if (this->pendingWB) {
         for (auto wb:this->pendingWriteBacks) {
             int idx = wb.first;
-            long int lowResult = wb.second.first.to_ulong();
-            long int highResult = wb.second.second.to_ulong();
+            uint64_t lowResult = wb.second.first;
+            uint64_t highResult = wb.second.second;
             this->SRS->updateLowPointer(idx, lowResult);
             this->SRS->updateHighPointer(idx, highResult);
             // cout << "FS: Writing Back into FS SRS at Index: " << idx << endl;
