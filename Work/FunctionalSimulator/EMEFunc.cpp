@@ -1,4 +1,4 @@
-#include "FCVTool.h"
+#include "EMEFunc.h"
 
 FMDI::FMDI(Reference * ref) {
     cout << "In FMDI Constructor." << endl;
@@ -156,8 +156,8 @@ int main(int argc, char * argv[]) {
         cout << "Invalid number of arguments." << endl;
         cout << "Expected path for the input fasta (or bwt, sa pair), fastq files, and op file path." << endl;
         cout << "Valid commands are, " << endl;
-        cout << "fcvtool --ref <refpath> --reads <readpath> --op <opfilepath>" << endl;
-        cout << "fcvtool --bwt <bwtpath> --sa <sapath> --reads <readpath> --op <opfilepath>" << endl;
+        cout << "emefunc --ref <refpath> --reads <readpath> --op <opfilepath>" << endl;
+        cout << "emefunc --bwt <bwtpath> --sa <sapath> --reads <readpath> --op <opfilepath>" << endl;
         cout << "Machine stopped." << endl;
         return -1;
     }

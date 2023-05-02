@@ -6,7 +6,7 @@
 #include <map>
 #include <algorithm>
 
-#include "../../Common/inc/DataInput.h"
+#include "../Common/inc/DataInput.h"
 
 using namespace std;
 
