@@ -1,5 +1,8 @@
 #include <Store.h>
 
+#ifndef STORE_DEF
+#define STORE_DEF
+
 StoreStage::StoreStage(SysConfig * config) {
     this->halted = false;
     this->cycle_count = 0;
@@ -50,3 +53,5 @@ void StoreStage::step() {
     else
         cout << "SS: Halted" << endl;
 }
+
+#endif

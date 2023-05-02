@@ -1,5 +1,8 @@
 #include <Load.h>
 
+#ifndef LOAD_DEF
+#define LOAD_DEF
+
 LoadStage::LoadStage(SysConfig * config, string base, string iodir, PerformanceRecorder * perf) {
     this->base = base;
     this->halted = false;
@@ -117,3 +120,5 @@ void LoadStage::step() {
 bool LoadStage::isHalted() {
     return this->halted;
 }
+
+#endif

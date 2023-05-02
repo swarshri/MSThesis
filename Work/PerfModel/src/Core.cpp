@@ -1,5 +1,8 @@
 #include<Core.h>
 
+#ifndef CORE_DEF
+#define CORE_DEF
+
 Core::Core(string id, string ioDir, SysConfig * config, PerformanceRecorder * perf, Reference * ref) {
     this->id = id;
 
@@ -118,3 +121,9 @@ void Core::step() {
 
     // this->halted = true;
 }
+
+uint64_t Core::getCycleCount() {
+    return this->cyclecnt;
+}
+
+#endif

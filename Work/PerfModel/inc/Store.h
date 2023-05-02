@@ -4,6 +4,9 @@
 #include <Queue.h>
 #include <Dispatch.h>
 
+#ifndef STORE_C
+#define STORE_C
+
 class StoreStage {
     public:
         StoreStage(SysConfig *);
@@ -20,3 +23,5 @@ class StoreStage {
         DispatchStage * coreDU;
         SiMemory * SIMEM;
 };
+
+#endif

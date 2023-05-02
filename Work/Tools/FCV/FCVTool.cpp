@@ -149,11 +149,15 @@ int main(int argc, char * argv[]) {
     char* bwt_path = "";
     char* sa_path = "";
     char* fastq_path = "";
+    string op_path = "";
 
     cout << "Received " << argc << " arguments." << endl;
-    if (argc != 5 and argc != 7) {
+    if (argc != 7 and argc != 9) {
         cout << "Invalid number of arguments." << endl;
-        cout << "Expected path for the input fasta (or bwt, sa pair) and fastq files." << endl;
+        cout << "Expected path for the input fasta (or bwt, sa pair), fastq files, and op file path." << endl;
+        cout << "Valid commands are, " << endl;
+        cout << "fcvtool --ref <refpath> --reads <readpath> --op <opfilepath>" << endl;
+        cout << "fcvtool --bwt <bwtpath> --sa <sapath> --reads <readpath> --op <opfilepath>" << endl;
         cout << "Machine stopped." << endl;
         return -1;
     }
@@ -177,6 +181,10 @@ int main(int argc, char * argv[]) {
                 fastq_path = argv[++i];
                 cout << "Found reads file: " << fastq_path << endl;
             }
+            else if (strcmp(argv[i], "--op") == 0) {
+                op_path = argv[++i];
+                cout << "Found op file path: " << op_path << endl;
+            }
             // cout << "fin i: " << i << endl;
         }
         // TODO: Check file path extensions to make sure they are fasta and fastq files.
@@ -184,6 +192,7 @@ int main(int argc, char * argv[]) {
         cout << "BWTIndexed file path: " << bwt_path << endl;
         cout << "Suffix Array file path: " << sa_path << endl;
         cout << "FASTQ Read file path: " << fastq_path << endl;
+        cout << "Output file path: " << op_path << endl;
     }
 
     Reference * ref;

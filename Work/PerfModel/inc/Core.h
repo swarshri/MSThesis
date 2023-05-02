@@ -15,6 +15,9 @@
 #include<PerfRecorder.h>
 #include"../../Common/inc/DataInput.h"
 
+#ifndef CORE_H
+#define CORE_H
+
 class Core {
     public:
         bool halted = false;
@@ -22,6 +25,7 @@ class Core {
 
         void connect(SeedMemory *, map<char, OccMemory*>, SiMemory *);
         void step();
+        uint64_t getCycleCount();
         
     private:
         string id;
@@ -49,5 +53,7 @@ class Core {
 
         bool allStagesHalted();
 
-        int cyclecnt;
+        uint64_t cyclecnt;
 };
+
+#endif

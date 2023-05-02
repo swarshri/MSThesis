@@ -14,6 +14,7 @@
 #include<DRAMWrapper.h>
 #include<Core.h>
 #include<PerfRecorder.h>
+#include<PerfOP.h>
 
 #include "../../Common/inc/DataInput.h"
 
@@ -26,34 +27,54 @@ int main(int argc, char * argv[]) {
     string saPath = "";
     string readPath = "";
     string opDir = "";
-
-    if (argc == 5) {
-        confFilePath = argv[1];
-        refPath = argv[2];
-        readPath = argv[3];
-        opDir = argv[4];
-        cout << "Config File Path: " << confFilePath << endl;
-        cout << "Reference File Path: " << refPath << endl;
-        cout << "Read File Path: " << readPath << endl;
-        cout << "OP Directory: " << opDir << endl;
-    }
-    else if (argc == 6) {
-        confFilePath = argv[1];
-        bwtPath = argv[2];
-        saPath = argv[3];
-        readPath = argv[4];
-        opDir = argv[5];
-        cout << "Config File Path: " << confFilePath << endl;
-        cout << "BWT File Path: " << bwtPath << endl;
-        cout << "SA File Path: " << saPath << endl;
-        cout << "Read File Path: " << readPath << endl;
-        cout << "OP Directory: " << opDir << endl;
-    }
-    else {
-        cout << "Invalid number of arguments: " << argc << endl;
-        cout << "Expected path containing the config file, the reference (bwt and sa) and read file paths, and the directory path for the output in order." << endl;
+    
+    cout << "Received " << argc << " arguments." << endl;
+    if (argc != 9 and argc != 11) {
+        cout << "Invalid number of arguments." << endl;
+        cout << "Expected path for the input fasta (or bwt, sa pair), fastq files, and op dir path." << endl;
+        cout << "Valid commands are, " << endl;
+        cout << "fcvtool --cfg <cfgpath> --ref <refpath> --reads <readpath> --op <opdirpath>" << endl;
+        cout << "fcvtool --cfg <cfgpath> --bwt <bwtpath> --sa <sapath> --reads <readpath> --op <opdirpath>" << endl;
         cout << "Machine stopped." << endl;
         return -1;
+    }
+    else {
+        for (int i = 1; i < argc; i++) {
+            // cout << "init i: " << i << endl;
+            cout << argv[i] << endl;
+            if (strcmp(argv[i], "--cfg") == 0) {
+                confFilePath = argv[++i];
+                cout << "Found config file: " << confFilePath << endl;
+            }
+            else if (strcmp(argv[i], "--ref") == 0) {
+                refPath = argv[++i];
+                cout << "Found reference file: " << refPath << endl;
+            }
+            else if (strcmp(argv[i], "--bwt") == 0) {
+                bwtPath = argv[++i];
+                cout << "Found BWT file: " << bwtPath << endl;
+            }
+            else if (strcmp(argv[i], "--sa") == 0) {
+                saPath = argv[++i];
+                cout << "Found SA file: " << saPath << endl;
+            }
+            else if (strcmp(argv[i], "--reads") == 0) {
+                readPath = argv[++i];
+                cout << "Found reads file: " << readPath << endl;
+            }
+            else if (strcmp(argv[i], "--op") == 0) {
+                opDir = argv[++i];
+                cout << "Found op dir path: " << opDir << endl;
+            }
+            // cout << "fin i: " << i << endl;
+        }
+        // TODO: Check file path extensions to make sure they are fasta and fastq files.
+        cout << "Config file: " << confFilePath << endl;
+        cout << "FASTA Reference file: " << refPath << endl;
+        cout << "BWTIndexed file path: " << bwtPath << endl;
+        cout << "Suffix Array file path: " << saPath << endl;
+        cout << "FASTQ Read file path: " << readPath << endl;
+        cout << "Output file path: " << opDir << endl;
     }
 
     SysConfig * config = ConfigParser().parse(confFilePath);
@@ -62,8 +83,12 @@ int main(int argc, char * argv[]) {
     Reference * RefObj;    
     if (refPath != "")
         RefObj = new Reference(refPath);
-    else if (bwtPath != "" and saPath != "")
+    else if (bwtPath != "" and saPath != "") {
         RefObj = new Reference(bwtPath, saPath);
+        refPath = bwtPath.substr(0, bwtPath.size() - 4);
+    }
+    string refName = refPath.substr(refPath.find_last_of('/'));
+    cout << "reference name: " << refName << endl;
     
     Reads * ReadsObj = new Reads(readPath);
 
@@ -91,7 +116,7 @@ int main(int argc, char * argv[]) {
     // cin >> pauseip;
 
     PerformanceRecorder * perf = new PerformanceRecorder(opDir, confName, config->children["PerformanceRecorder"]);
-
+    
     Core * CORE = new Core("00", opDir, config->children["Core"], perf, RefObj);
     CORE->connect(SdMEM, OcMEMs, SiMEM);
     
@@ -108,7 +133,13 @@ int main(int argc, char * argv[]) {
 //     }
 //     else
 //         cout << opDir << " exists." << endl;
-        
+    IOInfo * ioinfo = new IOInfo;
+    ioinfo->reffilename = refName;
+    ioinfo->conffilename = confName;
+    ioinfo->reflength = RefObj->get_seqLen();
+    ioinfo->seedscount= ReadsObj->get_seedsCount();
+    PerformanceOutput * perfop = new PerformanceOutput(opDir, ioinfo, config, CORE);
+
     int cycle_count = 0;
 
     cout << endl;
@@ -135,4 +166,5 @@ int main(int argc, char * argv[]) {
     }
     perf->dump();
     SiMEM->output();
+    perfop->output();
 }

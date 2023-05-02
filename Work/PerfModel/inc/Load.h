@@ -6,6 +6,9 @@
 #include <Cache.h>
 #include <PerfRecorder.h>
 
+#ifndef LOAD_H
+#define LOAD_H
+
 class LoadStage {
     public:
         LoadStage(SysConfig *, string, string, PerformanceRecorder *);
@@ -27,3 +30,5 @@ class LoadStage {
 
         vector<LQEntry> LQEntryInProgress;
 };
+
+#endif
