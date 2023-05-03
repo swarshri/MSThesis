@@ -37,93 +37,157 @@ Core::Core(string id, string ioDir, SysConfig * config, PerformanceRecorder * pe
     this->DU = new DispatchStage(config->children["DispatchStage"], ioDir);
     this->DU->connect(this->FU);
 
-    this->RUA = new ReserveStage(config->children["ReserveStage"], "A", ioDir, perf);
-    this->RUA->connect(this->DU);
-    this->CUA = new ComputeStage(config->children["ComputeStage"], "A", ioDir, counts[0]);
-    this->CUA->connect(this->RUA, this->FU);
-    this->LUA = new LoadStage(config->children["LoadStage"], "A", ioDir, perf);
-    this->LUA->connectRU(this->RUA);
-
-    this->RUC = new ReserveStage(config->children["ReserveStage"], "C", ioDir, perf);
-    this->RUC->connect(this->DU);
-    this->CUC = new ComputeStage(config->children["ComputeStage"], "C", ioDir, counts[1]);
-    this->CUC->connect(this->RUC, this->FU);
-    this->LUC = new LoadStage(config->children["LoadStage"], "C", ioDir, perf);
-    this->LUC->connectRU(this->RUC);
-
-    this->RUG = new ReserveStage(config->children["ReserveStage"], "G", ioDir, perf);
-    this->RUG->connect(this->DU);
-    this->CUG = new ComputeStage(config->children["ComputeStage"], "G", ioDir, counts[2]);
-    this->CUG->connect(this->RUG, this->FU);
-    this->LUG = new LoadStage(config->children["LoadStage"], "G", ioDir, perf);
-    this->LUG->connectRU(this->RUG);
-
-    this->RUT = new ReserveStage(config->children["ReserveStage"], "T", ioDir, perf);
-    this->RUT->connect(this->DU);
-    this->CUT = new ComputeStage(config->children["ComputeStage"], "T", ioDir, counts[3]);
-    this->CUT->connect(this->RUT, this->FU);
-    this->LUT = new LoadStage(config->children["LoadStage"], "T", ioDir, perf);
-    this->LUT->connectRU(this->RUT);
+    for (char base: this->bases) {
+        this->RUs[base] = new ReserveStage(config->children["ReserveStage"], string(1, base), ioDir, perf);
+        this->RUs[base]->connect(this->DU);
+        this->CUs[base] = new ComputeStage(config->children["ComputeStage"], string(1, base), ioDir, ref->getCount(base));
+        this->CUs[base]->connect(this->RUs[base], this->FU);
+        this->LUs[base] = new LoadStage(config->children["LoadStage"], string(1, base), ioDir, perf);
+        this->LUs[base]->connectRU(this->RUs[base]);
+    }
 
     this->SU = new StoreStage(config->children["StoreStage"]);
     this->SU->connectDU(this->DU);
 
     this->halted = false;
-    this->cyclecnt = 0; 
+
+    this->perfmetrics = new PerfMetrics;
+    this->perfmetrics->numCycles = 0; 
 }
 
 void Core::connect(SeedMemory * sdmem, map<char, OccMemory*> ocmem, SiMemory * simem) {
     this->FU->connectDRAM(sdmem);
 
-    this->LUA->connectDRAM(ocmem['A']);
-    this->LUC->connectDRAM(ocmem['C']);
-    this->LUG->connectDRAM(ocmem['G']);
-    this->LUT->connectDRAM(ocmem['T']);
+    for (char base: this->bases)
+        this->LUs[base]->connectDRAM(ocmem[base]);
 
     this->SU->connectDRAM(simem);
 }
 
+bool Core::allRUsHalted() {
+    bool retval = true;
+    for (char base: this->bases)
+        retval = retval && this->RUs[base]->isHalted();
+    return retval;
+}
+
+bool Core::allCUsHalted() {
+    bool retval = true;
+    for (char base: this->bases)
+        retval = retval && this->CUs[base]->isHalted();
+    return retval;
+}
+
+bool Core::allLUsHalted() {
+    bool retval = true;
+    for (char base: this->bases)
+        retval = retval && this->LUs[base]->isHalted();
+    return retval;
+}
+
 bool Core::allStagesHalted() {
     return this->FU->isHalted() && this->DU->isHalted() && this->SU->isHalted() && 
-           this->RUA->isHalted() && this->RUC->isHalted() && this->RUG->isHalted() && this->RUT->isHalted() &&
-           this->CUA->isHalted() && this->CUC->isHalted() && this->CUG->isHalted() && this->CUT->isHalted() &&
-           this->LUA->isHalted() && this->LUC->isHalted() && this->LUG->isHalted() && this->LUT->isHalted();
+           this->allRUsHalted() && this->allCUsHalted() && this->allLUsHalted();
 }
 
 void Core::step() {
     if (!this->halted) {
         this->SU->step();
 
-        this->CUA->step();
-        this->CUC->step();
-        this->CUG->step();
-        this->CUT->step();
-        
-        this->LUA->step();
-        this->LUC->step();
-        this->LUG->step();
-        this->LUT->step();
-
-        this->RUA->step();
-        this->RUC->step();
-        this->RUG->step();
-        this->RUT->step();
+        for (char base: this->bases) {
+            this->CUs[base]->step();
+            this->LUs[base]->step();
+            this->RUs[base]->step();
+        }
 
         this->DU->step();
 
         this->FU->step();
         
-        this->cyclecnt++;
+        this->perfmetrics->numCycles++;
     }
 
-    if (this->allStagesHalted()) // || this->cyclecnt == 1000)
+    if (this->allStagesHalted()) { // || this->cyclecnt == 1000)
+        // cout << "Core: All stages halted." << endl;
         this->halted = true;
+        this->gatherPLMetrics();
+    }
+}
 
-    // this->halted = true;
+string Core::getPerfMetricTitles() {
+    string retstr = "# Cycles, Total Cache Hits, Total Cache Misses, Total Occ Lookups, Overall Hit Rate, Overall Miss Rate, ";
+    for (char base: this->bases) {
+        string delim = ", ";
+        retstr = retstr +
+                 base + " Num Low Cache Hits" + delim +
+                 base + " Num Low Cache Misses" + delim +
+                 base + " Num Low Occ Lookups" + delim +
+                 base + " Num High Cache Hits" + delim +
+                 base + " Num High Cache Misses" + delim +
+                 base + " Num High Occ Lookups" + delim +
+                 base + " Num Cache Hits" + delim +
+                 base + " Num Cache Misses" + delim +
+                 base + " Num Occ Lookups" + delim +
+                 base + " Cache Hit Rate" + delim +
+                 base + " Cache Miss Rate" + delim +
+                 base + " Num Cycles With New Jobs" + delim +
+                 base + " Num Cycles With No New Jobs" + delim;
+    }
+    return retstr;
+}
+
+PerfMetrics * Core::getPerfMetrics() {
+    return this->perfmetrics;
+}
+
+void Core::gatherPLMetrics() {
+    this->perfmetrics->totalCacheHits = 0;
+    this->perfmetrics->totalCacheMisses = 0;
+    this->perfmetrics->totalOccLookups = 0;
+
+    cout << "Core: Gathering PL Metrics." << endl;
+    for (char base: this->bases) {
+        PLPerfMetrics plmetric;
+        plmetric.numLowOccLookups = this->RUs[base]->getNumLowOccLookups();
+        plmetric.numLowCacheHits = this->RUs[base]->getNumLowCacheHits();
+        plmetric.numLowCacheMisses = this->RUs[base]->getNumLowCacheMisses();
+        plmetric.numHighOccLookups = this->RUs[base]->getNumHighOccLookups();
+        plmetric.numHighCacheHits = this->RUs[base]->getNumHighCacheHits();
+        plmetric.numHighCacheMisses = this->RUs[base]->getNumHighCacheMisses();
+        plmetric.numOccLookups = plmetric.numLowOccLookups + plmetric.numHighOccLookups;
+        plmetric.numCacheHits = plmetric.numLowCacheHits + plmetric.numHighCacheHits;
+        plmetric.numCacheMisses = plmetric.numLowCacheMisses + plmetric.numHighCacheMisses;
+
+        cout << "plmetric.numOccLookups: " << plmetric.numOccLookups << endl;
+        if (plmetric.numOccLookups != 0) {
+            plmetric.cacheHitRate = plmetric.numCacheHits/plmetric.numOccLookups;
+            plmetric.cacheMissRate = plmetric.numCacheMisses/plmetric.numOccLookups;
+        }
+        else {
+            plmetric.cacheHitRate = 0;
+            plmetric.cacheMissRate = 0;
+        }
+
+        plmetric.numCyclesWithNewJobs = this->DU->getNumCyclesWithNewDispatch(base);
+        plmetric.numCyclesWithNoNewJobs = this->DU->getNumCyclesWithNoNewDispatch(base);
+        this->perfmetrics->PLMetrics[base] = plmetric;
+        this->perfmetrics->totalCacheHits += plmetric.numCacheHits;
+        this->perfmetrics->totalCacheMisses += plmetric.numCacheMisses;
+        this->perfmetrics->totalOccLookups += plmetric.numOccLookups;
+    }
+
+    if (this->perfmetrics->totalOccLookups != 0) {
+        this->perfmetrics->overallHitRate = this->perfmetrics->totalCacheHits/this->perfmetrics->totalOccLookups;
+        this->perfmetrics->overallMissRate = this->perfmetrics->totalCacheMisses/this->perfmetrics->totalOccLookups;
+    }
+    else {
+        this->perfmetrics->overallHitRate = 0;
+        this->perfmetrics->overallMissRate = 0;
+    }
 }
 
 uint64_t Core::getCycleCount() {
-    return this->cyclecnt;
+    return this->perfmetrics->numCycles;
 }
 
 #endif

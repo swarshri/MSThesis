@@ -7,6 +7,8 @@ DispatchStage::DispatchStage(SysConfig* config, string iodir) {
         char base = cfg_name[8];
         SysConfig * cfg = config->children[cfg_name];
         this->DispatchQueues[base] = new Queue<DispatchQueueEntry>(cfg);
+        this->numCyclesWithNewDispatch[base] = 0;
+        this->numCyclesWithNoNewDispatch[base] = 0;
     }
     this->StoreQueue = new Queue<StoreQueueEntry>(config->children["StoreQ"]);
     
@@ -60,12 +62,13 @@ void DispatchStage::dispatchSequential(int count) {
     // Implements one-entry-at-a-time scheme - REALLY?! find a better name for your own sake!
     pair<int, SRSEntry> nre = this->coreFU->getNextReadyEntry();
     // cout << "Dispatch Scheme: Single Sequential " << this->cycle_count << endl;
+    char base = 'n';
     if (nre.first != -1) {
         // cout << "Seed Address: " << nre.second.SeedAddress << endl;
         // cout << "Seed: " << nre.second.Seed << endl;
         // cout << "BP: " << nre.second.BasePointer << endl;
         unsigned int idx = nre.second.Seed.size() - 1 - nre.second.BasePointer;
-        char base = nre.second.Seed[idx];
+        base = nre.second.Seed[idx];
         // cout << "Idx: " << idx << " Base: " << base << endl;
         if (base == 'E' || nre.second.StoreFlag) {
             StoreQueueEntry newStoreQueueEntry;
@@ -96,12 +99,18 @@ void DispatchStage::dispatchSequential(int count) {
             // cout << "DS: Queued into Dispatch <" << base << "> Queue." << endl;
             // this->DispatchQueues[base]->show(cout);
             // this->print();
+            this->numCyclesWithNewDispatch[base]++;
         }
         else {
             // Right now, nothing - wait until the queue has vacancy. This could mean that the entire pipeline will
             //      be stalled until the corresponding memory buffer has a vacancy.
             // other possible schemes - Next cycle should not take the last cycle into consideration.
         }
+    }
+
+    for (char b: "ACGT") {
+        if (b != base)
+            this->numCyclesWithNoNewDispatch[b]++;
     }
 
     // FOLLOWING LINES OF CODE are to be REMOVED - TBI
@@ -164,4 +173,12 @@ pair<bool, StoreQueueEntry> DispatchStage::getNextStore() {
     if (!this->StoreQueue->isEmpty())
         return pair<bool, StoreQueueEntry>(true, this->StoreQueue->next());
     return pair<bool, StoreQueueEntry>(false, *(new StoreQueueEntry));
+}
+
+uint64_t DispatchStage::getNumCyclesWithNewDispatch(char base) {
+    return this->numCyclesWithNewDispatch[base];
+}
+
+uint64_t DispatchStage::getNumCyclesWithNoNewDispatch(char base) {
+    return this->numCyclesWithNoNewDispatch[base];
 }

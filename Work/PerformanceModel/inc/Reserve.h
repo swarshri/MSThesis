@@ -82,6 +82,13 @@ class ReserveStage {
         pair<bool, LQEntry> popNextLoadEntry();
         void scheduleWriteIntoCache(IncomingCacheStruct);
 
+        uint64_t getNumLowOccLookups();
+        uint64_t getNumLowCacheHits();
+        uint64_t getNumLowCacheMisses();
+        uint64_t getNumHighOccLookups();
+        uint64_t getNumHighCacheHits();
+        uint64_t getNumHighCacheMisses();
+
         void print();
 
     private:
@@ -108,6 +115,13 @@ class ReserveStage {
         pair<bool, IncomingCacheStruct> pendingCacheInput;
 
         PerformanceRecorder * perf;
+
+        uint64_t numLowOccLookups;
+        uint64_t numLowCacheHits;
+        uint64_t numLowCacheMisses;
+        uint64_t numHighOccLookups;
+        uint64_t numHighCacheHits;
+        uint64_t numHighCacheMisses;
 };
 
 #endif

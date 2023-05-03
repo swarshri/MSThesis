@@ -74,6 +74,13 @@ ReserveStage::ReserveStage(SysConfig * config, string base, string iodir, Perfor
                         //    this->name + "_LowOccLoadRequestQueued",
                         //    this->name + "_HighOccLoadRequestQueued"};
     this->perf->addMetrics(metrics);
+
+    this->numLowOccLookups = 0;
+    this->numLowCacheHits = 0;
+    this->numLowCacheMisses = 0;
+    this->numHighOccLookups = 0;
+    this->numHighCacheHits = 0;
+    this->numHighCacheMisses = 0;
 }
 
 void ReserveStage::connect(DispatchStage * du) {
@@ -144,19 +151,25 @@ void ReserveStage::step() {
                 cacheHitHighData = pair<bool, uint64_t>(false, 0);
             }
 
-            if (cacheHitLowData.first)
+            if (cacheHitLowData.first) {
                 newCRSEntry->LowOcc = cacheHitLowData.second;
+                this->numLowCacheHits++;
+            }
             else {
                 newCRSEntry->LowOccReady = false;
                 newCRSEntry->LowOcc = 0;
+                this->numLowCacheMisses++;
             }
             perf_lowocccachehit = to_string(cacheHitLowData.first);
 
-            if (cacheHitHighData.first)
+            if (cacheHitHighData.first) {
                 newCRSEntry->HighOcc = cacheHitHighData.second;
+                this->numHighCacheHits++;
+            }
             else {
                 newCRSEntry->HighOccReady = false;
                 newCRSEntry->HighOcc = 0;
+                this->numHighCacheMisses++;
             }            
             perf_highocccachehit = to_string(cacheHitHighData.first);
 
@@ -171,6 +184,7 @@ void ReserveStage::step() {
                     newLoadRequest.OccMemoryAddress = currentDispatch.second.LowPointer;
                     newLoadRequest.ResStatIndex = nextCRSIdx;
                     newLoadRequests.push_back(newLoadRequest);
+                    this->numLowOccLookups++;
                 } 
                 if (!newCRSEntry->HighOccReady) {
                     LQEntry newLoadRequest;
@@ -178,6 +192,7 @@ void ReserveStage::step() {
                     newLoadRequest.OccMemoryAddress = currentDispatch.second.HighPointer;
                     newLoadRequest.ResStatIndex = nextCRSIdx;
                     newLoadRequests.push_back(newLoadRequest);
+                    this->numHighOccLookups++;
                 }
 
                 // this->perf->record(this->cycle_count, this->name + "_LowOccLoadRequestQueued", "NoLoadRequest");
@@ -294,4 +309,28 @@ pair<bool, LQEntry> ReserveStage::popNextLoadEntry() {
 void ReserveStage::scheduleWriteIntoCache(IncomingCacheStruct cacheInput) {
     this->pendingCacheInput.second = cacheInput;
     this->pendingCacheInput.first = true;
+}
+
+uint64_t ReserveStage::getNumLowOccLookups() {
+    return this->numLowOccLookups;
+}
+
+uint64_t ReserveStage::getNumLowCacheHits() {
+    return this->numLowCacheHits;
+}
+
+uint64_t ReserveStage::getNumLowCacheMisses() {
+    return this->numLowCacheMisses;
+}
+
+uint64_t ReserveStage::getNumHighOccLookups() {
+    return this->numHighOccLookups;
+}
+
+uint64_t ReserveStage::getNumHighCacheHits() {
+    return this->numHighCacheHits;
+}
+
+uint64_t ReserveStage::getNumHighCacheMisses() {
+    return this->numHighCacheMisses;
 }

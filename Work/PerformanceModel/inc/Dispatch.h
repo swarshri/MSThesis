@@ -55,6 +55,9 @@ class DispatchStage {
         pair<bool, DispatchQueueEntry> getNextDispatch(char);
         pair<bool, StoreQueueEntry> getNextStore();
 
+        uint64_t getNumCyclesWithNewDispatch(char);
+        uint64_t getNumCyclesWithNoNewDispatch(char);
+
     private:
         // Dispatch scheme from the config file.
         int dispatchScheme;
@@ -69,6 +72,8 @@ class DispatchStage {
 
         // PRINT - Registers/Sequential logic that changes at clock trigger.
         map<char, Queue<DispatchQueueEntry>*> DispatchQueues;
+        map<char, uint64_t> numCyclesWithNewDispatch;
+        map<char, uint64_t> numCyclesWithNoNewDispatch;
         Queue<StoreQueueEntry> * StoreQueue;
 
         // Dispatch Output file
