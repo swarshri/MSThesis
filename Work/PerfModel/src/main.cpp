@@ -33,8 +33,8 @@ int main(int argc, char * argv[]) {
         cout << "Invalid number of arguments." << endl;
         cout << "Expected path for the input fasta (or bwt, sa pair), fastq files, and op dir path." << endl;
         cout << "Valid commands are, " << endl;
-        cout << "fcvtool --cfg <cfgpath> --ref <refpath> --reads <readpath> --op <opdirpath>" << endl;
-        cout << "fcvtool --cfg <cfgpath> --bwt <bwtpath> --sa <sapath> --reads <readpath> --op <opdirpath>" << endl;
+        cout << "model --cfg <cfgpath> --ref <refpath> --reads <readpath> --op <opdirpath>" << endl;
+        cout << "model --cfg <cfgpath> --bwt <bwtpath> --sa <sapath> --reads <readpath> --op <opdirpath>" << endl;
         cout << "Machine stopped." << endl;
         return -1;
     }
@@ -104,17 +104,17 @@ int main(int argc, char * argv[]) {
     for (auto ocm: OcMEMs)
         ocm.second->input(RefObj);
 
-    int pos1 = confFilePath.find_last_of('/');
-    int pos2 = confFilePath.find_last_of('.');
-    string confName = confFilePath.substr(pos1 + 1, pos2 - pos1 - 1);
-    cout << "confName: " << confName << endl;
-    SiMemory * SiMEM = new SiMemory("SiMEM_"+confName, opDir, config->children["SIMemory"], config->children["Core"]);
+    SiMemory * SiMEM = new SiMemory("SiMEM", opDir, config->children["SIMemory"], config->children["Core"]);
     // SiMEM->allocate();
 
     // int pauseip;
     // cout << "Pause for input: ";
     // cin >> pauseip;
 
+    int pos1 = confFilePath.find_last_of('/');
+    int pos2 = confFilePath.find_last_of('.');
+    string confName = confFilePath.substr(pos1 + 1, pos2 - pos1 - 1);
+    cout << "confName: " << confName << endl;
     PerformanceRecorder * perf = new PerformanceRecorder(opDir, confName, config->children["PerformanceRecorder"]);
     
     Core * CORE = new Core("00", opDir, config->children["Core"], perf, RefObj);

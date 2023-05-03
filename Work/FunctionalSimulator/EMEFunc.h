@@ -39,11 +39,13 @@ class FMDI {
 
 class ExactMatchEngine {
     public:
-        ExactMatchEngine(FMDI *);
+        ExactMatchEngine(FMDI *, string);
         void find_exact_matches(Reads *);
+        void output_seedresults();
         void print_seedresults();
 
     private:
         FMDI * iref;
         vector<SeedResult> seedresults;
+        string sropfile;
 };

@@ -17,13 +17,14 @@ OBJ := $(BIN)/obj
 CC := gcc
 CFLAGS := -g -Wall -Wno-unused-function -O2 -fPIC
 DFLAGS := -DHAVE_PTHREAD $(WRAP_MALLOC)
-CXX = g++
-CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -I $(INC) -I $(EXT) -I $(FMT_LIB) -I $(INI_LIB) -L $(DRAMSIM3) -L $(EXT)
+CXX = LD_LIBRARY_PATH=$(DRAMSIM3)/libdramsim3.so g++
+CPPFLAGS := -fPIC -Wall -Wextra -g -O3 -std=c++11 -Wl,-rpath=$(DRAMSIM3) -I $(INC) -I $(EXT) -I $(FMT_LIB) -I $(INI_LIB) \
+			-L $(DRAMSIM3) -L $(EXT)
 
 LIBS = dramsim3
 OBJS = $(OBJ)/main.o $(OBJ)/cache.o $(OBJ)/compute.o $(OBJ)/config.o $(OBJ)/core.o $(OBJ)/dispatch.o $(OBJ)/dram.o $(OBJ)/fetch.o \
 	   $(OBJ)/load.o $(OBJ)/memory.o $(OBJ)/perfop.o $(OBJ)/perfrec.o $(OBJ)/queue.o $(OBJ)/rs.o $(OBJ)/reserve.o $(OBJ)/store.o \
-	    $(COM)/dip.o $(EXT)/libbwa.so $(DRAMSIM3)/libdramsim3.so
+	   $(COM)/dip.o $(EXT)/libbwa.so $(DRAMSIM3)/libdramsim3.so
 
 .PHONY: all clean
 

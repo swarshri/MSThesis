@@ -243,5 +243,5 @@ bitset<64> Reads::get_seed_bitset(uint64_t idx) {
 }
 
 uint64_t Reads::get_seedsCount() {
-    return this->seeds.size();
+    return this->seeds.size() - 1;
 }

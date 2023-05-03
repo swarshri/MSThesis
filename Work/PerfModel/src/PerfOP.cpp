@@ -3,9 +3,9 @@
 PerformanceOutput::PerformanceOutput(string iodir, IOInfo* ioinfo, SysConfig* config, Core* core) {
 
 #ifdef _WIN32
-    this->opFilePath = iodir + "\\PerfOP.csv";
+    this->opFilePath = iodir + "\\..\\Perf.csv";
 #else
-    this->opFilePath = iodir + "/PerfOP.csv";
+    this->opFilePath = iodir + "/../Perf.csv";
 #endif
 
     FILE * opfile;
@@ -41,18 +41,7 @@ void PerformanceOutput::output() {
                     this->ioinfo->reffilename + delim +
                     to_string(this->ioinfo->reflength) + delim +
                     to_string(this->ioinfo->seedscount) + delim +
-                    to_string(this->coreptr->getCycleCount()) + delim;
-    // cout << "opline: " << opline << endl;
-    // opline.append(this->ioinfo->conffilename + delim);
-    // cout << "opline: " << opline << endl;
-    // opline.append(this->ioinfo->reffilename + delim);
-    // cout << "opline: " << opline << endl;
-    // opline.append(to_string(this->ioinfo->reflength) + delim);
-    // cout << "opline: " << opline << endl;
-    // opline.append(to_string(this->ioinfo->seedscount) + delim);
-    // cout << "opline: " << opline << endl;
-    // cout << "CorePTR:" << this->coreptr << endl;
-    // opline.append(to_string(this->coreptr->getCycleCount()) + delim);
-    cout << "POP: opline:" << opline << endl;;
+                    to_string(this->coreptr->getCycleCount());
+    cout << "POP: opline:" << this->opFilePath << opline << endl;;
     csvop << opline;
 }

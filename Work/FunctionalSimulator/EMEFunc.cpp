@@ -114,8 +114,9 @@ void FMDI::print_fmdi() {
     cout << endl << "-------------------------------------------------" << endl;
 }
 
-ExactMatchEngine::ExactMatchEngine(FMDI * idxed_ref) {
+ExactMatchEngine::ExactMatchEngine(FMDI * idxed_ref, string opdir) {
     this->iref = idxed_ref;
+    this->sropfile = opdir + "/FSEMResults.txt";
 }
 
 void ExactMatchEngine::find_exact_matches(Reads * reads) {
@@ -128,6 +129,20 @@ void ExactMatchEngine::find_exact_matches(Reads * reads) {
             this->seedresults.push_back(em_result);
         }
     }
+}
+
+void ExactMatchEngine::output_seedresults() {
+    ofstream srop;
+    srop.open(this->sropfile, std::ios_base::out);
+	if (srop.is_open()) {
+        cout << "Seed Result output file opened: " << this->sropfile << endl;
+		for (auto sr: this->seedresults) {
+            string line = to_string(sr.si_values[0]) + "\t" + to_string(sr.si_values[1]);
+			srop << line << endl;
+        }
+	}
+	else cout << "Unable to open output file: " << this->sropfile << endl;
+	srop.close();
 }
 
 void ExactMatchEngine::print_seedresults() {
@@ -149,15 +164,15 @@ int main(int argc, char * argv[]) {
     char* bwt_path = "";
     char* sa_path = "";
     char* fastq_path = "";
-    string op_path = "";
+    string op_dir = "";
 
     cout << "Received " << argc << " arguments." << endl;
     if (argc != 7 and argc != 9) {
         cout << "Invalid number of arguments." << endl;
         cout << "Expected path for the input fasta (or bwt, sa pair), fastq files, and op file path." << endl;
         cout << "Valid commands are, " << endl;
-        cout << "emefunc --ref <refpath> --reads <readpath> --op <opfilepath>" << endl;
-        cout << "emefunc --bwt <bwtpath> --sa <sapath> --reads <readpath> --op <opfilepath>" << endl;
+        cout << "funcsim --ref <refpath> --reads <readpath> --op <opfilepath>" << endl;
+        cout << "funcsim --bwt <bwtpath> --sa <sapath> --reads <readpath> --op <opfilepath>" << endl;
         cout << "Machine stopped." << endl;
         return -1;
     }
@@ -182,8 +197,8 @@ int main(int argc, char * argv[]) {
                 cout << "Found reads file: " << fastq_path << endl;
             }
             else if (strcmp(argv[i], "--op") == 0) {
-                op_path = argv[++i];
-                cout << "Found op file path: " << op_path << endl;
+                op_dir = argv[++i];
+                cout << "Found op directory path: " << op_dir << endl;
             }
             // cout << "fin i: " << i << endl;
         }
@@ -192,7 +207,7 @@ int main(int argc, char * argv[]) {
         cout << "BWTIndexed file path: " << bwt_path << endl;
         cout << "Suffix Array file path: " << sa_path << endl;
         cout << "FASTQ Read file path: " << fastq_path << endl;
-        cout << "Output file path: " << op_path << endl;
+        cout << "Output directory path: " << op_dir << endl;
     }
 
     Reference * ref;
@@ -207,7 +222,8 @@ int main(int argc, char * argv[]) {
     Reads * reads = new Reads(fastq_path);
     reads->make_seeds(20);
 
-    ExactMatchEngine * EMEngine = new ExactMatchEngine(idxed_ref);
+    ExactMatchEngine * EMEngine = new ExactMatchEngine(idxed_ref, op_dir);
     EMEngine->find_exact_matches(reads);
+    EMEngine->output_seedresults();
     EMEngine->print_seedresults();
 }
