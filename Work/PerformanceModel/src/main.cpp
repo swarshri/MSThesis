@@ -87,8 +87,6 @@ int main(int argc, char * argv[]) {
         RefObj = new Reference(bwtPath, saPath);
         refPath = bwtPath.substr(0, bwtPath.size() - 4);
     }
-    string refName = refPath.substr(refPath.find_last_of('/'));
-    cout << "reference name: " << refName << endl;
     
     Reads * ReadsObj = new Reads(readPath);
 
@@ -120,23 +118,17 @@ int main(int argc, char * argv[]) {
     Core * CORE = new Core("00", opDir, config->children["Core"], perf, RefObj);
     CORE->connect(SdMEM, OcMEMs, SiMEM);
     
-// #ifdef _WIN32
-//     string opDir = opDir + "\\OP";
-// #else
-//     string opDir = opDir + "OP";
-// #endif
+    string refName = refPath.substr(refPath.find_last_of('/') + 1);
+    cout << "Reference Name: " << refName << endl;
+    string readName = refPath.substr(readPath.find_last_of('/') + 1);
+    cout << "Read Name: " << readName << endl;
 
-//     struct stat info;
-//     if (stat(opDir.c_str(), &info) != 0) {
-//         cout << opDir << " doesn't exist." << endl;
-//         mkdir(opDir.c_str(), S_IWUSR);
-//     }
-//     else
-//         cout << opDir << " exists." << endl;
     IOInfo * ioinfo = new IOInfo;
-    ioinfo->reffilename = refName;
     ioinfo->conffilename = confName;
+    ioinfo->reffilename = refName;
     ioinfo->reflength = RefObj->get_seqLen();
+    ioinfo->readfilename = readName;
+    ioinfo->readscount = ReadsObj->get_readsCount();
     ioinfo->seedscount= ReadsObj->get_seedsCount();
     PerformanceOutput * perfop = new PerformanceOutput(opDir, ioinfo, config, CORE);
 

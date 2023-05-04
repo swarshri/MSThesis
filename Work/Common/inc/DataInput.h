@@ -54,6 +54,7 @@ class Reads {
         string get_seed(uint64_t);
         bitset<64> get_seed_bitset(uint64_t);
         uint64_t get_seedsCount();
+        uint64_t get_readsCount();
 
     private:
         string fqPath;

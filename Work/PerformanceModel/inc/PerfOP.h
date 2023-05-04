@@ -13,9 +13,11 @@ using namespace std;
 #define PERF_OP_H
 
 struct IOInfo {
-    string reffilename;
     string conffilename;
+    string reffilename;
     uint64_t reflength;
+    string readfilename;
+    uint64_t readscount;
     uint64_t seedscount;
 };
 

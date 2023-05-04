@@ -25,7 +25,7 @@ PerformanceOutput::PerformanceOutput(string iodir, IOInfo* ioinfo, SysConfig* co
         cout << "POP: File doesn't exist." << endl;
         ofstream csvop;
         csvop.open(this->opFilePath, ios::app);
-        string title = "#, Config Name, Reference File Name, Reference Length, Seeds Count, ";
+        string title = "#, Config Name, Reference File Name, Reference Length, Read File Name, Reads Count, Seeds Count, ";
         title += this->coreptr->getPerfMetricTitles();
         cout << "TITLE: " << title << endl;
         csvop << title;
@@ -42,6 +42,8 @@ void PerformanceOutput::output() {
                     this->ioinfo->conffilename + delim +
                     this->ioinfo->reffilename + delim +
                     to_string(this->ioinfo->reflength) + delim +
+                    this->ioinfo->readfilename + delim +
+                    to_string(this->ioinfo->readscount) + delim +
                     to_string(this->ioinfo->seedscount) + delim;
                     
     // cout << "POP: opline:" << this->opFilePath << opline << *this->coreptr->getPerfMetrics() << endl;

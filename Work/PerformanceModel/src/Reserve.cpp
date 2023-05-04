@@ -136,6 +136,8 @@ void ReserveStage::step() {
         }
 
         if (currentDispatch.first) {
+            if (!this->pendingToBeReserved.first) this->numLowOccLookups += 2; // One for low and one for high.
+
             CRSEntry * newCRSEntry = new CRSEntry;
             newCRSEntry->LowOccReady = true;
             newCRSEntry->HighOccReady = true;
@@ -153,23 +155,23 @@ void ReserveStage::step() {
 
             if (cacheHitLowData.first) {
                 newCRSEntry->LowOcc = cacheHitLowData.second;
-                this->numLowCacheHits++;
+                if (!this->pendingToBeReserved.first) this->numLowCacheHits++;
             }
             else {
                 newCRSEntry->LowOccReady = false;
                 newCRSEntry->LowOcc = 0;
-                this->numLowCacheMisses++;
+                if (!this->pendingToBeReserved.first) this->numLowCacheMisses++;
             }
             perf_lowocccachehit = to_string(cacheHitLowData.first);
 
             if (cacheHitHighData.first) {
                 newCRSEntry->HighOcc = cacheHitHighData.second;
-                this->numHighCacheHits++;
+                if (!this->pendingToBeReserved.first) this->numHighCacheHits++;
             }
             else {
                 newCRSEntry->HighOccReady = false;
                 newCRSEntry->HighOcc = 0;
-                this->numHighCacheMisses++;
+                if (!this->pendingToBeReserved.first) this->numHighCacheMisses++;
             }            
             perf_highocccachehit = to_string(cacheHitHighData.first);
 
@@ -184,7 +186,6 @@ void ReserveStage::step() {
                     newLoadRequest.OccMemoryAddress = currentDispatch.second.LowPointer;
                     newLoadRequest.ResStatIndex = nextCRSIdx;
                     newLoadRequests.push_back(newLoadRequest);
-                    this->numLowOccLookups++;
                 } 
                 if (!newCRSEntry->HighOccReady) {
                     LQEntry newLoadRequest;
@@ -192,7 +193,6 @@ void ReserveStage::step() {
                     newLoadRequest.OccMemoryAddress = currentDispatch.second.HighPointer;
                     newLoadRequest.ResStatIndex = nextCRSIdx;
                     newLoadRequests.push_back(newLoadRequest);
-                    this->numHighOccLookups++;
                 }
 
                 // this->perf->record(this->cycle_count, this->name + "_LowOccLoadRequestQueued", "NoLoadRequest");

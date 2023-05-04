@@ -160,8 +160,8 @@ void Core::gatherPLMetrics() {
 
         cout << "plmetric.numOccLookups: " << plmetric.numOccLookups << endl;
         if (plmetric.numOccLookups != 0) {
-            plmetric.cacheHitRate = plmetric.numCacheHits/plmetric.numOccLookups;
-            plmetric.cacheMissRate = plmetric.numCacheMisses/plmetric.numOccLookups;
+            plmetric.cacheHitRate = (float)plmetric.numCacheHits / (float)plmetric.numOccLookups;
+            plmetric.cacheMissRate = (float)plmetric.numCacheMisses / (float)plmetric.numOccLookups;
         }
         else {
             plmetric.cacheHitRate = 0;
@@ -177,8 +177,8 @@ void Core::gatherPLMetrics() {
     }
 
     if (this->perfmetrics->totalOccLookups != 0) {
-        this->perfmetrics->overallHitRate = this->perfmetrics->totalCacheHits/this->perfmetrics->totalOccLookups;
-        this->perfmetrics->overallMissRate = this->perfmetrics->totalCacheMisses/this->perfmetrics->totalOccLookups;
+        this->perfmetrics->overallHitRate = (float)this->perfmetrics->totalCacheHits / (float)this->perfmetrics->totalOccLookups;
+        this->perfmetrics->overallMissRate = (float)this->perfmetrics->totalCacheMisses / (float)this->perfmetrics->totalOccLookups;
     }
     else {
         this->perfmetrics->overallHitRate = 0;
