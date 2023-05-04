@@ -45,9 +45,9 @@ class Files(object):
         print(self.cfgf, self.reff, self.readf)
 
 class Run(object):
-    id = -1
+    runcount = 0
     def __init__(self, dirs, line, runsfid):
-        Run.id += 1
+        self.id = self.runcount
         self.files = Files(line)
         self.cfgpath = os.path.join(dirs.cfgd, self.files.cfgf)
         self.refpath = os.path.join(dirs.refd, self.files.reff)
@@ -63,13 +63,15 @@ class Run(object):
         if not os.path.isdir(self.opdir):
             os.makedirs(self.opdir)
 
-        perfcsv_file = os.path.join(self.opdir, "..", "PerfOP.csv")
+        perfcsv_file = os.path.join(self.opdir, "..", "Perf.csv")
         print("perf csv file:", perfcsv_file)
         if os.path.isfile(perfcsv_file):
             os.remove(perfcsv_file)
 
         self.pmconsoleoppath = os.path.join(self.opdir, "runperfmodel.out")
         self.fsconsoleoppath = os.path.join(self.opdir, "runfuncsim.out")
+        
+        Run.runcount += 1
 
     def funcsim(self):
         if os.path.isfile(self.bwtpath) and os.path.isfile(self.sapath):
@@ -83,7 +85,7 @@ class Run(object):
                                       "--op", self.opdir]
         
         print("\nRunning Functional Simulator with command:")
-        print(command)
+        print(' '.join(command))
         with open(self.fsconsoleoppath, "w") as outfile:
             subprocess.run(command, stdout=outfile)
 
@@ -103,7 +105,7 @@ class Run(object):
                                       "--op", self.opdir]
         
         print("\nRunning Performance Model with command:")
-        print(command)
+        print(' '.join(command))
         with open(self.pmconsoleoppath, "w") as outfile:
             subprocess.run(command, stdout=outfile)
     

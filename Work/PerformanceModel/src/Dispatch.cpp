@@ -71,22 +71,29 @@ void DispatchStage::dispatchSequential(int count) {
         base = nre.second.Seed[idx];
         // cout << "Idx: " << idx << " Base: " << base << endl;
         if (base == 'E' || nre.second.StoreFlag) {
-            StoreQueueEntry newStoreQueueEntry;
-            newStoreQueueEntry.StoreAddress = nre.second.SeedAddress;
-            newStoreQueueEntry.StoreValLow = nre.second.LowPointer;
-            newStoreQueueEntry.StoreValHigh = nre.second.HighPointer;
-            this->StoreQueue->push(newStoreQueueEntry);
-            // cout << "DS: Queued into Store Queue." << endl;
-            // this->StoreQueue->show(cout);
-            // this->print();
-            // Reset SRS Entry status to Empty.
-            this->coreFU->scheduleToSetEmptyState(nre.first);
-            // cout << "Setting SRS entry at " << nre.first << " to empty state." << endl;
-            this->coreFU->print();
-            // cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
+            if (!this->StoreQueue->isFull()) {
+                StoreQueueEntry newStoreQueueEntry;
+                newStoreQueueEntry.StoreAddress = nre.second.SeedAddress;
+                newStoreQueueEntry.StoreValLow = nre.second.LowPointer;
+                newStoreQueueEntry.StoreValHigh = nre.second.HighPointer;
+                this->StoreQueue->push(newStoreQueueEntry);
+                // if (nre.second.SeedAddress == 61 || nre.second.SeedAddress == 62) {
+                //     cout << "SQ found Seed Address: " << nre.second.SeedAddress << endl;
+                //     cout << "Store Val Low: " << nre.second.LowPointer << endl;
+                //     cout << "Store Val High: " << nre.second.HighPointer << endl;
+                //     cout << "DS: Queued into Store Queue." << endl;
+                //     this->StoreQueue->show(cout);
+                //     this->print();
+                // }
+                // Reset SRS Entry status to Empty.
+                this->coreFU->scheduleToSetEmptyState(nre.first);
+                // cout << "Setting SRS entry at " << nre.first << " to empty state." << endl;
+                // this->coreFU->print();
+                // cout << "DS: Scheduled to set Empty state in FU SRS at index: " << nre.first << endl;
+            }
         }
         //if base queue has space, schedule it and update the SRS entry state.
-        else if (!this->DispatchQueues[base]->isFull()) {
+        else if (!this->DispatchQueues[base]->isFull()) { // This will run into error when base is N or any character other than A, C, G, or T.
             DispatchQueueEntry dispatchNewEntry;
             dispatchNewEntry.base = base;
             dispatchNewEntry.LowPointer = nre.second.LowPointer;

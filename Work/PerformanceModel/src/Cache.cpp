@@ -11,7 +11,7 @@ Cache::Cache(string base, SysConfig* config) {
 
     this->offsetbits = ceil(log2(this->blocksize));
     this->indexbits = ceil(log2(this->numsets));
-    this->tagbits = 32 - this->indexbits - this->offsetbits;
+    this->tagbits = 64 - this->indexbits - this->offsetbits;
 
     cout << "In Cache constructor: " << base << " array size: " << this->Array.size() << endl;
     for (unsigned int i = 0; i < this->numsets; i++) {
@@ -44,11 +44,11 @@ pair<bool, uint64_t> Cache::read(uint64_t address) {
     if (this->offsetbits == 0)
         offset = 0;
     else
-        offset = address & (0xFFFFFFFF >> (32 - this->offsetbits));
-    unsigned int index = (address >> this->offsetbits) & (0xFFFFFFFF >> (32- this->indexbits));
+        offset = address & (0xFFFFFFFFFFFFFFFF >> (64 - this->offsetbits));
+    unsigned int index = (address >> this->offsetbits) & (0xFFFFFFFFFFFFFFFF >> (64- this->indexbits));
     unsigned int tag = (address >> (this->offsetbits + this->indexbits));
 
-    // cout << "Read Index: " << index << " Tag: " << tag  << " Offset: " << offset << endl;
+    // cout << this->name << ": Read Index: " << index << " Tag: " << tag  << " Offset: " << offset << endl;
     // get all ways in the set = Array[index].
     // run through all the ways in the set and compare tag and check validity - valid should always be 1 because, the
     // data never gets written, the blocks only get replaced by other more useful blocks after being loaded from memory.
@@ -71,9 +71,9 @@ bool Cache::write(IncomingCacheStruct incoming) {
     // cout << this->name << ": Writing incoming cache entry: " << incoming << endl;
     // extract tag, index, and offset from the address.
     uint64_t address = incoming.address;
-    // unsigned int offset = address.to_ulong() & (0xFFFFFFFF >> (32- this->offsetbits)); // - unused
-    unsigned int index = (address >> this->offsetbits) & (0xFFFFFFFF >> (32- this->indexbits));
-    unsigned int tag = (address >> (this->offsetbits + this->indexbits)) & (0xFFFFFFFF >> (32 - this->tagbits));
+    // unsigned int offset = address.to_ulong() & (0xFFFFFFFFFFFFFFFF >> (64- this->offsetbits)); // - unused
+    unsigned int index = (address >> this->offsetbits) & (0xFFFFFFFFFFFFFFFF >> (64- this->indexbits));
+    unsigned int tag = (address >> (this->offsetbits + this->indexbits)) & (0xFFFFFFFFFFFFFFFF >> (64 - this->tagbits));
     // cout << this->name << ": Incoming cache entry index: " << index << " tag: " << tag << endl;
 
     // run through all the ways in the set = Array[index] and compare tag.
@@ -90,7 +90,8 @@ bool Cache::write(IncomingCacheStruct incoming) {
     for (unsigned int i = 0; i < this->ways; i++) {
     // for (auto way = this->Array[index].begin(); way != this->Array[index].end(); way++) {
         auto way = &this->Array[index][i];
-        // cout << "In for loop 1 - count: " << count << " way->valid: " << way->valid << endl;
+        // cout << this->name << ": way: " << i << endl;
+        // cout << this->name << ": count: " << count << " way->valid: " << way->valid << endl;
         if (way->valid) {
             // cout << "In if (way->valid) case. " << way->valid << endl;
             if (way->tag == tag) {
