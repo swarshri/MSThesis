@@ -120,7 +120,7 @@ int main(int argc, char * argv[]) {
     
     string refName = refPath.substr(refPath.find_last_of('/') + 1);
     cout << "Reference Name: " << refName << endl;
-    string readName = refPath.substr(readPath.find_last_of('/') + 1);
+    string readName = readPath.substr(readPath.find_last_of('/') + 1);
     cout << "Read Name: " << readName << endl;
 
     IOInfo * ioinfo = new IOInfo;
