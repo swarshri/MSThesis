@@ -19,6 +19,7 @@
 #define CORE_H
 
 struct PLPerfMetrics {
+    float utilization;
     uint64_t numLowOccLookups;
     uint64_t numLowCacheHits;
     uint64_t numLowCacheMisses;
@@ -67,11 +68,15 @@ struct PerfMetrics {
     friend std::ostream& operator <<(std::ostream& os, PerfMetrics const& e) {
         string delim = ", ";
         return os << e.numCycles << delim
+                  << e.overallHitRate << delim
+                  << e.overallMissRate << delim
                   << e.totalCacheHits << delim
                   << e.totalCacheMisses << delim
                   << e.totalOccLookups << delim
-                  << e.overallHitRate << delim
-                  << e.overallMissRate << delim
+                  << e.PLMetrics.at('A').utilization << delim
+                  << e.PLMetrics.at('C').utilization << delim
+                  << e.PLMetrics.at('G').utilization << delim
+                  << e.PLMetrics.at('T').utilization << delim
                   << e.PLMetrics.at('A') << delim
                   << e.PLMetrics.at('C') << delim
                   << e.PLMetrics.at('G') << delim

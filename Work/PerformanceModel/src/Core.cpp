@@ -115,7 +115,12 @@ void Core::step() {
 }
 
 string Core::getPerfMetricTitles() {
-    string retstr = "# Cycles, Total Cache Hits, Total Cache Misses, Total Occ Lookups, Overall Hit Rate, Overall Miss Rate, ";
+    string retstr = "# Cycles, Overall Hit Rate, Overall Miss Rate, Total Cache Hits, Total Cache Misses, Total Occ Lookups, ";
+    for (char base: this->bases) {
+        string delim = ", ";
+        retstr = retstr +
+                 base + " Utilization" + delim;
+    }
     for (char base: this->bases) {
         string delim = ", ";
         retstr = retstr +
@@ -170,6 +175,8 @@ void Core::gatherPLMetrics() {
 
         plmetric.numCyclesWithNewJobs = this->DU->getNumCyclesWithNewDispatch(base);
         plmetric.numCyclesWithNoNewJobs = this->DU->getNumCyclesWithNoNewDispatch(base);
+        plmetric.utilization = (float)plmetric.numCyclesWithNewJobs / (float)this->perfmetrics->numCycles;
+        
         this->perfmetrics->PLMetrics[base] = plmetric;
         this->perfmetrics->totalCacheHits += plmetric.numCacheHits;
         this->perfmetrics->totalCacheMisses += plmetric.numCacheMisses;
