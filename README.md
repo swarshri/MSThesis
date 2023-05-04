@@ -6,5 +6,9 @@ Use one of the two below sets of commands to properly clone the repository:
 3. git submodule update
 
 (or)
+1. git clone https://github.com/swarshri/MSThesis.git
+2. git submodule update --init --recursive
+
+(or)
 
 1. git clone --recurse-submodules https://github.com/swarshri/MSThesis.git
