@@ -210,7 +210,7 @@ void ReserveStage::step() {
                     // cout << "RS: Updated Load Reservation Station with " << newLoadRequests.size() << " new Load Requests." << endl;
                     // this->perf->record(this->cycle_count, this->name + "_NumberOfLoadRequestsQueued", to_string(newLoadRequests.size()));
 
-                    this->CRS->fill(bitset<6>(nextCRSIdx), *newCRSEntry);
+                    this->CRS->fill(nextCRSIdx, *newCRSEntry);
                     // cout << "RS: Added into Compute Reservation Station at index: " << nextCRSIdx << endl;
                     // this->perf->record(this->cycle_count, this->name + "_AllocatedCRSEntryNumber", to_string(nextCRSIdx));
                     if (newLoadRequests.size() > 0)

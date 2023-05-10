@@ -1,5 +1,4 @@
 #include <iostream>
-#include <bitset>
 
 #include <Config.h>
 
@@ -22,7 +21,7 @@ class ReservationStation {
         ReservationStation(string, SysConfig *);
 
         int numVacant();
-        void fill(bitset<6>, EntryType);
+        void fill(uint32_t, EntryType);
         int nextFreeEntry();
         pair<int, EntryType> nextReadyEntry();
         void setEmptyState(int);

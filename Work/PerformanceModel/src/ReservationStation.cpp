@@ -14,9 +14,13 @@ ReservationStation<EntryType>::ReservationStation(string name, SysConfig * confi
 }
 
 template <typename EntryType>
-void ReservationStation<EntryType>::fill(bitset<6> idx, EntryType entry) {
-    int indx = idx.to_ulong();
-    this->Entries[indx] = entry;
+void ReservationStation<EntryType>::fill(uint32_t idx, EntryType entry) {
+    if (idx < this->numEntries)
+        this->Entries[idx] = entry;
+    else {
+        cout << "Bad index to fill in SRS: " << idx << ". Exiting." << endl;
+        exit(-1);
+    }
 }
 
 template <typename EntryType>

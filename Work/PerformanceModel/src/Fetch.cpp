@@ -22,6 +22,32 @@ void SeedReservationStation::updateHighPointer(int idx, uint64_t val) {
     this->Entries[idx].HighPointer = val;
 }
 
+pair<int, SRSEntry> SeedReservationStation::nextReadyEntry(char base) {
+    for (int i = 0; i < this->numEntries; i++) {
+        SRSEntry entry = this->Entries[i];
+        unsigned int idx = entry.Seed.size() - 1 - entry.BasePointer;
+        if (!entry.Empty && entry.Ready && entry.Seed[idx] == base && !entry.StoreFlag) {
+            return pair<int, SRSEntry>(i, this->Entries[i]);
+        }
+    }
+    return pair<int, SRSEntry>(-1, *(new SRSEntry));
+}
+
+pair<int, SRSEntry> SeedReservationStation::nextStoreEntry() {
+    for (int i = 0; i < this->numEntries; i++) {
+        SRSEntry entry = this->Entries[i];
+        unsigned int idx = entry.Seed.size() - 1 - entry.BasePointer;
+        if (!entry.Empty && entry.Ready && (entry.Seed[idx] == 'E' || entry.StoreFlag)) {
+            // if (i == 4) {
+            //     cout << "In next store entry i: " << i << endl;
+            //     cout << "Store Flag: " << entry.StoreFlag << endl;
+            // }
+            return pair<int, SRSEntry>(i, this->Entries[i]);
+        }
+    }
+    return pair<int, SRSEntry>(-1, *(new SRSEntry));
+}
+
 /*--------------
 FETCH STAGE
 ---------------*/
@@ -70,6 +96,14 @@ pair<int, SRSEntry> FetchStage::getNextReadyEntry() {
     return this->SRS->nextReadyEntry();
 }
 
+pair<int, SRSEntry> FetchStage::getNextReadyEntry(char base) {
+    return this->SRS->nextReadyEntry(base);
+}
+
+pair<int, SRSEntry> FetchStage::getNextStoreEntry() {
+    return this->SRS->nextStoreEntry();
+}
+
 void FetchStage::writeBack(int idx, uint64_t lowVal, uint64_t highVal) {
     pair<int, pair<uint64_t, uint64_t>> newWB = pair<int, pair<uint64_t, uint64_t>>(idx, pair<uint64_t, uint64_t>(lowVal, highVal));
     this->pendingWriteBacks.push_back(newWB);
@@ -112,7 +146,7 @@ void FetchStage::print() {
 
     if (output.is_open()) {
         // cout << "Seed Pointer: " << this->SeedPointer << endl;
-        this->SRS->show(cout);
+        // this->SRS->show(cout);
 
         output.close();
     }
@@ -130,6 +164,7 @@ void FetchStage::connectDRAM(SeedMemory * sdmem) {
 
 void FetchStage::step() {
     // cout << "----------------------- Fetch Stage step function --------------------------" << endl;
+    // this->SRS->show(cout);
     if (!this->halted) {
         int nextFreeEntry = this->SRS->nextFreeEntry();
         if (nextFreeEntry != -1 && this->SDMEM->willAcceptRequest(this->SeedPointer, false)) {
@@ -203,7 +238,7 @@ void FetchStage::step() {
         }
         this->pendingWriteBacks.clear();
         this->pendingWB = false;
-        this->print();
+        // this->print();
     }
     if (this->pendingEmpty) {
         for (int idx: this->pendingEmptyIdcs) {
@@ -212,7 +247,7 @@ void FetchStage::step() {
         }
         this->pendingEmptyIdcs.clear();
         this->pendingEmpty = false;
-        this->print();
+        // this->print();
     }
 }
 

@@ -160,5 +160,5 @@ if __name__ == "__main__":
         # Run Performance Model
         run.perfmodel()
         # Compare si outputs from both for verifying functional correctness
-        print("Verifying Functional Correctness.")
+        print("\nVerifying Functional Correctness.")
         run.verify_functional_correctness()
