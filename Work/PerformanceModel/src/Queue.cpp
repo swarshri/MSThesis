@@ -4,13 +4,13 @@
 #define QUEUE_DEF
 
 template <typename DataType>
-Queue<DataType>::Queue(SysConfig * config, uint8_t overridden_size) {
+Queue<DataType>::Queue(SysConfig * config, uint32_t overridden_size) {
     this->id = config->get_name();
-    uint8_t config_size = (uint8_t)config->parameters["Size"];
+    uint32_t config_size = config->parameters["Size"];
     if (overridden_size > config_size)
         this->size = overridden_size;
     else
-        this->size = (uint8_t)config->parameters["Size"];
+        this->size = config->parameters["Size"];
     this->registers.resize(this->size);
     this->readPointer = 0;
     this->writePointer = 0;

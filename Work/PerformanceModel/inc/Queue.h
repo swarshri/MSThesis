@@ -11,7 +11,7 @@
 template <typename DataType>
 class Queue {
     public:
-        Queue(SysConfig *, uint8_t = 1);
+        Queue(SysConfig *, uint32_t = 1);
 
         void push(DataType);
         DataType pop();
@@ -27,10 +27,10 @@ class Queue {
 
     private:
         vector<DataType> registers;
-        int readPointer;
-        int writePointer;
-        int size;
-        int count;
+        uint32_t readPointer;
+        uint32_t writePointer;
+        uint32_t size;
+        uint32_t count;
         string id;
         bool empty;
         bool full;
