@@ -35,6 +35,7 @@ void FMDI::construct_fmdi() {
 SeedResult FMDI::find_seed(string seed) {
     uint64_t low = 0;
     uint64_t high = this->seqLen;
+    // cout << endl << "Seed: " << seed << endl;
     for (int i = seed.size() - 1; i >= 0; i--) {
         char base = seed[i];
         uint64_t occ_low, occ_high;
@@ -46,8 +47,11 @@ SeedResult FMDI::find_seed(string seed) {
             occ_low = this->ref->getOcc(base, low);
             occ_high = this->ref->getOcc(base, high);
         }
+        // cout << "base: " << base << " low: " << low << " high: " << high << endl;
+        // cout << "count: " << this->Count[base] << " occ_low: " << low << " occ_high: " << high << endl;
         low = this->Count[base] + occ_low;
         high = this->Count[base] + occ_high;
+        // cout << "after compute low: " << low << " high: " << high << endl;
         if (low >= high)
             break;
     }
@@ -122,10 +126,15 @@ ExactMatchEngine::ExactMatchEngine(FMDI * idxed_ref, string opdir) {
 void ExactMatchEngine::find_exact_matches(Reads * reads) {
     uint64_t seedsCount = reads->get_seedsCount();
     cout << "Finding exact matches - Seed Count: " << seedsCount << endl;
+    this->total_time_taken = duration_cast<microseconds>(system_clock::now() - system_clock::now());
+    auto bloop = system_clock::now();
     for (uint64_t i = 0; i < seedsCount; i++) {
         string seed = reads->get_seed(i);
         if (seed != "EOS") {
+            auto bgng = system_clock::now();
             SeedResult em_result = this->iref->find_seed(seed);
+            auto end = system_clock::now();
+            this->total_time_taken += duration_cast<microseconds>(end - bgng);
             this->seedresults.push_back(em_result);
         }
     }
@@ -226,4 +235,6 @@ int main(int argc, char * argv[]) {
     EMEngine->find_exact_matches(reads);
     EMEngine->output_seedresults();
     EMEngine->print_seedresults();
+
+    cout << endl << "Total time taken for finding exact matches: " << EMEngine->total_time_taken.count() << " microseconds." << endl;
 }

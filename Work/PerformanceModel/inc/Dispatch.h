@@ -10,8 +10,8 @@
 #define DISP_H
 
 enum DispatchScheme {
-    SEQ1PE = 0,
-    PAR4PE = 1
+    LRIO = 0,
+    BWLRIO = 1
 };
 
 struct DispatchQueueEntry {
@@ -61,7 +61,8 @@ class DispatchStage {
     private:
         // Dispatch scheme from the config file.
         int dispatchScheme;
-        void dispatchSequential(int);
+        void dispatchLRIO(int); //dispatch Lowest Ready Index Out.
+        void dispatchBWLRIO(); //dispatch Base-Wise Lowest Ready Index Out.
         
         // Performance measurement related
         int cycle_count = 0;
@@ -74,6 +75,7 @@ class DispatchStage {
         map<char, Queue<DispatchQueueEntry>*> DispatchQueues;
         map<char, uint64_t> numCyclesWithNewDispatch;
         map<char, uint64_t> numCyclesWithNoNewDispatch;
+        map<char, uint64_t> numCyclesWithDispatchStalled;
         Queue<StoreQueueEntry> * StoreQueue;
 
         // Dispatch Output file

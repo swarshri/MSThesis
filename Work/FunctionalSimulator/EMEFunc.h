@@ -4,11 +4,13 @@
 #include <cstring>
 #include <vector>
 #include <map>
+#include <chrono>
 #include <algorithm>
 
 #include "../Common/inc/DataInput.h"
 
 using namespace std;
+using namespace chrono;
 
 struct SeedResult {
     string seed;
@@ -43,6 +45,8 @@ class ExactMatchEngine {
         void find_exact_matches(Reads *);
         void output_seedresults();
         void print_seedresults();
+
+        microseconds total_time_taken;
 
     private:
         FMDI * iref;

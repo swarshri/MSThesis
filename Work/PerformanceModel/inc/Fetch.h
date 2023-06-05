@@ -37,6 +37,9 @@ class SeedReservationStation: public ReservationStation<SRSEntry> {
         void updateBasePointer(int);
         void updateLowPointer(int, uint64_t);
         void updateHighPointer(int, uint64_t);
+        using ReservationStation<SRSEntry>::nextReadyEntry;
+        pair<int, SRSEntry> nextReadyEntry(char);
+        pair<int, SRSEntry> nextStoreEntry();
 };
 
 class FetchStage {
@@ -54,6 +57,8 @@ class FetchStage {
 
         // API methods for getting and setting from internal registers.
         pair<int, SRSEntry> getNextReadyEntry();
+        pair<int, SRSEntry> getNextReadyEntry(char);
+        pair<int, SRSEntry> getNextStoreEntry();
         void writeBack(int, uint64_t, uint64_t);
         void scheduleToSetEmptyState(int);
         void setInProgress(int);
